@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login | Precision Liner Portal</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --accent: #38bdf8;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: var(--accent);
+            margin-top: 0;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select,
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            background: #0b1220;
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        select:focus,
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn {
+            width: 100%;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 14px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        #errorMsg {
+            color: #ef4444;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #22c55e;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card" id="loginForm">
+        <h1>Welcome Back</h1>
+        <p style="color: #94a3b8; margin-bottom: 15px;">Please select your name and enter your password.</p>
+
+        <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid var(--accent); padding: 12px; margin-bottom: 25px; text-align: left; font-size: 13px; color: #cbd5e1; border-radius: 4px;">
+            <strong>Training Mode Available:</strong> You can sign into the <strong>test1</strong> or <strong>test2</strong> accounts to play and learn (password: <strong>trenton1</strong>). Submissions from these accounts will NOT be sent to Smartsheet.
+        </div>
+
+        <div id="errorMsg"></div>
+
+        <div class="input-group">
+            <label>Associate Name</label>
+            <select id="username"></select>
+        </div>
+
+        <div class="input-group" id="passwordGroup">
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+
+        <button class="btn" id="loginBtn" onclick="handleLogin()">Login</button>
+    </div>
+
+    <div class="card" id="setupForm" style="display: none;">
+        <h1>Create Password</h1>
+        <p style="color: #94a3b8; margin-bottom: 25px;">Your account requires a new password. Create one now.</p>
+
+        <div id="setupErrorMsg" style="color: #ef4444; margin-bottom: 15px; display: none; font-size: 14px;"></div>
+
+        <div class="input-group">
+            <label>New Password</label>
+            <input type="password" id="newPassword" placeholder="Minimum 6 characters">
+        </div>
+
+        <div class="input-group">
+            <label>Confirm Password</label>
+            <input type="password" id="confirmPassword" placeholder="••••••••">
+        </div>
+
+        <button class="btn" onclick="handleSetup()">Save & Login</button>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        // Check if already logged in
+        if (localStorage.getItem('currentUser')) {
+            window.location.href = '/';
+        }
+
+        let pendingSetupUsername = '';
+        let associatesData = [];
+
+        // Catch setup redirect from kiosk
+        const urlParams = new URLSearchParams(window.location.search);
+        const autoSetupUser = urlParams.get('setup');
+
+        async function init() {
+            try {
+                const res = await fetch('/api/config');
+                const json = await res.json();
+                if (json.success) {
+                    associatesData = json.data.associates;
+                    const sel = document.getElementById('username');
+                    sel.innerHTML = '<option value="">Select your name...</option>';
+                    // Sort alphabetically
+                    const sorted = [...associatesData].sort((a, b) => a.name.localeCompare(b.name));
+                    sorted.forEach(a => {
+                        const opt = document.createElement('option');
+                        opt.value = a.name; opt.textContent = a.name;
+                        sel.appendChild(opt);
+                    });
+
+                    sel.addEventListener('change', (e) => {
+                        const name = e.target.value;
+                        const userRec = associatesData.find(a => a.name === name);
+                        const btn = document.getElementById('loginBtn');
+                        const passGroup = document.getElementById('passwordGroup');
+
+                        if (userRec && !userRec.hasPassword) {
+                            // If they pick a user requiring setup, immediately swap to setup card
+                            pendingSetupUsername = name;
+                            document.getElementById('loginForm').style.display = 'none';
+                            const sf = document.getElementById('setupForm');
+                            sf.style.display = 'block';
+                            sf.querySelector('h1').textContent = `Welcome, ${name}`;
+                        } else {
+                            btn.textContent = "Login";
+                            btn.style.background = "var(--accent)";
+                            if (passGroup) passGroup.style.display = "block";
+                        }
+                    });
+
+                    // Trigger direct setup mode if redirected
+                    if (autoSetupUser) {
+                        const userRec = associatesData.find(a => a.name === autoSetupUser);
+                        if (userRec && !userRec.hasPassword) {
+                            pendingSetupUsername = autoSetupUser;
+                            document.getElementById('loginForm').style.display = 'none';
+                            const sf = document.getElementById('setupForm');
+                            sf.style.display = 'block';
+                            sf.querySelector('h1').textContent = `Welcome, ${autoSetupUser}`;
+                        }
+                    }
+                }
+            } catch (e) { console.error("Could not load config", e); }
+        }
+
+        function showError(msg, isSetup = false) {
+            const el = document.getElementById(isSetup ? 'setupErrorMsg' : 'errorMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 4000);
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username) return showError("Please select your name.");
+
+            const userRec = associatesData.find(a => a.name === username);
+            const needsSetup = userRec && !userRec.hasPassword;
+
+            if (!needsSetup && !password) return showError("Please enter your password.");
+
+            const btn = document.getElementById('loginBtn');
+            const originalText = btn.textContent;
+            btn.textContent = "Authenticating..."; btn.disabled = true;
+
+            try {
+                const controller = new AbortController();
+                const tid = setTimeout(() => controller.abort(), 15000);
+                let res;
+                try {
+                    res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password: password || "setup_init" }),
+                        signal: controller.signal
+                    });
+                } finally {
+                    clearTimeout(tid);
+                }
+                const data = await res.json();
+
+                if (data.success && data.requireSetup) {
+                    pendingSetupUsername = username;
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('setupForm').style.display = 'block';
+                } else if (data.success) {
+                    // Login successful!
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    if (data.adminToken) localStorage.setItem('adminToken', data.adminToken);
+                    const toast = document.getElementById('toast');
+                    toast.textContent = "Login successful!"; toast.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = data.user.role === 'Supervisor' ? '/admin.html' : '/';
+                    }, 500);
+                } else {
+                    showError(data.error || "Login failed");
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    showError("Server timed out. Please try again.");
+                } else {
+                    showError("Network error. Check your connection.");
+                }
+            }
+            btn.textContent = "Login"; btn.disabled = false;
+        }
+
+        async function handleSetup() {
+            const p1 = document.getElementById('newPassword').value;
+            const p2 = document.getElementById('confirmPassword').value;
+
+            if (p1.length < 6) return showError("Password must be at least 6 characters.", true);
+            if (p1 !== p2) return showError("Passwords do not match.", true);
+
+            const btn = document.querySelector('#setupForm .btn');
+            btn.textContent = "Saving..."; btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/setup-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: pendingSetupUsername, newPassword: p1 })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    if (data.adminToken) localStorage.setItem('adminToken', data.adminToken);
+                    const toast = document.getElementById('toast');
+                    toast.textContent = "Password saved. Logging in..."; toast.style.display = 'block';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    showError(data.error || "Failed to save password.", true);
+                }
+            } catch (e) {
+                showError("Network error.", true);
+            }
+            btn.textContent = "Save & Login"; btn.disabled = false;
+        }
+
+        // Handle Enter key
+        document.getElementById('password').addEventListener('keyup', e => { if (e.key === 'Enter') handleLogin(); });
+        document.getElementById('confirmPassword').addEventListener('keyup', e => { if (e.key === 'Enter') handleSetup(); });
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>

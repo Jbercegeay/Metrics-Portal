@@ -1,0 +1,3256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Precision Liner Production Control - V2.5.0</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --muted: #374151;
+            --text: #e5e7eb;
+            --accent: #38bdf8;
+            --accent-2: #22c55e;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --border: #1f2937;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: radial-gradient(1200px 800px at 10% -10%, #1e293b 10%, var(--bg) 60%);
+            color: var(--text);
+            line-height: 1.35;
+            padding-bottom: 40px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: #0b1220c7;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 920px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        h1 {
+            margin: 0 0 4px 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        h2 {
+            margin: 0 0 14px 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #cbd5e1;
+            border-left: 3px solid var(--accent);
+            padding-left: 10px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin: 0 0 20px 0;
+            font-size: 14px;
+        }
+
+        .label {
+            color: #cbd5e1;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input {
+            background: #0b1220;
+            border: 1px solid var(--muted);
+            color: var(--text);
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-align: right;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        .input:focus {
+            border-color: var(--accent);
+        }
+
+        .input-error {
+            border-color: var(--danger) !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+        }
+
+        .input-auto {
+            background: rgba(56, 189, 248, 0.05);
+            color: var(--accent);
+            border-color: rgba(56, 189, 248, 0.3);
+            font-weight: 800;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
+        .mono {
+            font-family: ui-monospace, monospace;
+        }
+
+        .select-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .custom-select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: #0b1220;
+            border: 1px solid var(--muted);
+            color: var(--text);
+            padding: 8px 30px 8px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: system-ui, sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .custom-select:focus {
+            border-color: var(--accent);
+        }
+
+        .select-wrapper::after {
+            content: "▼";
+            position: absolute;
+            right: 10px;
+            font-size: 10px;
+            color: var(--accent);
+            pointer-events: none;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            border: none;
+            padding: 12px 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            color: white;
+            transition: transform .05s ease, filter .12s ease;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, .25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-blue {
+            background: linear-gradient(180deg, #0ea5e9, #0284c7);
+        }
+
+        .btn-green {
+            background: linear-gradient(180deg, #10b981, #059669);
+        }
+
+        .btn-red {
+            background: linear-gradient(180deg, #ef4444, #b91c1c);
+        }
+
+        .btn-warn {
+            background: linear-gradient(180deg, #f59e0b, #d97706);
+        }
+
+        .btn-muted {
+            background: #374151;
+            color: #fff;
+            box-shadow: 0 3px 0 rgba(0, 0, 0, .15);
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 920px) {
+            .kpi-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .kpi-card {
+            background: #0b1220c7;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .kpi-val {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--accent);
+            display: block;
+        }
+
+        .kpi-lab {
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 10px;
+            color: #94a3b8;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .active-hour {
+            background: rgba(56, 189, 248, 0.15);
+            border-left: 4px solid var(--accent);
+            position: relative;
+        }
+
+        .takt-container {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .takt-bar {
+            height: 100%;
+            background: var(--accent);
+            transition: width 0.3s ease;
+        }
+
+        .yield-badge {
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-weight: 800;
+            min-width: 90px;
+            text-align: center;
+            background: #0b1220;
+            border: 1px solid var(--border);
+        }
+
+        .yield-ok {
+            background: linear-gradient(180deg, #16a34a, #15803d);
+            color: #fff;
+            border: none;
+        }
+
+        .yield-bad {
+            background: linear-gradient(180deg, #dc2626, #b91c1c);
+            color: #fff;
+            border: none;
+        }
+
+        #modalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal {
+            background: var(--panel);
+            border: 1px solid var(--muted);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: #000;
+            font-weight: 700;
+            border-radius: 8px;
+            transform: translateY(100px);
+            transition: transform 0.3s ease;
+            z-index: 2001;
+        }
+
+        #toast.show {
+            transform: translateY(0);
+        }
+
+        .timer-display {
+            font-family: monospace;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--accent);
+            font-weight: bold;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .mode-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: #0b1220;
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .mode-btn {
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: #000;
+            box-shadow: var(--shadow);
+        }
+
+        .var-neg {
+            color: var(--danger);
+            font-weight: 800;
+        }
+
+        .var-pos {
+            color: var(--accent-2);
+            font-weight: 800;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        @keyframes pulseRed {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+
+            50% {
+                transform: scale(1.02);
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .pulse-warn {
+            animation: pulseRed 2s infinite;
+            background: linear-gradient(180deg, #ef4444, #b91c1c) !important;
+        }
+
+        @keyframes pulseBlue {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(56, 189, 248, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+            }
+        }
+
+        .pulse-blue {
+            animation: pulseBlue 2s infinite;
+        }
+
+        .pcd-tabs {
+            display: flex;
+            gap: 0;
+            background: #0b1220;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .pcd-tab {
+            flex: 1;
+            border: none;
+            padding: 10px 8px;
+            border-radius: 7px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .pcd-tab.active {
+            background: var(--accent);
+            color: #000;
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+        }
+
+        .pcd-tab:hover:not(.active) {
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Kiosk Operator Bar */
+        .kiosk-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .kiosk-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .kiosk-btn:hover {
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .kiosk-btn.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(34, 197, 94, 0.15));
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+
+        .kiosk-btn.active::before {
+            content: '\25CF ';
+            color: var(--accent-2);
+            font-size: 10px;
+        }
+
+        .kiosk-add-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px dashed var(--accent);
+            background: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .kiosk-add-btn:hover {
+            background: rgba(56, 189, 248, 0.1);
+        }
+
+        .kiosk-remove-btn {
+            padding: 2px 6px;
+            margin-left: 4px;
+            border: none;
+            background: transparent;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        .kiosk-remove-btn:hover {
+            opacity: 1;
+        }
+
+        /* Spool Check QC Section */
+        .spool-check-section {
+            display: none;
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(56, 189, 248, 0.05);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 12px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .spool-check-section.visible {
+            display: block;
+        }
+
+        .sc-toggle-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .sc-toggle-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-width: 130px;
+        }
+
+        .sc-toggle-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .sc-toggle-btn:hover {
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .sc-toggle-btn.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(34, 197, 94, 0.15));
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // AUTHENTICATION CHECK
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user) {
+            window.location.href = '/login.html';
+        }
+    </script>
+    <div id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle" style="margin-top: 0;">Confirmation</h3>
+            <p id="modalText"></p>
+            <div id="modalBody"></div>
+            <div style="display: flex; gap: 10px; margin-top: 20px; justify-content: center;">
+                <button id="modalConfirm" class="btn btn-blue">Confirm</button>
+                <button id="modalCancel" class="btn btn-muted">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blocking overlay shown during Smartsheet API calls to prevent accidental input -->
+    <div id="submittingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; z-index:2100; backdrop-filter:blur(4px);">
+        <div class="modal" style="text-align:center; min-width:280px;">
+            <div id="submittingIcon" style="font-size:2.5rem; margin-bottom:12px;">⏳</div>
+            <h3 id="submittingTitle" style="margin:0 0 8px;">Please Wait</h3>
+            <p id="submittingText" style="margin:0 0 4px; color:var(--muted);">Submitting to Smartsheet...</p>
+            <p style="margin:0 0 20px; font-size:0.8rem; color:var(--muted);" id="submittingSubText">Do not press any buttons.</p>
+            <button id="submittingOkBtn" class="btn btn-blue" style="display:none;" onclick="hideSubmittingOverlay()">OK</button>
+        </div>
+    </div>
+
+    <div id="toast">Message</div>
+
+    <div class="container">
+        <header
+            style="margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; display: flex; justify-content: space-between; align-items: start;">
+            <div>
+                <h1>Precision Liner PCD Portal</h1>
+                <div class="subtitle">Advanced Systems Analysis & Control | V2.5.0</div>
+            </div>
+            <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                <div
+                    style="font-size: 13px; color: #94a3b8; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    <div id="navUserList" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end;"></div>
+                    <button id="navAdminBtn" onclick="window.location.href='/admin.html'"
+                        style="display:none; background:transparent; border:1px solid #f59e0b; color:#f59e0b; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:11px; margin-left:10px;">Admin</button>
+                </div>
+                <div id="currentDateTime"
+                    style="font-size: 14px; color: #fff; font-family: monospace; font-weight: 600;"></div>
+                <div id="shiftTimer" class="timer-display" style="display: none;">00:00:00</div>
+            </div>
+        </header>
+
+        <div id="handoverBanner" class="pulse-blue"
+            style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent); border-radius: 12px; padding: 15px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+            <div>
+                <h3 style="margin: 0 0 5px 0; color: var(--accent); font-size: 14px;">Important Note From Previous Shift
+                </h3>
+                <p id="handoverBannerText" style="margin: 0; font-size: 14px; color: #fff; line-height: 1.5;"></p>
+            </div>
+            <button class="btn btn-blue" style="padding: 8px 16px; font-size: 13px; height: fit-content;"
+                onclick="acknowledgeHandoverNote()">Acknowledge</button>
+        </div>
+
+        <!-- KPI bars are dynamically rendered by calculateOEE() -->
+        <div id="kpiContainer"></div>
+
+        <div class="mode-toggle">
+            <button id="btnModeJob" class="mode-btn active" onclick="setEntryMode('Job')">Job Entry</button>
+            <button id="btnModeEvent" class="mode-btn" onclick="setEntryMode('Event')">Event Entry</button>
+        </div>
+
+        <div class="grid">
+            <div class="left-col">
+                <section class="card">
+                    <h2>Setup & Shift Boundary</h2>
+                    <div class="row" style="grid-template-columns: 100px 1fr;">
+                        <label class="label">Work Date</label>
+                        <input type="date" id="workDateInput" class="input"
+                            style="text-align: left; font-size: 18px; padding: 12px;">
+                    </div>
+                    <div class="row" style="grid-template-columns: 100px 1fr;">
+                        <label class="label">Operator(s)</label>
+                        <div id="kioskBarContainer" class="kiosk-bar">
+                            <!-- Dynamically populated by initKioskBar() -->
+                        </div>
+                    </div>
+
+                    <div id="jobHeaderFields">
+                        <div class="row" style="grid-template-columns: 100px 1fr 1fr;">
+                            <label class="label">Shift Window</label>
+                            <div>
+                                <div class="label" style="font-size: 10px; margin-bottom: 4px;">START</div>
+                                <div style="display:flex;gap:4px;"><select id="startH" class="custom-select"
+                                        onchange="updateTimeFromUI()"></select><select id="startP" class="custom-select"
+                                        onchange="updateTimeFromUI()">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select></div>
+                            </div>
+                            <div>
+                                <div class="label" style="font-size: 10px; margin-bottom: 4px;">END</div>
+                                <div style="display:flex;gap:4px;"><select id="endH" class="custom-select"
+                                        onchange="updateTimeFromUI()"></select><select id="endP" class="custom-select"
+                                        onchange="updateTimeFromUI()">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select></div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+                            <div class="row" style="margin-bottom:0; grid-template-columns: 100px 1fr;"><label
+                                    class="label">Sequence</label>
+                                <div class="select-wrapper">
+                                    <!-- ========== EDITABLE: SEQUENCE OPTIONS ==========
+                                         To ADD a sequence: Copy one of the <option> lines below and change the text.
+                                             Example: <option value="New Sequence">New Sequence</option>
+                                         To REMOVE a sequence: Delete the entire <option> line for that entry.
+                                         NOTE: Keep the value="" and "Select Sequence..." line — it is the default placeholder.
+                                         ================================================== -->
+                                    <select id="sequenceInput" class="custom-select"
+                                        style="text-align: left; font-size: 18px; padding: 12px;">
+                                        <option value="">Select Sequence...</option>
+                                        <option value="Inspect">Inspect</option>
+                                        <option value="Bundle">Bundle</option>
+                                        <option value="Package">Package</option>
+                                        <option value="Spool Check">Spool Check</option>
+                                        <option value="Re-Label">Re-Label</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row" style="margin-bottom:0; grid-template-columns: 100px 1fr;"><label
+                                    class="label">Lot #</label><input id="lotNumber" class="input mono"
+                                    style="text-align: left; font-size: 18px; padding: 15px;" type="text"
+                                    placeholder="ENTER LOT NUMBER"></div>
+                            <div class="row" style="margin-bottom:0; grid-template-columns: 100px 1fr;"><label
+                                    class="label">Item #</label><input id="itemNumber" class="input mono"
+                                    style="text-align: left; font-size: 18px; padding: 15px;" type="text"
+                                    placeholder="ENTER ITEM NUMBER"></div>
+                        </div>
+
+                        <!-- Spool Check QC Details (visible only when Spool Check sequence is selected) -->
+                        <div id="spoolCheckQCSection" class="spool-check-section">
+                            <h3 style="margin: 0 0 12px 0; font-size: 14px; color: var(--accent); font-weight: 800;">🔍
+                                Quality Control Details</h3>
+                            <div class="sc-toggle-row">
+                                <span class="sc-toggle-label">Spool Check Seq</span>
+                                <button class="sc-toggle-btn" data-sc-seq="10"
+                                    onclick="setSpoolCheckSeq('10')">10</button>
+                                <button class="sc-toggle-btn" data-sc-seq="20"
+                                    onclick="setSpoolCheckSeq('20')">20</button>
+                                <button class="sc-toggle-btn" data-sc-seq="30"
+                                    onclick="setSpoolCheckSeq('30')">30</button>
+                            </div>
+                            <div class="sc-toggle-row">
+                                <span class="sc-toggle-label">Check #</span>
+                                <button class="sc-toggle-btn" data-sc-check="1st"
+                                    onclick="setSpoolCheckNum('1st')">1st</button>
+                                <button class="sc-toggle-btn" data-sc-check="2nd"
+                                    onclick="setSpoolCheckNum('2nd')">2nd</button>
+                                <button class="sc-toggle-btn" data-sc-check="3rd"
+                                    onclick="setSpoolCheckNum('3rd')">3rd</button>
+                                <button class="sc-toggle-btn" data-sc-check="4th"
+                                    onclick="setSpoolCheckNum('4th')">4th</button>
+                                <button class="sc-toggle-btn" data-sc-check="5th"
+                                    onclick="setSpoolCheckNum('5th')">5th</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="eventHeaderFields"
+                        style="display: none; border-top: 1px solid var(--border); padding-top: 20px; margin-top: 20px;">
+                        <div class="row" style="grid-template-columns: 100px 1fr;">
+                            <label class="label">Event</label>
+                            <div class="select-wrapper">
+                                <!-- ========== EDITABLE: EVENT TYPE OPTIONS ==========
+                                     To ADD an event: Copy one of the <option> lines below and change the text.
+                                         Example: <option value="New Event">New Event</option>
+                                     To REMOVE an event: Delete the entire <option> line for that entry.
+                                     NOTE: Keep the value="" and "Select Event..." line — it is the default placeholder.
+                                     WARNING: Do NOT remove "Shift End" — it is required for end-of-shift processing.
+                                     ================================================== -->
+                                <select id="eventSelect" class="custom-select"
+                                    style="text-align: left; font-size: 18px; padding: 12px;">
+                                    <option value="">Select Event...</option>
+                                    <option value="PTO">PTO</option>
+                                    <option value="Clean-Up">Clean-Up</option>
+                                    <option value="Meeting">Meeting</option>
+                                    <option value="Misc">Misc</option>
+                                    <option value="Toolbox">Toolbox</option>
+                                    <option value="Training">Training</option>
+                                    <option value="GPT-015">GPT-015</option>
+                                    <option value="Set-Up">Set-Up</option>
+                                    <option value="Break">Break</option>
+                                    <option value="Lunch">Lunch</option>
+                                    <option value="Shift End">Shift End</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row" style="grid-template-columns: 100px 1fr;">
+                            <label class="label">Start Time</label>
+                            <input id="eventStartTimeRef" class="input mono" type="time"
+                                style="text-align: center; padding: 12px;">
+                        </div>
+                        <div class="row" style="grid-template-columns: 100px 1fr;">
+                            <label class="label">Duration</label>
+                            <div style="display: flex; gap: 8px; width: 100%;">
+                                <input id="eventMinutesInput" class="input mono" type="number"
+                                    style="text-align: left; font-size: 22px; padding: 15px; color: var(--accent); flex-grow: 1;"
+                                    placeholder="0">
+                                <button id="btnEventTimer" class="btn btn-blue" style="width: 120px;"
+                                    onclick="toggleEventTimer()">Start Timer</button>
+                            </div>
+                        </div>
+                        <div id="eventTimerDisplay"
+                            style="text-align: right; color: var(--accent); font-size: 12px; margin-top: 5px; font-weight: 700; display: none;">
+                            TIMER RUNNING: 0m 0s</div>
+                        <div id="eventProjectedEnd"
+                            style="text-align: right; color: var(--accent-2); font-size: 12px; margin-top: 2px; font-weight: 700;">
+                            PROJECTED END: --:--</div>
+                        <div style="margin-top: 20px;">
+                            <button class="btn btn-green" style="width:100%; height: 60px; font-size: 18px;"
+                                onclick="handleEventSubmit()">Submit Event & Split PCD</button>
+                        </div>
+                    </div>
+                </section>
+
+                <div id="jobProductionControls">
+                    <section class="card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h2 style="margin: 0;">Lot Calculator</h2>
+                            <button id="btnNewLot" class="btn btn-muted" style="padding: 6px 12px; font-size: 11px;"
+                                onclick="handleLotResetTrigger()">MANUAL NEW LOT</button>
+                        </div>
+                        <div class="row">
+                            <button id="btnPlus1" class="btn btn-blue" style="width: 100%; max-width: 120px;"
+                                onclick="addGood(1)"><span>+1</span><span
+                                    style="font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">H</span></button>
+                            <button id="btnPlus5" class="btn btn-blue" style="width: 100%; max-width: 250px;"
+                                onclick="addGood(5)"><span>+5 Good Units</span><span
+                                    style="font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">G</span></button>
+                            <div style="display: flex; align-items: center; gap: 15px;"><label class="label">Good
+                                    Parts</label><input id="goodPartsInput" class="input mono" style="width: 140px;"
+                                    type="number" value="0" min="0"
+                                    onchange="updateGood(this.value)"></div>
+                        </div>
+                        <div style="height: 1px; background: var(--border); margin: 18px 0;"></div>
+                        <div class="row">
+                            <div class="label">Time worked (Min)</div><input id="timeWorkedInput"
+                                class="input mono input-auto" style="width: 140px;" type="number" value="0" readonly
+                                title="Automated Productivity Ledger">
+                        </div>
+                        <div class="row">
+                            <div class="label">Total Defects</div><input id="totalDefectsInput" class="input mono"
+                                style="width: 140px;" type="number" value="0" readonly>
+                        </div>
+                        <div class="row">
+                            <div class="label">Start Quantity</div><input id="startQtyInput" class="input mono"
+                                style="width: 140px;" type="number" value="0" readonly>
+                        </div>
+                        <div class="row">
+                            <div class="label">End Quantity</div><input id="endQtyInput" class="input mono"
+                                style="width: 140px;" type="number" value="0" readonly>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: flex-end; align-items: center; gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+                            <div class="label">Quality Yield</div>
+                            <div id="yieldBadge" class="yield-badge">—</div>
+                        </div>
+
+                        <div id="lowYieldSection"
+                            style="display: none; margin-top: 20px; padding: 15px; background: rgba(239, 68, 68, 0.05); border: 1px solid var(--danger); border-radius: 12px;">
+                            <h3 style="margin: 0 0 10px 0; color: var(--danger); font-size: 14px; font-weight: 800;">⚠️
+                                LOW YIELD ROOT CAUSE ANALYSIS</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div><label class="label" style="font-size: 10px;">PTFE OVEN HEAD</label><input
+                                        id="rca_ptfe_head" class="input" style="padding:8px; text-align:left;"></div>
+                                <div><label class="label" style="font-size: 10px;">PTFE OPERATORS</label>
+                                    <div class="select-wrapper"><select id="rca_ptfe_ops"
+                                            class="custom-select rca-op-select"></select></div>
+                                </div>
+                                <div><label class="label" style="font-size: 10px;">ETCH OPERATORS</label>
+                                    <div class="select-wrapper"><select id="rca_etch_ops"
+                                            class="custom-select rca-op-select"></select></div>
+                                </div>
+                                <div><label class="label" style="font-size: 10px;">TECO OVEN HEAD</label><input
+                                        id="rca_teco_head" class="input" style="padding:8px; text-align:left;"></div>
+                                <div><label class="label" style="font-size: 10px;">TECO OPERATORS</label>
+                                    <div class="select-wrapper"><select id="rca_teco_ops"
+                                            class="custom-select rca-op-select"></select></div>
+                                </div>
+                                <div><label class="label" style="font-size: 10px;">PEBAX OVEN HEAD</label><input
+                                        id="rca_pebax_head" class="input" style="padding:8px; text-align:left;"></div>
+                                <div><label class="label" style="font-size: 10px;">PEBAX OPERATORS</label>
+                                    <div class="select-wrapper"><select id="rca_pebax_ops"
+                                            class="custom-select rca-op-select"></select></div>
+                                </div>
+                                <div><label class="label" style="font-size: 10px;">COMMENTED?</label>
+                                    <div class="select-wrapper"><select id="rca_comment_status" class="custom-select">
+                                            <option value="No">No</option>
+                                            <option value="Yes">Yes</option>
+                                        </select></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;"><button
+                                id="btnSubmit" class="btn btn-green" onclick="handleSubmitJob()">Submit
+                                Job</button><button id="btnReset" class="btn btn-red"
+                                onclick="handleShiftResetTrigger()">End Shift Reset</button></div>
+                    </section>
+
+                    <section id="pcdTrackerCard" class="card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h2 style="margin:0;">Hour by Hour Tracker</h2>
+                            <div id="hourCountdown"
+                                style="font-size: 12px; color: var(--accent); font-weight: 700; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px;">
+                                --:-- REMAINING</div>
+                        </div>
+                        <div class="pcd-tabs">
+                            <button class="pcd-tab active" data-tab="Inspect"
+                                onclick="switchPcdTab('Inspect')">Inspect</button>
+                            <button class="pcd-tab" data-tab="Bundle" onclick="switchPcdTab('Bundle')">Bundle</button>
+                            <button class="pcd-tab" data-tab="Package"
+                                onclick="switchPcdTab('Package')">Package</button>
+                            <button class="pcd-tab" data-tab="Spool Check" onclick="switchPcdTab('Spool Check')">Spool
+                                Check</button>
+                            <button class="pcd-tab" data-tab="Re-Label"
+                                onclick="switchPcdTab('Re-Label')">Re-Label</button>
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Time Bucket</th>
+                                        <th>Goal</th>
+                                        <th>Total</th>
+                                        <th>Good</th>
+                                        <th>Bad</th>
+                                        <th>+/-</th>
+                                        <th>Min</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pcdBody"></tbody>
+                                <tfoot id="pcdFooter"
+                                    style="background: rgba(255,255,255,0.05); border-top: 2px solid var(--border); font-weight: bold;">
+                                </tfoot>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="right-col">
+                <section id="defectLogCard" class="card">
+                    <h2>Defect Log</h2>
+                    <div id="defectList"></div>
+                </section>
+                <section class="card" style="border-color: var(--warn);">
+                    <h2 id="notesLabel">Notes</h2><textarea id="handoverNotes" class="input"
+                        style="text-align: left; height: 120px; font-weight: normal; font-size: 13px; line-height: 1.5;"
+                        placeholder="Enter specific issues, event details..."
+                        id-placeholder-default="Enter specific issues, event details..."></textarea>
+                </section>
+                <section class="card" style="border-color: var(--accent);">
+                    <h2>Leave a note for next associate</h2><textarea id="nextShiftNoteInput" class="input"
+                        style="text-align: left; height: 120px; font-weight: normal; font-size: 13px; line-height: 1.5;"
+                        placeholder="Enter note for the next shift..."></textarea>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** 1. GLOBALS & UTILS **/
+        const getLocalDate = () => {
+            const d = new Date();
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        };
+
+        // These arrays are now dynamically populated from the Smartsheet API on page load
+        let DEFECTS = [];
+        let ASSOCIATES = [];
+        let OPERATORS = [];
+        let EVENTS = [];
+        let ASSOCIATE_SCHEDULES = {}; // maps name to { Mon, Tue ... Training }
+
+        const API_BASE_URL = '/api';
+
+        let SEQUENCE_GOALS = {};
+        let PCD_SEQUENCES = [];
+        let NON_PRODUCTIVE_SEQUENCES = [];
+
+        async function fetchSmartsheetData() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/config`);
+                const configData = await res.json();
+
+                if (configData.success) {
+                    const data = configData.data;
+
+                    // Associates & Schedules
+                    ASSOCIATES = data.associates.map(a => a.name);
+                    OPERATORS = [...ASSOCIATES];
+                    ASSOCIATE_SCHEDULES = {};
+                    data.associates.forEach(a => {
+                        ASSOCIATE_SCHEDULES[a.name] = a;
+                    });
+
+                    // Defects
+                    DEFECTS = data.defects.map(d => d.name);
+
+                    // Events
+                    EVENTS = data.events.map(e => e.name);
+
+                    // Sequences
+                    SEQUENCE_GOALS = {};
+                    PCD_SEQUENCES = [];
+                    NON_PRODUCTIVE_SEQUENCES = [];
+
+                    data.sequences.forEach(seq => {
+                        SEQUENCE_GOALS[seq.name] = parseInt(seq.goal) || 0;
+                        PCD_SEQUENCES.push(seq.name);
+                        // If goal is 0, we consider it non-productive
+                        if (SEQUENCE_GOALS[seq.name] === 0) {
+                            NON_PRODUCTIVE_SEQUENCES.push(seq.name);
+                        }
+                    });
+                }
+
+                // Call render initialization
+                renderDropdowns();
+                renderDefectLog();
+
+                // Call tab initialization
+                buildPcdTabs();
+
+                showToast("Data loaded from Smartsheet ✔️");
+            } catch (e) {
+                console.error("Failed to load backend API data:", e);
+                showToast("Failed to connect to Local API Database.");
+            }
+        }
+        const ROSTER = ["Adam Yarbrough", "Anthony Meyers", "Anthony Smith", "Branson Lee", "Brayden Wooten", "Candace Smith", "Chris Keith", "Chris Leverett", "Colby Higdon", "Cole Wooten", "Colton Emmett", "Corey Simmons", "Courtney Meadows", "Dakota Jackson", "Dustin Simmons", "Elijah Edgeworth", "Jacob Chambers", "Jacob Evans", "Joe Geddie", "John Kania", "Jordan York", "Josh Boatner", "Joshua Lynn", "Kyler Chambers", "Lisa Ballick", "Logan Coger", "Mason Bishop", "Mitch Crawford", "Page Ratledge", "Paul Gayton", "Phoenix Davis", "Richard Merrit", "RJ Smith", "Scott Smith", "Shane Hall", "Tim Lynch", "Trent Anderson", "Zac Counts", "Zach Casey", "Zach Sewell"];
+        const SHIFT_KEY = 'pl_pcd_v4_0_admin';
+
+        function createPcdBuckets(numHours, goalOverride) {
+            return Array.from({ length: numHours }, (_, i) => ({
+                hour: i + 1, goal: goalOverride !== undefined ? goalOverride : 0,
+                good: 0, bad: 0, goodByUser: {}, badByUser: {},
+                planMins: 50, seqMins: 0, actMins: 0, downtimeReasons: []
+            }));
+        }
+
+        function createInitialState() {
+            const pcdBySequence = {};
+            PCD_SEQUENCES.forEach(seq => {
+                pcdBySequence[seq] = createPcdBuckets(12, SEQUENCE_GOALS[seq]);
+            });
+            pcdBySequence['__events__'] = Array.from({ length: 12 }, (_, i) => ({
+                hour: i + 1, seqMins: 0, eventNames: []
+            }));
+            return {
+                entryType: "Job", workDate: getLocalDate(),
+                associate: "", sequence: "", itemNumber: "", lotNumber: "",
+                activeUsers: [],       // Kiosk: array of signed-in operator names
+                selectedOperator: "",  // Kiosk: who is currently active for +1 clicks
+                startTime: "", endTime: "", totalGood: 0, timeWorked: 0,
+                seqGood: {},           // { 'Inspect': 5 } — good parts per sequence for current lot
+                seqDefects: {},        // { 'Inspect': { 'Wrinkles': 1 } } — defects per sequence for current lot
+                seqMinsAtLotStart: {}, // seqMins snapshot at lot start for per-lot time isolation
+                totalGoodByUser: {},   // { 'Abbi Long': 5, 'Johnny': 10 }
+                billedMins: 0, handoverNotes: "", nextShiftNote: "",
+                shiftTotalGood: 0, shiftTotalBad: 0,
+                shiftTotalGoodByUser: {}, shiftTotalBadByUser: {},
+                defects: Object.fromEntries(DEFECTS.map(d => [d, 0])),
+                defectsByUser: {},     // { 'Abbi': { 'Wrinkles': 2 }, 'Johnny': { 'Wrinkles': 3 } }
+                pcdBySequence: pcdBySequence,
+                activePcdTab: 'Inspect',
+                pcd: pcdBySequence['Inspect'],
+                sequenceStartTime: null,
+                currentHourIndex: -1, editingDTIndex: -1, overrides: { totalDefects: null, startQty: null },
+                spoolCheckSequence: "",  // '10', '20', or '30'
+                spoolCheckNumber: "",    // '1st', '2nd', '3rd', '4th', '5th'
+                workspaces: {},          // Kiosk: { 'Operator Name': workspaceObject }
+                rca: { ptfeHead: "", ptfeOps: "", etchOps: "", tecoHead: "", tecoOps: "", pebaxHead: "", pebaxOps: "", commentStatus: "No" },
+                eventData: { type: "", minutes: 0, startTimeRef: "", exactStartMs: null },
+                eventTimer: { running: false, startTime: null },
+                shiftEndModalShown: false
+            };
+        }
+
+        /** Helper to capture current production state into a workspace object */
+        function getActiveWorkspaceSnapshot() {
+            return {
+                sequence: state.sequence,
+                lotNumber: state.lotNumber,
+                itemNumber: state.itemNumber,
+                totalGood: state.totalGood,
+                defects: JSON.parse(JSON.stringify(state.defects)),
+                pcdBySequence: JSON.parse(JSON.stringify(state.pcdBySequence)),
+                activePcdTab: state.activePcdTab,
+                spoolCheckSequence: state.spoolCheckSequence,
+                spoolCheckNumber: state.spoolCheckNumber,
+                handoverNotes: state.handoverNotes,
+                nextShiftNote: state.nextShiftNote,
+                startTime: state.startTime,
+                endTime: state.endTime,
+                billedMins: state.billedMins || 0,
+                rca: JSON.parse(JSON.stringify(state.rca)),
+                seqGood: JSON.parse(JSON.stringify(state.seqGood || {})),
+                seqDefects: JSON.parse(JSON.stringify(state.seqDefects || {})),
+                seqMinsAtLotStart: JSON.parse(JSON.stringify(state.seqMinsAtLotStart || {}))
+            };
+        }
+
+        /** Helper to apply a workspace object to the active production state */
+        function applyWorkspaceSnapshot(ws) {
+            state.sequence = ws.sequence || "";
+            state.lotNumber = ws.lotNumber || "";
+            state.itemNumber = ws.itemNumber || "";
+            state.totalGood = ws.totalGood || 0;
+            state.defects = ws.defects ? JSON.parse(JSON.stringify(ws.defects)) : Object.fromEntries(DEFECTS.map(d => [d, 0]));
+            state.pcdBySequence = ws.pcdBySequence ? JSON.parse(JSON.stringify(ws.pcdBySequence)) : {};
+            state.activePcdTab = ws.activePcdTab || "Inspect";
+            state.spoolCheckSequence = ws.spoolCheckSequence || "";
+            state.spoolCheckNumber = ws.spoolCheckNumber || "";
+            state.handoverNotes = ws.handoverNotes || "";
+            state.nextShiftNote = ws.nextShiftNote || "";
+            state.startTime = ws.startTime || "";
+            state.endTime = ws.endTime || "";
+            state.billedMins = ws.billedMins || 0;
+            state.rca = ws.rca || { ptfeHead: "", ptfeOps: "", etchOps: "", tecoHead: "", tecoOps: "", pebaxHead: "", pebaxOps: "", commentStatus: "No" };
+            state.seqGood = ws.seqGood ? JSON.parse(JSON.stringify(ws.seqGood)) : {};
+            state.seqDefects = ws.seqDefects ? JSON.parse(JSON.stringify(ws.seqDefects)) : {};
+            state.seqMinsAtLotStart = ws.seqMinsAtLotStart ? JSON.parse(JSON.stringify(ws.seqMinsAtLotStart)) : {};
+            // Mirror active sequence's defects into state.defects so UI shows correct values
+            if (state.sequence && state.seqDefects[state.sequence]) {
+                state.defects = JSON.parse(JSON.stringify(state.seqDefects[state.sequence]));
+            }
+            // Restart the sequence timer from the moment the workspace is loaded
+            state.sequenceStartTime = state.sequence ? Date.now() : null;
+
+            ensurePcdState();
+            syncUIToState();
+        }
+
+        let state = createInitialState();
+
+        function ensurePcdState() {
+            if (!state.pcdBySequence || typeof state.pcdBySequence !== 'object') {
+                state.pcdBySequence = {};
+            }
+            PCD_SEQUENCES.forEach(seq => {
+                if (!Array.isArray(state.pcdBySequence[seq])) {
+                    state.pcdBySequence[seq] = createPcdBuckets(12, SEQUENCE_GOALS[seq]);
+                }
+            });
+            if (!Array.isArray(state.pcdBySequence['__events__'])) {
+                state.pcdBySequence['__events__'] = Array.from({ length: 12 }, (_, i) => ({
+                    hour: i + 1, seqMins: 0, eventNames: []
+                }));
+            }
+            if (!PCD_SEQUENCES.includes(state.activePcdTab)) {
+                state.activePcdTab = 'Inspect';
+            }
+            state.pcd = state.pcdBySequence[state.activePcdTab];
+        }
+
+        function applyPcdTabUI() {
+            ensurePcdState();
+            const tabName = state.activePcdTab || 'Inspect';
+            const setupSeq = state.sequence;
+            document.querySelectorAll('.pcd-tab').forEach(btn => {
+                const seq = btn.dataset.tab;
+
+                // Calculate total good parts for this specific sequence
+                const seqBuckets = state.pcdBySequence[seq] || [];
+                const seqTotalGood = seqBuckets.reduce((sum, b) => sum + (b.good || 0), 0);
+
+                // Update tab text with total parts and live recording indicator
+                const isRecordingHere = seq === setupSeq;
+                btn.innerHTML = `${isRecordingHere ? '<span style="color:#22c55e; font-size:10px; animation: pulse 2s infinite;">🔴</span> ' : ''}${seq} (${seqTotalGood})`;
+                btn.classList.toggle('active', seq === tabName);
+            });
+        }
+
+        function switchPcdTab(tabName) {
+            if (!PCD_SEQUENCES.includes(tabName)) return;
+            ensurePcdState();
+            state.activePcdTab = tabName;
+            state.pcd = state.pcdBySequence[tabName];
+            applyPcdTabUI();
+            save();
+        }
+
+        /** 2. UI HELPERS **/
+        function showToast(msg, duration = 3000) {
+            // Break out warnings and errors into blocking center-screen modals
+            if (msg.startsWith('⚠️') || msg.startsWith('❌')) {
+                const title = msg.startsWith('⚠️') ? "Action Required" : "Error";
+                // Strip the emoji from the text for cleaner display
+                const cleanMsg = msg.replace(/^[⚠️❌]\s*(ERROR: )?/, '');
+                // Use the customConfirm modal with the Cancel button hidden
+                customConfirm(title, cleanMsg, () => {}, true);
+                return;
+            }
+
+            // Normal success toasts appear at the bottom
+            const t = document.getElementById('toast');
+            if (t) { t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), duration); }
+        }
+
+        let submittingOverlayHideTimer = null;
+
+        function showSubmittingOverlay(title, message) {
+            if (submittingOverlayHideTimer) {
+                clearTimeout(submittingOverlayHideTimer);
+                submittingOverlayHideTimer = null;
+            }
+            document.getElementById('submittingIcon').textContent = '⏳';
+            document.getElementById('submittingTitle').textContent = title || 'Please Wait';
+            document.getElementById('submittingText').textContent = message || 'Submitting to Smartsheet...';
+            document.getElementById('submittingSubText').textContent = 'Do not press any buttons.';
+            document.getElementById('submittingOkBtn').style.display = 'none';
+            document.getElementById('submittingOverlay').style.display = 'flex';
+        }
+
+        function updateSubmittingOverlay(title, message, isError = false) {
+            if (submittingOverlayHideTimer) {
+                clearTimeout(submittingOverlayHideTimer);
+                submittingOverlayHideTimer = null;
+            }
+            document.getElementById('submittingIcon').textContent = isError ? '❌' : '✅';
+            document.getElementById('submittingTitle').textContent = title;
+            document.getElementById('submittingText').textContent = message;
+            document.getElementById('submittingSubText').textContent = '';
+            if (isError) {
+                document.getElementById('submittingOkBtn').style.display = 'inline-block';
+            } else {
+                submittingOverlayHideTimer = setTimeout(() => {
+                    submittingOverlayHideTimer = null;
+                    hideSubmittingOverlay();
+                }, 2000);
+            }
+        }
+
+        function hideSubmittingOverlay() {
+            if (submittingOverlayHideTimer) {
+                clearTimeout(submittingOverlayHideTimer);
+                submittingOverlayHideTimer = null;
+            }
+            document.getElementById('submittingOverlay').style.display = 'none';
+        }
+
+        function customConfirm(title, text, callback, hideCancel = false) {
+            const overlay = document.getElementById('modalOverlay');
+            if (!overlay) return;
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalText').textContent = text;
+            overlay.style.display = 'flex';
+            const btnCancel = document.getElementById('modalCancel');
+            if (btnCancel) btnCancel.style.display = hideCancel ? 'none' : 'inline-block';
+            document.getElementById('modalConfirm').onclick = () => { overlay.style.display = 'none'; callback(); };
+            if (btnCancel) btnCancel.onclick = () => { overlay.style.display = 'none'; };
+        }
+
+        function getHourLabel(index) {
+            if (!state.startTime) return `Hour ${index + 1}`;
+            const [h, m] = state.startTime.split(':').map(Number);
+            const start = new Date(); start.setHours(h, m, 0, 0);
+            if (start > new Date() && h >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
+            start.setMinutes(start.getMinutes() + (index * 60));
+            const end = new Date(start); end.setMinutes(end.getMinutes() + 60);
+            const fmt = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+            return `${fmt(start)} - ${fmt(end)}`;
+        }
+
+        /** 3. INITIALIZATION FUNCTIONS **/
+
+        /** Populate the hour dropdowns (1–12) for shift start/end selectors */
+        function initTimeDropdowns() {
+            const startH = document.getElementById('startH');
+            const endH = document.getElementById('endH');
+            if (!startH || !endH) return;
+            startH.innerHTML = '<option value="">Select...</option>';
+            endH.innerHTML = '<option value="">Select...</option>';
+            for (let h = 1; h <= 12; h++) {
+                const o1 = document.createElement('option'); o1.value = h; o1.textContent = h; startH.appendChild(o1);
+                const o2 = document.createElement('option'); o2.value = h; o2.textContent = h; endH.appendChild(o2);
+            }
+            startH.value = "";
+            endH.value = "";
+        }
+
+        /** Populate all RCA operator dropdowns from the ROSTER array */
+        function initRosterDropdowns() {
+            const selects = document.querySelectorAll('.rca-op-select');
+            selects.forEach(sel => {
+                sel.innerHTML = '<option value="">Select operator...</option>';
+                ROSTER.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name; opt.textContent = name;
+                    sel.appendChild(opt);
+                });
+            });
+        }
+
+        /** Build the Kiosk operator toggle bar */
+        function initKioskBar() {
+            const container = document.getElementById('kioskBarContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            // Ensure kiosk state exists
+            if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
+            const user = JSON.parse(localStorage.getItem('currentUser')) || {};
+
+            // On first load only, ensure the logged-in user is in the list.
+            // Do NOT re-add users who have been explicitly removed via End Shift.
+            if (user.name && state.activeUsers.length === 0) {
+                state.activeUsers.unshift(user.name);
+            }
+            if (!state.selectedOperator || !state.activeUsers.includes(state.selectedOperator)) {
+                state.selectedOperator = state.activeUsers[0] || '';
+            }
+            // Keep state.associate in sync for backward compat
+            state.associate = state.selectedOperator;
+
+            // Update header to reflect all active users
+            const navUserList = document.getElementById('navUserList');
+            if (navUserList) {
+                navUserList.innerHTML = '';
+                state.activeUsers.forEach(op => {
+                    const pill = document.createElement('div');
+                    pill.style.cssText = "display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.08); padding:5px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2);";
+                    
+                    const span = document.createElement('span');
+                    span.style.cssText = "color:#fff; font-size:13px;";
+                    span.textContent = op;
+                    if (op === user.name && user.role) {
+                        span.textContent += ` (${user.role})`;
+                    }
+                    
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Logout';
+                    btn.style.cssText = "background:transparent; border:none; color:#ef4444; border-radius:4px; cursor:pointer; font-size:11px; padding:0; text-transform:uppercase; font-weight:bold; transition: opacity 0.2s;";
+                    btn.onmouseover = () => btn.style.opacity = '0.7';
+                    btn.onmouseout = () => btn.style.opacity = '1';
+                    btn.onclick = () => handleUserLogout(op);
+                    
+                    pill.appendChild(span);
+                    pill.appendChild(btn);
+                    navUserList.appendChild(pill);
+                });
+            }
+
+            state.activeUsers.forEach(name => {
+                const btn = document.createElement('button');
+                btn.className = 'kiosk-btn' + (name === state.selectedOperator ? ' active' : '');
+                btn.innerHTML = name;
+                // All operators can have a remove/end-shift button
+                const rm = document.createElement('button');
+                rm.className = 'kiosk-remove-btn';
+                rm.innerHTML = '✕';
+                rm.title = 'Remove from station';
+                rm.onclick = (e) => { e.stopPropagation(); removeKioskUser(name); };
+                btn.appendChild(rm);
+                btn.onclick = () => selectKioskOperator(name);
+                container.appendChild(btn);
+            });
+
+            // "+ Add Operator" button
+            const addBtn = document.createElement('button');
+            addBtn.className = 'kiosk-add-btn';
+            addBtn.textContent = '+ Add Operator';
+            addBtn.onclick = () => showAddOperatorModal();
+            container.appendChild(addBtn);
+        }
+
+        function selectKioskOperator(name) {
+            if (state.selectedOperator === name) return;
+
+            // 1. Save current active view to the current operator's workspace
+            if (state.selectedOperator) {
+                if (!state.workspaces) state.workspaces = {};
+                // Flush any accumulated on-sequence time before snapshotting
+                if (state.sequence && state.sequenceStartTime) flushSequenceTime(state.sequence);
+                state.workspaces[state.selectedOperator] = getActiveWorkspaceSnapshot();
+            }
+
+            // 2. Identify new workspace
+            state.selectedOperator = name;
+            state.associate = name;
+
+            if (state.workspaces && state.workspaces[name]) {
+                applyWorkspaceSnapshot(state.workspaces[name]);
+            } else {
+                // Initialize fresh workspace for this operator
+                const fresh = createInitialState();
+                applyWorkspaceSnapshot({
+                    sequence: fresh.sequence,
+                    lotNumber: fresh.lotNumber,
+                    itemNumber: fresh.itemNumber,
+                    totalGood: fresh.totalGood,
+                    defects: fresh.defects,
+                    pcdBySequence: fresh.pcdBySequence,
+                    activePcdTab: fresh.activePcdTab,
+                    spoolCheckSequence: fresh.spoolCheckSequence,
+                    spoolCheckNumber: fresh.spoolCheckNumber,
+                    handoverNotes: fresh.handoverNotes,
+                    nextShiftNote: fresh.nextShiftNote,
+                    startTime: fresh.startTime,
+                    endTime: fresh.endTime,
+                    billedMins: fresh.billedMins,
+                    rca: fresh.rca
+                });
+            }
+
+            save();
+            initKioskBar();
+        }
+
+        function removeKioskUser(name) {
+            // Save before removing so we don't lose work if they were active
+            if (state.selectedOperator === name) {
+                if (!state.workspaces) state.workspaces = {};
+                state.workspaces[name] = getActiveWorkspaceSnapshot();
+            }
+
+            state.activeUsers = state.activeUsers.filter(n => n !== name);
+            // Optionally delete workspace if you want it cleaned up
+            // if (state.workspaces) delete state.workspaces[name];
+
+            if (state.selectedOperator === name) {
+                const nextOp = state.activeUsers[0] || '';
+                if (nextOp) {
+                    state.selectedOperator = ""; // temp clear so swap logic works
+                    selectKioskOperator(nextOp);
+                } else {
+                    state.selectedOperator = "";
+                    state.associate = "";
+                }
+            }
+            save();
+            initKioskBar();
+            showToast(`${name} removed from station.`);
+        }
+
+        function showAddOperatorModal() {
+            const overlay = document.getElementById('modalOverlay');
+            if (!overlay) return;
+            document.getElementById('modalTitle').textContent = 'Add Operator to Station';
+            document.getElementById('modalText').textContent = 'Select an associate and enter their password to join this station.';
+            const body = document.getElementById('modalBody');
+            body.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+                    <select id="addOpSelect" class="custom-select" style="padding:10px; font-size:14px; text-align: left;">
+                        <option value="">Select Associate...</option>
+                    </select>
+                    <input type="password" id="addOpPassword" class="input" placeholder="Password" style="padding:10px; font-size:14px; text-align: left;">
+                </div>
+            `;            const sel = document.getElementById('addOpSelect');
+            const opList = (typeof ASSOCIATES !== 'undefined' && ASSOCIATES.length > 0) ? ASSOCIATES : (typeof ROSTER !== 'undefined' ? ROSTER : []);
+            opList.filter(n => !state.activeUsers.includes(n)).forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n; opt.textContent = n;
+                sel.appendChild(opt);
+            });
+            
+            sel.addEventListener('change', (e) => {
+                const name = e.target.value;
+                const userRec = (typeof ASSOCIATE_SCHEDULES !== 'undefined') ? ASSOCIATE_SCHEDULES[name] : null;
+                const passInp = document.getElementById('addOpPassword');
+                const btn = document.getElementById('modalConfirm');
+                
+                if (userRec && userRec.hasPassword === false) {
+                    if (passInp) passInp.style.display = 'none';
+                    if (btn) { btn.textContent = 'Create Account'; btn.style.background = '#22c55e'; }
+                    document.getElementById('modalText').textContent = 'This associate has no password. Click Create Account to set one up.';
+                } else {
+                    if (passInp) passInp.style.display = 'block';
+                    if (btn) { btn.textContent = 'Confirm'; btn.style.background = 'var(--accent)'; }
+                    document.getElementById('modalText').textContent = 'Select an associate and enter their password to join this station.';
+                }
+            });
+            
+            overlay.style.display = 'flex';
+
+            const btnConfirm = document.getElementById('modalConfirm');
+            const btnCancel = document.getElementById('modalCancel');
+
+            if (btnCancel) {
+                btnCancel.style.display = 'inline-block';
+                btnCancel.onclick = () => {
+                    overlay.style.display = 'none';
+                    document.getElementById('modalBody').innerHTML = '';
+                    if (btnConfirm) { btnConfirm.textContent = 'Confirm'; btnConfirm.style.background = 'var(--accent)'; }
+                };
+            }
+
+            if (btnConfirm) {
+                // Ensure default styling is reset for modal caching
+                btnConfirm.textContent = 'Confirm';
+                btnConfirm.style.background = 'var(--accent)';
+                
+                btnConfirm.onclick = async () => {
+                    const name = document.getElementById('addOpSelect').value;
+                    const pass = document.getElementById('addOpPassword').value;
+                    const userRec = (typeof ASSOCIATE_SCHEDULES !== 'undefined') ? ASSOCIATE_SCHEDULES[name] : null;
+
+                    if (!name) { showToast('Select an associate.'); return; }
+                    
+                    if (userRec && userRec.hasPassword === false) {
+                        document.getElementById('modalTitle').textContent = `Set Password: ${name}`;
+                        document.getElementById('modalText').textContent = `Create a new 6-character password to join this station.`;
+                        document.getElementById('modalBody').innerHTML = `
+                            <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+                                <input type="password" id="newOpPassword" class="input" placeholder="New Password" style="padding:10px; font-size:14px; text-align: left;">
+                                <input type="password" id="confirmOpPassword" class="input" placeholder="Confirm Password" style="padding:10px; font-size:14px; text-align: left;">
+                            </div>
+                        `;
+                        btnConfirm.textContent = 'Create & Join';
+                        btnConfirm.style.background = '#22c55e';
+                        
+                        btnConfirm.onclick = async () => {
+                            const p1 = document.getElementById('newOpPassword').value;
+                            const p2 = document.getElementById('confirmOpPassword').value;
+                            if (p1.length < 6) return showToast('Password must be at least 6 characters.');
+                            if (p1 !== p2) return showToast('Passwords do not match.');
+                            
+                            try {
+                                const setupRes = await fetch(`${API_BASE_URL}/setup-password`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ username: name, newPassword: p1 })
+                                });
+                                const setupData = await setupRes.json();
+                                if (setupData.success) {
+                                    if (!state.activeUsers.includes(name)) state.activeUsers.push(name);
+                                    selectKioskOperator(name);
+                                    overlay.style.display = 'none';
+                                    showToast(`${name} created password and joined!`);
+                                    
+                                    // Update our local state so we know they have a password now
+                                    if (typeof ASSOCIATE_SCHEDULES !== 'undefined' && ASSOCIATE_SCHEDULES[name]) {
+                                        ASSOCIATE_SCHEDULES[name].hasPassword = true;
+                                    }
+                                } else {
+                                    showToast('Failed to assign password: ' + (setupData.error || ''));
+                                }
+                            } catch (e) {
+                                showToast('Network Error setting up account.');
+                            }
+                        };
+                        return;
+                    }
+                    
+                    if (!pass) { showToast('Enter their password.'); return; }
+                    try {
+                        const res = await fetchWithTimeout(`${API_BASE_URL}/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: name, password: pass })
+                        }, 15000);
+                        const result = await res.json();
+                        if (result.success && !result.requireSetup) {
+                            if (!state.activeUsers.includes(name)) state.activeUsers.push(name);
+                            selectKioskOperator(name); // Properly save the old state and initialize the new one
+                            overlay.style.display = 'none';
+                            body.innerHTML = '';
+                            showToast(`${name} joined the station!`);
+                        } else if (result.requireSetup) {
+                            window.location.href = '/login.html?setup=' + encodeURIComponent(name);
+                        } else {
+                            showToast('❌ Invalid password.');
+                        }
+                    } catch (e) {
+                        if (e.message.includes('timed out')) {
+                            showToast('❌ Server timed out. Try again in a moment.');
+                        } else {
+                            showToast('❌ Network error. Check server connection.');
+                        }
+                    }
+                };
+            }
+        }
+
+        function initSequenceDropdown() {
+            const sel = document.getElementById('sequenceInput');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Select Sequence...</option>';
+            PCD_SEQUENCES.forEach(seq => {
+                const opt = document.createElement('option');
+                opt.value = seq; opt.textContent = seq;
+                sel.appendChild(opt);
+            });
+        }
+
+        /** Spool Check QC toggle functions */
+        function setSpoolCheckSeq(val) {
+            state.spoolCheckSequence = val;
+            save();
+            refreshSpoolCheckToggles();
+        }
+
+        function setSpoolCheckNum(val) {
+            state.spoolCheckNumber = val;
+            save();
+            refreshSpoolCheckToggles();
+        }
+
+        function refreshSpoolCheckToggles() {
+            document.querySelectorAll('[data-sc-seq]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.scSeq === state.spoolCheckSequence);
+            });
+            document.querySelectorAll('[data-sc-check]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.scCheck === state.spoolCheckNumber);
+            });
+        }
+
+        function updateSpoolCheckUI() {
+            const isSpool = state.sequence === 'Spool Check';
+            const section = document.getElementById('spoolCheckQCSection');
+            const notesLabel = document.getElementById('notesLabel');
+            const notesInput = document.getElementById('handoverNotes');
+
+            if (section) {
+                section.classList.toggle('visible', isSpool);
+            }
+
+            if (notesLabel) {
+                notesLabel.textContent = isSpool ? 'Reason for Fail' : 'Notes';
+            }
+            if (notesInput) {
+                notesInput.placeholder = isSpool
+                    ? 'e.g., 7/8 Pass, Failed for Channel'
+                    : 'Enter specific issues, event details...';
+            }
+
+            // Reset spool check fields if not spool check
+            if (!isSpool) {
+                state.spoolCheckSequence = '';
+                state.spoolCheckNumber = '';
+            }
+            refreshSpoolCheckToggles();
+        }
+
+        function initEventDropdown() {
+            const sel = document.getElementById('eventSelect');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">Select Event...</option>';
+            EVENTS.forEach(ev => {
+                const opt = document.createElement('option');
+                opt.value = ev; opt.textContent = ev;
+                sel.appendChild(opt);
+            });
+            // Shift End is hardcoded needed for shift boundaries
+            if (!EVENTS.includes("Shift End")) {
+                const sEnd = document.createElement('option');
+                sEnd.value = "Shift End"; sEnd.textContent = "Shift End";
+                sel.appendChild(sEnd);
+            }
+        }
+
+        /** Build the defect log UI – one row per defect with a +1 button and manual input */
+        function buildDefects() {
+            const container = document.getElementById('defectList');
+            if (!container) return;
+            container.innerHTML = '';
+            DEFECTS.forEach(defect => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; margin-bottom:10px;';
+                row.innerHTML = `
+            <span class="label" style="font-size:13px;">${defect}</span>
+            <input class="input mono defect-input" data-name="${defect}" type="number" value="${state.defects[defect] || 0}"
+                style="width:80px; text-align:center; padding:8px;"
+                onchange="updateDefect('${defect.replace(/'/g, "\\'")}', this.value)">
+            <button class="btn btn-red" style="padding:8px 14px; font-size:13px;"
+                onclick="addDefect('${defect.replace(/'/g, "\\'")}')">+1</button>`;
+                container.appendChild(row);
+            });
+        }
+
+        function buildPcdTabs() {
+            const container = document.querySelector('.pcd-tabs');
+            if (!container) return;
+            container.innerHTML = '';
+            PCD_SEQUENCES.forEach(seq => {
+                const btn = document.createElement('button');
+                btn.className = 'pcd-tab';
+                btn.dataset.tab = seq;
+                btn.onclick = () => switchPcdTab(seq);
+                btn.textContent = seq;
+                container.appendChild(btn);
+            });
+            applyPcdTabUI();
+        }
+
+        /** 4. CORE ENGINES **/
+        function save() {
+            ensurePcdState();
+            localStorage.setItem(SHIFT_KEY, JSON.stringify(state));
+            render();
+        }
+
+        /** Compute OEE metrics for a single operator workspace */
+        function computeOperatorOEE(ws, opName) {
+            let good = (ws.totalGood || 0);
+            let bad = Object.values(ws.seqDefects || {}).reduce((total, seqDefs) =>
+                total + Object.values(seqDefs || {}).reduce((a, b) => a + (b || 0), 0), 0);
+            // Fallback to legacy ws.defects for old sessions without seqDefects
+            if (bad === 0) bad = Object.values(ws.defects || {}).reduce((a, b) => a + (b || 0), 0);
+            let nonProdMins = 0;
+            let eventMins = 0;
+
+            NON_PRODUCTIVE_SEQUENCES.forEach(seq => {
+                const seqBuckets = (ws.pcdBySequence || {})[seq] || [];
+                seqBuckets.forEach(b => {
+                    if (b.good > 0 || b.bad > 0) nonProdMins += (b.actMins || 60);
+                });
+            });
+
+            // Sum event time from __events__ buckets for availability calculation
+            (ws.pcdBySequence['__events__'] || []).forEach(b => {
+                eventMins += b.seqMins || 0;
+            });
+
+            // Only downtime events reduce availability — non-productive sequence time
+            // does not; an operator working on support tasks is still available.
+            // nonProdMins affects performance (no goal rate) but not availability.
+            const deductions = eventMins;
+            const q = (good + bad) > 0 ? (good / (good + bad)) : 1;
+
+            const now = new Date();
+            const [sh, sm] = (ws.startTime || state.startTime || "05:00").split(':').map(Number);
+            const start = new Date(now); start.setHours(sh, sm, 0, 0);
+                if (start > new Date() && sh >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
+            const elapsedMinutes = Math.max(0, Math.floor((now - start) / 60000));
+            const a = elapsedMinutes > 0 ? Math.max(0, Math.min(1, (elapsedMinutes - deductions) / elapsedMinutes)) : 1;
+
+            let p = 0;
+            const assocSched = (opName && ASSOCIATE_SCHEDULES) ? ASSOCIATE_SCHEDULES[opName] : null;
+            if (assocSched && assocSched.Training) {
+                p = 1.0;
+            } else {
+                const seq = ws.sequence || state.sequence || '';
+                let activeGoalRate = 21;
+                if (SEQUENCE_GOALS[seq] && SEQUENCE_GOALS[seq] > 0) activeGoalRate = SEQUENCE_GOALS[seq];
+                const expectedParts = Math.max(0, (elapsedMinutes - deductions) * (activeGoalRate / 60));
+                p = expectedParts > 0 ? Math.min(1.2, good / expectedParts) : 0;
+            }
+            const oee = (Math.max(0, a) * Math.max(0, p) * Math.max(0, q)) * 100;
+            return { a, p, q, oee, good, bad, deductions };
+        }
+
+        /** Build a single KPI row HTML string */
+        function buildKpiRowHTML(id, label, subtext, metrics, accentBorder) {
+            const borderStyle = accentBorder ? 'border-color:' + accentBorder + ';' : '';
+            const nameTag = label ? `<div style="grid-column:1/-1;font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;padding-bottom:2px;border-bottom:1px solid var(--border);margin-bottom:-4px;display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-2);"></span>${label}</div>` : '';
+            return `
+            <div class="kpi-row" id="${id}" style="${borderStyle}">
+                ${nameTag}
+                <div class="kpi-card"><span class="kpi-lab">Availability</span><span class="kpi-val">${(Math.max(0, metrics.a) * 100).toFixed(0)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
+                <div class="kpi-card"><span class="kpi-lab">Performance</span><span class="kpi-val">${(Math.max(0, metrics.p) * 100).toFixed(0)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
+                <div class="kpi-card"><span class="kpi-lab">Quality</span><span class="kpi-val">${(Math.max(0, metrics.q) * 100).toFixed(0)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
+                <div class="kpi-card" style="border-color:var(--accent);"><span class="kpi-lab">Overall OEE</span><span class="kpi-val" style="color:var(--accent-2)">${metrics.oee.toFixed(1)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
+                <div class="kpi-card" style="border-color:var(--warn);"><span class="kpi-lab">Good Parts</span><span class="kpi-val" style="color:var(--warn)">${metrics.good}</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">LOTS</span></div>
+            </div>`;
+        }
+
+        function calculateOEE() {
+            const container = document.getElementById('kpiContainer');
+            if (!container) return;
+
+            // Deduplicate activeUsers as a safety net
+            const activeOps = [...new Set(state.activeUsers || [])];
+            const headcount = Math.max(1, activeOps.length);
+
+            // Gather per-operator data
+            const opData = [];
+            activeOps.forEach(op => {
+                let ws = (state.workspaces && state.workspaces[op]) ? state.workspaces[op] : null;
+                if (op === state.selectedOperator || !ws) ws = getActiveWorkspaceSnapshot();
+                const metrics = computeOperatorOEE(ws, op);
+                opData.push({ name: op, metrics, ws });
+            });
+
+            let html = '';
+
+            if (headcount <= 1) {
+                // Single operator — render classic single bar (no name label needed)
+                const m = opData.length > 0 ? opData[0].metrics : { a: 1, p: 0, q: 1, oee: 0, good: 0, bad: 0 };
+                // Add shift-level historical good parts
+                m.good += (state.shiftTotalGood || 0);
+                html = buildKpiRowHTML('kpiRow', '', 'SHIFT', m, '');
+            } else {
+                // Multi-operator — render one row per operator (no combined row)
+                opData.forEach(od => {
+                    const m = { ...od.metrics };
+                    html += buildKpiRowHTML('kpi_' + od.name.replace(/\s/g, '_'), od.name, 'INDIVIDUAL', m, '');
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        function render() {
+            ensurePcdState();
+            applyPcdTabUI();
+            DEFECTS.forEach(d => {
+                const inp = document.querySelector(`.defect-input[data-name="${d}"]`);
+                if (inp) inp.value = state.defects[d] || 0;
+            });
+            const goodParts = state.totalGood || 0;
+            const rd = Object.values(state.defects || {}).reduce((a, b) => a + (b || 0), 0);
+            const sq = state.overrides.startQty !== null ? state.overrides.startQty : (goodParts + rd);
+
+            const elT = document.getElementById('totalDefectsInput'); if (elT) elT.value = rd;
+            const elS = document.getElementById('startQtyInput'); if (elS) elS.value = sq;
+            const elE = document.getElementById('endQtyInput'); if (elE) elE.value = goodParts;
+            const elG = document.getElementById('goodPartsInput'); if (elG) elG.value = goodParts;
+
+            if (state.currentHourIndex !== -1) {
+                const now = new Date(); const [sh, sm] = (state.startTime || "05:00").split(':').map(Number);
+                const shiftStart = new Date(now); shiftStart.setHours(sh, sm, 0, 0);
+                if (shiftStart > new Date() && sh >= 12 && new Date().getHours() < 12) shiftStart.setDate(shiftStart.getDate() - 1);
+                let totalProductiveSoFar = 0;
+                // Use the working sequence's buckets (not necessarily the viewed PCD tab)
+                const timeBuckets = (state.sequence && state.pcdBySequence[state.sequence])
+                    ? state.pcdBySequence[state.sequence]
+                    : state.pcd;
+                // Sum flushed seqMins from all completed hour buckets.
+                // seqMins already excludes event time (flushSequenceTime stops at event start),
+                // so no billedMins deduction is needed.
+                for (let i = 0; i < state.currentHourIndex; i++) {
+                    if (timeBuckets && timeBuckets[i]) totalProductiveSoFar += (timeBuckets[i].seqMins || 0);
+                }
+                // For the current hour: flushed seqMins + live unflushed time since sequenceStartTime,
+                // clipped to the current hour boundary (mirrors flushSequenceTime logic).
+                if (timeBuckets && timeBuckets[state.currentHourIndex]) {
+                    let currentHourMins = timeBuckets[state.currentHourIndex].seqMins || 0;
+                    if (state.sequenceStartTime) {
+                        const currentHourStartMs = shiftStart.getTime() + (state.currentHourIndex * 3600000);
+                        const liveStart = Math.max(state.sequenceStartTime, currentHourStartMs);
+                        currentHourMins += Math.max(0, Math.floor((Date.now() - liveStart) / 60000));
+                    }
+                    totalProductiveSoFar += currentHourMins;
+                }
+                state.timeWorked = Math.max(0, totalProductiveSoFar);
+            }
+            const elTw = document.getElementById('timeWorkedInput'); if (elTw) elTw.value = state.timeWorked;
+
+            const badge = document.getElementById('yieldBadge');
+            const yieldSection = document.getElementById('lowYieldSection');
+            if (sq > 0) {
+                const pct = (goodParts / sq) * 100;
+                if (badge) { badge.textContent = pct.toFixed(1) + "%"; badge.className = 'yield-badge ' + (pct >= 75 ? 'yield-ok' : 'yield-bad'); }
+                if (yieldSection) yieldSection.style.display = (pct <= 50) ? 'block' : 'none';
+            } else { if (badge) badge.textContent = "—"; if (yieldSection) yieldSection.style.display = 'none'; }
+
+            let sumGoal = 0, sumGood = 0, sumBad = 0, sumMins = 0;
+            const pcdBody = document.getElementById('pcdBody'); if (!pcdBody) return;
+            pcdBody.innerHTML = '';
+            (state.pcd || []).forEach((row, idx) => {
+                if (!row) return;
+                const tr = document.createElement('tr'); if (idx === state.currentHourIndex) tr.className = 'active-hour';
+                row.actMins = row.seqMins || 0;
+                let varianceText = "—"; let varianceClass = ""; let taktBarHtml = "";
+                let localGoal = row.goal;
+                if (idx === state.currentHourIndex) {
+                    const now = new Date(); const [sh, sm] = (state.startTime || "05:00").split(':').map(Number);
+                    const start = new Date(now); start.setHours(sh, sm, 0, 0);
+                if (start > new Date() && sh >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
+                    const elapsedSecondsInHour = Math.floor(((now - start) % 3600000) / 1000);
+                    taktBarHtml = `<div class="takt-container"><div class="takt-bar" style="width: ${(elapsedSecondsInHour / 3600) * 100}%"></div></div>`;
+                    localGoal = Math.floor((row.goal * (elapsedSecondsInHour / 3600)));
+                    const diff = row.good - localGoal;
+                    varianceText = (diff >= 0 ? "+" : "") + diff; varianceClass = diff >= 0 ? "var-pos" : "var-neg";
+
+                    sumGoal += localGoal; // for the active hour, the goal is prorated by time elapsed
+                } else if (idx < state.currentHourIndex) {
+                    const diff = row.good - row.goal; varianceText = (diff >= 0 ? "+" : "") + diff; varianceClass = diff >= 0 ? "var-pos" : "var-neg";
+                    sumGoal += row.goal;
+                }
+
+                if (idx <= state.currentHourIndex) {
+                    sumGood += (row.good || 0);
+                    sumBad += (row.bad || 0);
+                    sumMins += row.actMins;
+                }
+
+                tr.innerHTML = `<td class="mono" style="font-weight:600;">${getHourLabel(idx)}${taktBarHtml}</td><td class="mono">${row.goal}</td><td class="mono">${(row.good || 0) + (row.bad || 0)}</td><td class="mono" style="font-weight:bold; color:${idx === state.currentHourIndex ? 'var(--accent)' : 'inherit'}">${row.good || 0}</td><td class="mono" style="color:var(--danger)">${row.bad || 0}</td><td class="mono ${varianceClass}">${varianceText}</td><td class="mono">${row.actMins}</td>`;
+                pcdBody.appendChild(tr);
+            });
+
+            const pcdFooter = document.getElementById('pcdFooter');
+            if (pcdFooter) {
+                const tv = sumGood - sumGoal;
+                const tvClass = tv >= 0 ? "var-pos" : "var-neg";
+                const tvText = (tv >= 0 ? "+" : "") + tv;
+                pcdFooter.innerHTML = `<tr>
+                    <td style="text-align: right; font-weight: 800; color: #fff; padding: 10px;">SHIFT TOTALS:</td>
+                    <td class="mono" style="padding: 10px;">${sumGoal}</td>
+                    <td class="mono" style="padding: 10px;">${sumGood + sumBad}</td>
+                    <td class="mono" style="color: var(--accent); padding: 10px;">${sumGood}</td>
+                    <td class="mono" style="color: var(--danger); padding: 10px;">${sumBad}</td>
+                    <td class="mono ${tvClass}" style="padding: 10px;">${tvText}</td>
+                    <td class="mono" style="padding: 10px;">${sumMins}</td>
+                </tr>`;
+            }
+        }
+
+        function syncUIToState() {
+            const setTimeUI = (type, timeStr) => {
+                const hEl = document.getElementById(type + 'H');
+                const pEl = document.getElementById(type + 'P');
+                if (!hEl || !pEl) return;
+
+                if (!timeStr) {
+                    hEl.value = "";
+                    return;
+                }
+
+                let [h, m] = timeStr.split(':').map(Number);
+                let period = h >= 12 ? 'PM' : 'AM'; let h12 = h % 12 || 12;
+                hEl.value = h12; if (pEl) pEl.value = period;
+            };
+            setTimeUI('start', state.startTime); setTimeUI('end', state.endTime);
+            document.getElementById('handoverNotes').value = state.handoverNotes || "";
+            document.getElementById('nextShiftNoteInput').value = state.nextShiftNote || "";
+            document.getElementById('lotNumber').value = state.lotNumber || "";
+            document.getElementById('itemNumber').value = state.itemNumber || "";
+            document.getElementById('workDateInput').value = state.workDate || getLocalDate();
+            initKioskBar();
+            const seqEl = document.getElementById('sequenceInput'); if (seqEl) seqEl.value = state.sequence || "";
+            updateSpoolCheckUI();
+            applyPcdTabUI();
+
+            if (state.rca) {
+                if (document.getElementById('rca_ptfe_head')) document.getElementById('rca_ptfe_head').value = state.rca.ptfeHead || "";
+                if (document.getElementById('rca_ptfe_ops')) document.getElementById('rca_ptfe_ops').value = state.rca.ptfeOps || "";
+                if (document.getElementById('rca_etch_ops')) document.getElementById('rca_etch_ops').value = state.rca.etchOps || "";
+                if (document.getElementById('rca_teco_head')) document.getElementById('rca_teco_head').value = state.rca.tecoHead || "";
+                if (document.getElementById('rca_teco_ops')) document.getElementById('rca_teco_ops').value = state.rca.tecoOps || "";
+                if (document.getElementById('rca_pebax_head')) document.getElementById('rca_pebax_head').value = state.rca.pebaxHead || "";
+                if (document.getElementById('rca_pebax_ops')) document.getElementById('rca_pebax_ops').value = state.rca.pebaxOps || "";
+                if (document.getElementById('rca_comment_status')) document.getElementById('rca_comment_status').value = state.rca.commentStatus || "No";
+            }
+            setEntryMode(state.entryType);
+
+            // Restore event timer UI if it was running when page was reloaded
+            if (state.eventTimer && state.eventTimer.running) {
+                const btn = document.getElementById('btnEventTimer');
+                const display = document.getElementById('eventTimerDisplay');
+                if (btn) { btn.textContent = "Stop Timer"; btn.classList.remove('btn-blue'); btn.classList.add('btn-red'); }
+                if (display) display.style.display = 'block';
+            }
+        }
+
+        function updateTimeFromUI() {
+            const sH = document.getElementById('startH'); const sP = document.getElementById('startP');
+            const eH = document.getElementById('endH'); const eP = document.getElementById('endP');
+            if (!sH || !sP || !eH || !eP) return;
+            const getTimeStr = (hVal, pVal) => {
+                let h = parseInt(hVal); if (pVal === 'PM' && h < 12) h += 12; if (pVal === 'AM' && h === 12) h = 0; return `${h.toString().padStart(2, '0')}:00`;
+            };
+            state.startTime = getTimeStr(sH.value, sP.value); state.endTime = getTimeStr(eH.value, eP.value);
+            const [sh, sm] = state.startTime.split(':').map(Number); const [eh, em] = state.endTime.split(':').map(Number);
+            let start = new Date(2000, 0, 1, sh, sm); let end = new Date(2000, 0, 1, eh, em); if (end <= start) end.setDate(end.getDate() + 1);
+            const dh = Math.ceil((end - start) / (3600000));
+            ensurePcdState();
+            const activeBuckets = state.pcdBySequence[state.activePcdTab] || [];
+            // Warn if shrinking the window would discard PCD buckets that have data
+            if (dh < activeBuckets.length) {
+                const discarded = activeBuckets.slice(dh);
+                const hasData = discarded.some(b => (b.good || 0) > 0 || (b.bad || 0) > 0 || (b.downtimeReasons || []).length > 0);
+                if (hasData) {
+                    customConfirm("Shift Window Changed", `Reducing to ${dh} hours will discard data in hours ${dh + 1}-${activeBuckets.length}. Continue?`, () => {
+                        PCD_SEQUENCES.forEach(seq => {
+                            const seqBuckets = state.pcdBySequence[seq] || [];
+                            state.pcdBySequence[seq] = Array.from(
+                                { length: dh },
+                                (_, i) => seqBuckets[i] || { hour: i + 1, goal: SEQUENCE_GOALS[seq] || 0, good: 0, bad: 0, planMins: 50, seqMins: 0, actMins: 0, downtimeReasons: [] }
+                            );
+                        });
+                        const evBuckets = state.pcdBySequence['__events__'] || [];
+                        state.pcdBySequence['__events__'] = Array.from(
+                            { length: dh },
+                            (_, i) => evBuckets[i] || { hour: i + 1, seqMins: 0, eventNames: [] }
+                        );
+                        state.pcd = state.pcdBySequence[state.activePcdTab];
+                        save();
+                    });
+                    return;
+                }
+            }
+            PCD_SEQUENCES.forEach(seq => {
+                const seqBuckets = state.pcdBySequence[seq] || [];
+                state.pcdBySequence[seq] = Array.from(
+                    { length: dh },
+                    (_, i) => seqBuckets[i] || { hour: i + 1, goal: SEQUENCE_GOALS[seq] || 0, good: 0, bad: 0, planMins: 50, seqMins: 0, actMins: 0, downtimeReasons: [] }
+                );
+            });
+            const evBucketsD = state.pcdBySequence['__events__'] || [];
+            state.pcdBySequence['__events__'] = Array.from(
+                { length: dh },
+                (_, i) => evBucketsD[i] || { hour: i + 1, seqMins: 0, eventNames: [] }
+            );
+            state.pcd = state.pcdBySequence[state.activePcdTab];
+            save();
+        }
+
+        function updateClock() {
+            const nowTs = Date.now(); const nowObj = new Date(nowTs);
+            const dtEl = document.getElementById('currentDateTime'); if (dtEl) dtEl.textContent = nowObj.toLocaleDateString() + ' ' + nowObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            if (state.startTime && state.endTime) {
+                const [sh, sm] = state.startTime.split(':').map(Number);
+                const start = new Date(nowObj); start.setHours(sh, sm, 0, 0);
+                if (start > new Date() && sh >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
+                const ni = Math.floor((nowObj - start) / 3600000);
+                if (ni >= 0 && ni < (state.pcd?.length || 12) && ni !== state.currentHourIndex) { state.currentHourIndex = ni; save(); }
+                const timerEl = document.getElementById('shiftTimer');
+                if (nowObj >= start) {
+                    if (timerEl) { timerEl.style.display = "inline-block"; const ts = Math.floor((nowObj - start) / 1000); timerEl.textContent = `${Math.floor(ts / 3600).toString().padStart(2, '0')}:${Math.floor((ts % 3600) / 60).toString().padStart(2, '0')}:${(ts % 60).toString().padStart(2, '0')}`; }
+                    const countdownEl = document.getElementById('hourCountdown'); const rh = 3600000 - ((nowObj - start) % 3600000);
+                    if (countdownEl) countdownEl.textContent = `${Math.floor(rh / 60000).toString().padStart(2, '0')}:${Math.floor((rh % 60000) / 1000).toString().padStart(2, '0')} REMAINING`;
+                }
+
+                // --- SHIFT END LOGIC ---
+                const [eh, em] = state.endTime.split(':').map(Number);
+                const shiftEnd = new Date(nowObj); shiftEnd.setHours(eh, em, 0, 0);
+                if (shiftEnd <= start) shiftEnd.setDate(shiftEnd.getDate() + 1);
+
+                const minsToShiftEnd = (shiftEnd - nowObj) / 60000;
+
+                // 1. Pulsing Warning
+                const btnReset = document.getElementById('btnReset');
+                if (btnReset) {
+                    if (minsToShiftEnd <= 15 && minsToShiftEnd > -120) {
+                        btnReset.classList.add('pulse-warn');
+                    } else {
+                        btnReset.classList.remove('pulse-warn');
+                    }
+                }
+
+                // 2. Modal Popup
+                if (minsToShiftEnd <= 5 && minsToShiftEnd > -120 && !state.shiftEndModalShown) {
+                    state.shiftEndModalShown = true;
+                    save();
+                    customConfirm("Shift Ending Soon", "Your shift ends in 5 minutes! Please finalize any notes and click End Shift Reset to submit your tracker.", () => { }, true);
+                }
+
+                // 3. Lockout (Wait until 5 minutes over to lock out part inputs)
+                const isLockedOut = minsToShiftEnd <= -5;
+                const toggleLockout = (locked) => {
+                    const btnPlus1 = document.getElementById('btnPlus1');
+                    if (btnPlus1) btnPlus1.disabled = locked;
+                    const btnPlus5 = document.getElementById('btnPlus5');
+                    if (btnPlus5) btnPlus5.disabled = locked;
+                    const btnNewLot = document.getElementById('btnNewLot');
+                    if (btnNewLot) btnNewLot.disabled = locked;
+                    const defectBtns = document.querySelectorAll('#defectList button');
+                    defectBtns.forEach(b => b.disabled = locked);
+                };
+                toggleLockout(isLockedOut);
+            }
+            if (state.eventTimer?.running) {
+                const elapsedMs = nowTs - state.eventTimer.startTime;
+                const mins = Math.floor(elapsedMs / 60000); const secs = Math.floor((elapsedMs % 60000) / 1000);
+                const etDisp = document.getElementById('eventTimerDisplay'); if (etDisp) etDisp.textContent = `TIMER RUNNING: ${mins}m ${secs}s`;
+            }
+            const evS = document.getElementById('eventStartTimeRef')?.value; const evM = parseInt(document.getElementById('eventMinutesInput')?.value) || 0;
+            if (evS && evM > 0) {
+                const [h, m] = evS.split(':').map(Number); const projDate = new Date(); projDate.setHours(h, m + evM, 0, 0);
+                const projEl = document.getElementById('eventProjectedEnd'); if (projEl) projEl.textContent = `PROJECTED END: ${projDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+            }
+            calculateOEE(); render();
+        }
+
+        /** 5. EVENT HANDLERS & ACTIONS **/
+        function setEntryMode(mode) {
+            state.entryType = mode;
+            const btnJob = document.getElementById('btnModeJob'); const btnEv = document.getElementById('btnModeEvent');
+            if (btnJob) btnJob.classList.toggle('active', mode === 'Job');
+            if (btnEv) btnEv.classList.toggle('active', mode === 'Event');
+            const jh = document.getElementById('jobHeaderFields'); if (jh) jh.style.display = (mode === 'Job') ? 'block' : 'none';
+            const jp = document.getElementById('jobProductionControls'); if (jp) jp.style.display = (mode === 'Job') ? 'block' : 'none';
+            const eh = document.getElementById('eventHeaderFields'); if (eh) eh.style.display = (mode === 'Event') ? 'block' : 'none';
+            const dl = document.getElementById('defectLogCard'); if (dl) dl.style.display = (mode === 'Job') ? 'block' : 'none';
+            const kr = document.getElementById('kpiRow'); if (kr) kr.style.display = (mode === 'Job') ? 'grid' : 'none';
+            if (mode === 'Event' && (!state.eventData.startTimeRef || state.eventData.startTimeRef === "")) {
+                const now = new Date(); const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const refInp = document.getElementById('eventStartTimeRef'); if (refInp) refInp.value = timeStr;
+                state.eventData.startTimeRef = timeStr;
+                state.eventData.exactStartMs = Date.now(); // exact ms — used by flush to avoid HH:MM truncation gap
+            }
+            // Resume sequence timer when returning to Job mode after an event paused it
+            if (mode === 'Job' && state.sequence && !state.sequenceStartTime) {
+                state.sequenceStartTime = Date.now();
+            }
+            save();
+        }
+
+        function handleLotResetTrigger() {
+            customConfirm("New Lot", `Archive traveler time and clear counts for ${state.selectedOperator}?`, () => handleNewLot(state.selectedOperator));
+        }
+
+        function handleNewLot(opName) {
+            const op = opName || state.selectedOperator;
+            if (!op) return;
+
+            const isCurrentlySelected = (op === state.selectedOperator);
+
+            // Flush live sequence time before snapshotting so seqMins is current
+            if (isCurrentlySelected && state.sequence && state.sequenceStartTime) {
+                flushSequenceTime(state.sequence);
+            }
+
+            // Get current snapshot of the operator's work
+            const ws = isCurrentlySelected ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
+
+            // 1. Accumulate stats for the operator
+            if (!state.shiftTotalGoodByUser) state.shiftTotalGoodByUser = {};
+            if (!state.shiftTotalBadByUser) state.shiftTotalBadByUser = {};
+
+            const userGood = ws.totalGood || 0;
+            // Sum bad across all sequences (seqDefects), fall back to ws.defects for old sessions
+            const userBad = Object.keys(ws.seqDefects || {}).length > 0
+                ? Object.values(ws.seqDefects).reduce((total, seqDefs) =>
+                    total + Object.values(seqDefs || {}).reduce((a, b) => a + b, 0), 0)
+                : Object.values(ws.defects || {}).reduce((a, b) => a + b, 0);
+
+            state.shiftTotalGood = (state.shiftTotalGood || 0) + userGood;
+            state.shiftTotalBad = (state.shiftTotalBad || 0) + userBad;
+            state.shiftTotalGoodByUser[op] = (state.shiftTotalGoodByUser[op] || 0) + userGood;
+            state.shiftTotalBadByUser[op] = (state.shiftTotalBadByUser[op] || 0) + userBad;
+
+            // Calculate time worked for this lot specifically
+            const lotTimeWorked = calculateOpTimeWorked(ws);
+
+            // Snapshot current seqMins totals so next lot can isolate its own time
+            const newSeqMinsAtLotStart = {};
+            PCD_SEQUENCES.forEach(seq => {
+                const buckets = (ws.pcdBySequence || {})[seq] || [];
+                newSeqMinsAtLotStart[seq] = buckets.reduce((sum, b) => sum + (b.seqMins || 0), 0);
+            });
+
+            // 2. Create reset state locally
+            const fresh = createInitialState();
+            const resetWS = {
+                sequence: "",
+                lotNumber: "",
+                itemNumber: "",
+                totalGood: 0,
+                defects: Object.fromEntries(DEFECTS.map(d => [d, 0])),
+                seqGood: {},
+                seqDefects: {},
+                seqMinsAtLotStart: newSeqMinsAtLotStart,
+                pcdBySequence: ws.pcdBySequence, // Preserve the PCD tracker data for the shift
+                activePcdTab: ws.activePcdTab || "Inspect",
+                spoolCheckSequence: "",
+                spoolCheckNumber: "",
+                handoverNotes: "",
+                nextShiftNote: ws.nextShiftNote, // Persist the next shift note until End Shift
+                startTime: ws.startTime,
+                endTime: ws.endTime,
+                billedMins: (ws.billedMins || 0) + lotTimeWorked,
+                rca: fresh.rca
+            };
+
+            // 3. Apply to global state IF this operator is still the selected one
+            if (isCurrentlySelected) {
+                applyWorkspaceSnapshot(resetWS);
+            }
+
+            // 4. Update the saved workspace
+            if (!state.workspaces) state.workspaces = {};
+            state.workspaces[op] = resetWS;
+
+            save();
+            if (isCurrentlySelected) syncUIToState();
+        }
+
+        function calculateOpTimeWorked(ws) {
+            if (!ws.startTime) return 0;
+            const now = new Date();
+            const [sh, sm] = ws.startTime.split(':').map(Number);
+            const start = new Date(now); start.setHours(sh, sm, 0, 0);
+                if (start > new Date() && sh >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
+
+            const ni = Math.floor((now - start) / 3600000);
+            const activeBuckets = ws.pcdBySequence[ws.activePcdTab] || [];
+
+            let totalProductiveSoFar = 0;
+            for (let i = 0; i < ni; i++) {
+                if (activeBuckets[i]) totalProductiveSoFar += (activeBuckets[i].actMins || 60);
+            }
+            const elapsedMinsInCurrentHour = Math.floor(((now - start) % 3600000) / 60000);
+            if (ni >= 0 && ni < activeBuckets.length && activeBuckets[ni]) {
+                const currentHourProductiveProgress = Math.min(activeBuckets[ni].actMins || 60, elapsedMinsInCurrentHour);
+                totalProductiveSoFar += currentHourProductiveProgress;
+            }
+            return Math.max(0, totalProductiveSoFar - (ws.billedMins || 0));
+        }
+
+        function validateShiftSetup() {
+            let valid = true;
+            if (!state.selectedOperator && (!state.activeUsers || state.activeUsers.length === 0)) { valid = false; }
+            if (!state.startTime || state.startTime === "") { valid = false; }
+            if (!valid) showToast("⚠️ ERROR: Operator & Shift Times required.");
+            return valid;
+        }
+
+        function getActiveRecordSequenceArray() {
+            ensurePcdState();
+            // Fallback to active tab if no sequence is selected, although we usually have one selected
+            return state.pcdBySequence[state.sequence] || state.pcdBySequence[state.activePcdTab || 'Inspect'];
+        }
+
+        function allocateWholeMinutesByHourBucket(buckets, shiftStartMs, startMs, endMs) {
+            const overlapEntries = [];
+            let totalOverlapMs = 0;
+            buckets.forEach((bucket, idx) => {
+                const bucketStartMs = shiftStartMs + idx * 3600000;
+                const bucketEndMs = bucketStartMs + 3600000;
+                const overlapStart = Math.max(startMs, bucketStartMs);
+                const overlapEnd = Math.min(endMs, bucketEndMs);
+                const overlapMs = Math.max(0, overlapEnd - overlapStart);
+                if (overlapMs <= 0) return;
+                const exactMins = overlapMs / 60000;
+                const wholeMins = Math.floor(exactMins);
+                totalOverlapMs += overlapMs;
+                overlapEntries.push({
+                    bucket,
+                    idx,
+                    overlapMs,
+                    wholeMins,
+                    fraction: exactMins - wholeMins
+                });
+            });
+            if (!overlapEntries.length) return [];
+
+            const totalWholeMins = Math.floor(totalOverlapMs / 60000);
+            const baseWholeMins = overlapEntries.reduce((sum, entry) => sum + entry.wholeMins, 0);
+            let remainingWholeMins = Math.max(0, totalWholeMins - baseWholeMins);
+
+            overlapEntries.sort((a, b) => {
+                if (b.fraction !== a.fraction) return b.fraction - a.fraction;
+                if (b.overlapMs !== a.overlapMs) return b.overlapMs - a.overlapMs;
+                return a.idx - b.idx;
+            });
+
+            return overlapEntries.map(entry => {
+                const minutes = entry.wholeMins + (remainingWholeMins > 0 ? 1 : 0);
+                if (remainingWholeMins > 0) remainingWholeMins--;
+                return { bucket: entry.bucket, minutes };
+            });
+        }
+
+        /**
+         * Flush accumulated on-sequence time into the appropriate hour buckets.
+         * Called whenever the sequence changes or the shift ends, so that seqMins
+         * reflects actual time-on-sequence rather than defaulting to 60.
+         */
+        function flushSequenceTime(seq, endMs) {
+            if (!seq || !state.sequenceStartTime || !state.startTime) return;
+            if (endMs === undefined || endMs === null) endMs = Date.now();
+            const startMs = state.sequenceStartTime;
+            state.sequenceStartTime = null;
+            const [sfH, sfM] = state.startTime.split(':').map(Number);
+            const shiftStart = new Date();
+            shiftStart.setHours(sfH, sfM, 0, 0);
+            // If shift start appears in the future, assume it began the previous calendar day
+            if (shiftStart > new Date() && sfH >= 12 && new Date().getHours() < 12)
+                shiftStart.setDate(shiftStart.getDate() - 1);
+            const buckets = state.pcdBySequence[seq];
+            if (!Array.isArray(buckets)) return;
+            allocateWholeMinutesByHourBucket(buckets, shiftStart.getTime(), startMs, endMs)
+                .forEach(({ bucket, minutes }) => {
+                    bucket.seqMins = (bucket.seqMins || 0) + minutes;
+                });
+        }
+
+        function validateJobDetails() {
+            let valid = true;
+            if (!state.sequence || state.sequence === "") valid = false;
+            if (!state.lotNumber || state.lotNumber === "") valid = false;
+            if (!state.itemNumber || state.itemNumber === "") valid = false;
+            if (!valid) showToast("⚠️ ERROR: Sequence, Lot, and Item required.");
+            return valid;
+        }
+
+        function addGood(val) {
+            if (!validateShiftSetup()) return;
+            if (!validateJobDetails()) return;
+            if (state.currentHourIndex === -1) return showToast("⚠️ Outside shift window.");
+            const op = state.selectedOperator;
+            state.totalGood += val;
+            if (!state.totalGoodByUser) state.totalGoodByUser = {};
+            state.totalGoodByUser[op] = (state.totalGoodByUser[op] || 0) + val;
+            if (state.sequence) {
+                if (!state.seqGood) state.seqGood = {};
+                state.seqGood[state.sequence] = (state.seqGood[state.sequence] || 0) + val;
+            }
+
+            const targetBuckets = getActiveRecordSequenceArray();
+            if (targetBuckets[state.currentHourIndex]) {
+                targetBuckets[state.currentHourIndex].good += val;
+                if (!targetBuckets[state.currentHourIndex].goodByUser) targetBuckets[state.currentHourIndex].goodByUser = {};
+                targetBuckets[state.currentHourIndex].goodByUser[op] = (targetBuckets[state.currentHourIndex].goodByUser[op] || 0) + val;
+            }
+            save();
+            applyPcdTabUI();
+        }
+        function updateGood(val) {
+            if (!validateShiftSetup()) return;
+            if (!validateJobDetails()) return;
+            if (state.currentHourIndex === -1) return showToast("⚠️ Outside shift window.");
+            const op = state.selectedOperator;
+            const nv = Math.max(0, parseInt(val) || 0);
+            const diff = nv - state.totalGood;
+            state.totalGood = nv;
+            if (!state.totalGoodByUser) state.totalGoodByUser = {};
+            state.totalGoodByUser[op] = (state.totalGoodByUser[op] || 0) + diff;
+            if (state.sequence) {
+                if (!state.seqGood) state.seqGood = {};
+                state.seqGood[state.sequence] = (state.seqGood[state.sequence] || 0) + diff;
+            }
+            const targetBuckets = getActiveRecordSequenceArray();
+            if (targetBuckets[state.currentHourIndex]) {
+                targetBuckets[state.currentHourIndex].good += diff;
+                if (!targetBuckets[state.currentHourIndex].goodByUser) targetBuckets[state.currentHourIndex].goodByUser = {};
+                targetBuckets[state.currentHourIndex].goodByUser[op] = (targetBuckets[state.currentHourIndex].goodByUser[op] || 0) + diff;
+            }
+            save();
+            applyPcdTabUI();
+        }
+        function addDefect(name) {
+            if (!validateShiftSetup()) return;
+            if (!validateJobDetails()) return;
+            if (state.currentHourIndex === -1) return showToast("⚠️ Outside shift window.");
+            const op = state.selectedOperator;
+            state.defects[name] = (state.defects[name] || 0) + 1;
+            if (!state.defectsByUser) state.defectsByUser = {};
+            if (!state.defectsByUser[op]) state.defectsByUser[op] = {};
+            state.defectsByUser[op][name] = (state.defectsByUser[op][name] || 0) + 1;
+            if (state.sequence) {
+                if (!state.seqDefects) state.seqDefects = {};
+                if (!state.seqDefects[state.sequence]) state.seqDefects[state.sequence] = {};
+                state.seqDefects[state.sequence][name] = state.defects[name];
+            }
+
+            const targetBuckets = getActiveRecordSequenceArray();
+            if (targetBuckets[state.currentHourIndex]) {
+                targetBuckets[state.currentHourIndex].bad++;
+                if (!targetBuckets[state.currentHourIndex].badByUser) targetBuckets[state.currentHourIndex].badByUser = {};
+                targetBuckets[state.currentHourIndex].badByUser[op] = (targetBuckets[state.currentHourIndex].badByUser[op] || 0) + 1;
+            }
+            save();
+            applyPcdTabUI();
+        }
+        function updateDefect(name, val) {
+            if (!validateShiftSetup()) return;
+            if (!validateJobDetails()) return;
+            const op = state.selectedOperator;
+            const nv = parseInt(val) || 0; const diff = nv - (state.defects[name] || 0); state.defects[name] = nv;
+            if (!state.defectsByUser) state.defectsByUser = {};
+            if (!state.defectsByUser[op]) state.defectsByUser[op] = {};
+            state.defectsByUser[op][name] = (state.defectsByUser[op][name] || 0) + diff;
+            if (state.sequence) {
+                if (!state.seqDefects) state.seqDefects = {};
+                if (!state.seqDefects[state.sequence]) state.seqDefects[state.sequence] = {};
+                state.seqDefects[state.sequence][name] = nv;
+            }
+
+            const targetBuckets = getActiveRecordSequenceArray();
+            if (state.currentHourIndex !== -1 && targetBuckets[state.currentHourIndex]) {
+                targetBuckets[state.currentHourIndex].bad += diff;
+                if (!targetBuckets[state.currentHourIndex].badByUser) targetBuckets[state.currentHourIndex].badByUser = {};
+                targetBuckets[state.currentHourIndex].badByUser[op] = (targetBuckets[state.currentHourIndex].badByUser[op] || 0) + diff;
+            }
+            save();
+            applyPcdTabUI();
+        }
+
+        function handleEventSubmit() {
+            if (!validateShiftSetup()) return;
+            const evT = document.getElementById('eventSelect').value; const evM = parseInt(document.getElementById('eventMinutesInput').value) || 0;
+            const evS = document.getElementById('eventStartTimeRef').value;
+            if (!evT || evM <= 0 || !evS) return showToast("⚠️ Missing Data.");
+            if (state.eventTimer.running) return showToast("⚠️ Stop timer first.");
+            customConfirm("Log Event", `Bill ${evM}m to ${evT}?`, () => {
+                (async () => {
+                    showSubmittingOverlay('Please Wait', 'Submitting event to Smartsheet...');
+                    const priorSequenceStartTime = state.sequenceStartTime;
+                    if (state.sequence && state.sequenceStartTime) state.sequenceStartTime = null;
+
+                    const saved = await submitToSmartsheet("Event", evT, evM);
+                    if (!saved) {
+                        state.sequenceStartTime = priorSequenceStartTime;
+                        updateSubmittingOverlay('Submission Failed', 'Event could not be saved. Please try again.', true);
+                        return;
+                    }
+
+                    state.billedMins += evM;
+                    const [sh, sm] = evS.split(':').map(Number); const eventStart = new Date(); eventStart.setHours(sh, sm, 0, 0);
+                    const [sfH, sfM] = (state.startTime || "05:00").split(':').map(Number); const shiftStart = new Date(); shiftStart.setHours(sfH, sfM, 0, 0);
+                    // Flush sequence time only up to the event start — the associate wasn't working
+                    // their sequence during the event, so those minutes must not be double-counted.
+                    // Use exactStartMs (stored in exact ms when the event was initiated) instead of the
+                    // HH:MM reference string, which truncates seconds and can cause a sub-minute gap
+                    // that floors to 0, making the prior sequence appear to have no time.
+                    const flushEndMs = state.eventData.exactStartMs || eventStart.getTime();
+                    if (state.sequence && priorSequenceStartTime) {
+                        state.sequenceStartTime = priorSequenceStartTime;
+                        flushSequenceTime(state.sequence, flushEndMs);
+                    }
+                    // sequenceStartTime is now null; it will be restarted when they return to Job mode.
+                    const eventEnd = new Date(eventStart.getTime() + (evM * 60000));
+                    const evBuckets = state.pcdBySequence['__events__'];
+                    if (Array.isArray(evBuckets)) {
+                        allocateWholeMinutesByHourBucket(evBuckets, shiftStart.getTime(), eventStart.getTime(), eventEnd.getTime())
+                            .forEach(({ bucket, minutes }) => {
+                                if (minutes <= 0) return;
+                                bucket.seqMins = (bucket.seqMins || 0) + minutes;
+                                if (!bucket.eventNames) bucket.eventNames = [];
+                                if (!bucket.eventNames.includes(evT)) bucket.eventNames.push(evT);
+                            });
+                    }
+                    // Save workspace snapshot AFTER event buckets are updated so the snapshot
+                    // includes the event data (billedMins and __events__)
+                    if (!state.workspaces) state.workspaces = {};
+                    state.workspaces[state.selectedOperator] = getActiveWorkspaceSnapshot();
+                    state.eventData = { type: "", minutes: 0, startTimeRef: "", exactStartMs: null };
+                    const uiEvS = document.getElementById('eventSelect'); if (uiEvS) uiEvS.value = "";
+                    const uiEvM = document.getElementById('eventMinutesInput'); if (uiEvM) uiEvM.value = "";
+                    const uiEvR = document.getElementById('eventStartTimeRef'); if (uiEvR) uiEvR.value = "";
+                    const uiEvP = document.getElementById('eventProjectedEnd'); if (uiEvP) uiEvP.textContent = "PROJECTED END: --:--";
+                    setEntryMode('Job');
+                    updateSubmittingOverlay('Saved!', 'Event submitted successfully.');
+                    showToast("Event Logged.");
+                })();
+            });
+        }
+
+        function toggleEventTimer() {
+            if (!validateShiftSetup()) return;
+            const btn = document.getElementById('btnEventTimer'); const display = document.getElementById('eventTimerDisplay');
+            if (!state.eventTimer.running) {
+                state.eventTimer.running = true; state.eventTimer.startTime = Date.now();
+                state.eventData.exactStartMs = Date.now(); // exact ms — used by flush to avoid HH:MM truncation gap
+                const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                const refInp = document.getElementById('eventStartTimeRef'); if (refInp) refInp.value = nowStr;
+                state.eventData.startTimeRef = nowStr;
+                if (btn) { btn.textContent = "Stop Timer"; btn.classList.replace('btn-blue', 'btn-red'); }
+                if (display) display.style.display = 'block';
+            } else {
+                const elapsed = Math.floor((Date.now() - state.eventTimer.startTime) / 60000);
+                const minsInp = document.getElementById('eventMinutesInput'); if (minsInp) minsInp.value = elapsed || 1;
+                state.eventData.minutes = elapsed || 1; state.eventTimer.running = false; state.eventTimer.startTime = null;
+                if (btn) { btn.textContent = "Start Timer"; btn.classList.replace('btn-red', 'btn-blue'); }
+                if (display) display.style.display = 'none';
+            }
+            save();
+        }
+
+        function handleShiftResetTrigger() {
+            state.handoverNotes = document.getElementById('handoverNotes').value;
+            const rdTotal = Object.values(state.defects).reduce((a, b) => a + b, 0);
+            const hasActiveLot = state.lotNumber || state.totalGood > 0 || rdTotal > 0;
+
+            const performShiftEnd = () => {
+                (async () => {
+                    const currentUser = state.selectedOperator;
+                    showSubmittingOverlay('Please Wait', 'Submitting shift data to Smartsheet...');
+
+                    // Auto-submit the active lot if there is one
+                    if (hasActiveLot) {
+                        const lotSaved = await submitToSmartsheet("Job", "", 0, currentUser);
+                        if (!lotSaved) {
+                            updateSubmittingOverlay('Submission Failed', 'Failed to submit active lot. End Shift aborted.', true);
+                            return;
+                        }
+                        handleNewLot(currentUser);
+                    }
+
+                    const saved = await submitToSmartsheet("Event", "Shift End", 0, currentUser);
+                    if (!saved) {
+                        updateSubmittingOverlay('Submission Failed', 'Failed to submit Shift End event.', true);
+                        return;
+                    }
+
+                    const pcdSaved = await submitPcdToSmartsheet(currentUser);
+                    if (!pcdSaved) {
+                        updateSubmittingOverlay('Submission Failed', 'Failed to submit hour-by-hour data.', true);
+                        return;
+                    }
+                    hideSubmittingOverlay();
+
+                    if (state.nextShiftNote && state.nextShiftNote.trim()) {
+                        localStorage.setItem('pcd_handover_note', state.nextShiftNote.trim());
+                    }
+
+                    // Clear the operator's production data before logging them out
+                    state.lotNumber = ""; state.itemNumber = ""; state.totalGood = 0; state.sequence = ""; state.handoverNotes = "";
+                    state.defects = Object.fromEntries(DEFECTS.map(d => [d, 0]));
+                    state.spoolCheckSequence = ""; state.spoolCheckNumber = "";
+                    state.rca = createInitialState().rca;
+
+                    if (state.workspaces) delete state.workspaces[currentUser];
+
+                    // Remove current operator and move to the next or clear station
+                    const remaining = state.activeUsers.filter(u => u !== currentUser);
+                    if (remaining.length > 0) {
+                        // If the departing user is the localStorage primary, transfer ownership
+                        const lsUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+                        if (lsUser.name === currentUser) {
+                            // Promote the next remaining user to be the localStorage primary
+                            localStorage.setItem('currentUser', JSON.stringify({ name: remaining[0], role: lsUser.role || 'Associate' }));
+                        }
+                        removeKioskUser(currentUser);
+                        showToast(`${currentUser} signed out. Station transferred.`);
+                    } else {
+                        // Last user — fully log out of the portal
+                        localStorage.removeItem(SHIFT_KEY);
+                        localStorage.removeItem('currentUser');
+                        window.location.href = '/login.html';
+                    }
+                })();
+            };
+
+            const now = new Date(); const [endH, endM] = (state.endTime || "13:00").split(':').map(Number);
+            const shiftEnd = new Date(now); shiftEnd.setHours(endH, endM, 0, 0);
+            const graceMs = 15 * 60 * 1000;
+            const isEarlyLogout = now < (shiftEnd - graceMs);
+
+            // Build the confirmation message based on whether there's an active lot
+            const lotMsg = hasActiveLot ? "Submit active lot, " : "";
+
+            if (isEarlyLogout) {
+                const notes = state.handoverNotes.trim();
+                if (notes.length < 10) { showToast("⚠️ EARLY LOGOUT: Min 10 chars in Notes."); return; }
+                customConfirm("Early Logout", `${lotMsg}transmit Shift End, and sign out?`, performShiftEnd);
+            } else {
+                customConfirm("End Shift", `${lotMsg}submit shift summary, and sign out?`, performShiftEnd);
+            }
+        }
+
+        function handleSubmitJob() {
+            if (!validateShiftSetup()) return;
+            const rd = Object.values(state.defects || {}).reduce((a, b) => a + b, 0);
+            const sq = (state.totalGood || 0) + rd;
+            const yieldVal = sq > 0 ? ((state.totalGood || 0) / sq) : 1;
+            let warning = (yieldVal < 0.75 && !state.handoverNotes) ? "Low yield. Provide Notes. " : "";
+            const operatorCount = (state.activeUsers || []).length;
+            const extraInfo = ""; // Removed multi-row warning
+            const op = state.selectedOperator;
+            const promptMsg = (op === 'test1' || op === 'test2') 
+                ? warning + "Simulate Job submission (Training Mode)?" 
+                : warning + "Send Job to Smartsheet?";
+                
+            customConfirm("Submit Job", promptMsg, () => {
+                (async () => {
+                    showSubmittingOverlay('Please Wait', 'Submitting to Smartsheet...');
+                    const saved = await submitToSmartsheet("Job", "", 0, op);
+                    if (!saved) {
+                        updateSubmittingOverlay('Submission Failed', 'Data could not be saved. Please try again.', true);
+                        return;
+                    }
+                    updateSubmittingOverlay('Saved!', 'Data submitted successfully.');
+                    handleNewLot(op);
+                })();
+            });
+        }
+
+        function acknowledgeHandoverNote() {
+            localStorage.removeItem('pcd_handover_note');
+            const bannerEl = document.getElementById('handoverBanner');
+            if (bannerEl) bannerEl.style.display = 'none';
+            showToast("Note acknowledged");
+        }
+
+        // Wraps fetch() with an AbortController timeout. Throws a descriptive error on timeout
+        // so callers can distinguish a timeout from a general network failure.
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+            const controller = new AbortController();
+            const tid = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const resp = await fetch(url, { ...options, signal: controller.signal });
+                clearTimeout(tid);
+                return resp;
+            } catch (e) {
+                clearTimeout(tid);
+                if (e.name === 'AbortError') throw new Error('Request timed out. Check your connection and try again.');
+                throw e;
+            }
+        }
+
+        async function submitToSmartsheet(typeOverride = "Job", eventName = "", manualMins = 0, opName = "") {
+            // Defect column keys follow "Defect-{name}" format — built dynamically from config
+            const defectMap = Object.fromEntries(DEFECTS.map(d => [d, 'Defect-' + d]));
+
+            // Capture operator name
+            const op = opName || state.selectedOperator || state.associate || '';
+            if (!op) return showToast("⚠️ No operator selected.");
+            showToast(`Submitting for ${op}...`);
+
+            // If submitting for the currently active operator, ensure their latest changes are snapped
+            if (op === state.selectedOperator) {
+                if (!state.workspaces) state.workspaces = {};
+                state.workspaces[op] = getActiveWorkspaceSnapshot();
+            }
+
+            // Determine workspace for this operator
+            const ws = (state.workspaces && state.workspaces[op]) ? state.workspaces[op] : getActiveWorkspaceSnapshot();
+
+            if (typeOverride === "Job") {
+                // Flush live sequence time before reading pcdBySequence so seqMins is current.
+                // Always re-snapshot even if timer was already stopped (e.g. after an event submission)
+                // so the workspace reflects the latest pcdBySequence state.
+                if (op === state.selectedOperator && ws.sequence) {
+                    if (state.sequenceStartTime) {
+                        flushSequenceTime(ws.sequence);
+                        state.sequenceStartTime = ws.sequence ? Date.now() : null;
+                    }
+                    state.workspaces[op] = getActiveWorkspaceSnapshot();
+                }
+                const wsSnap = (state.workspaces && state.workspaces[op]) ? state.workspaces[op] : ws;
+
+                const activeSeq = wsSnap.sequence || '';
+                const wsSeqGood = wsSnap.seqGood || {};
+                const wsSeqDefects = wsSnap.seqDefects || {};
+                const wsPcdBySequence = wsSnap.pcdBySequence || {};
+                // Build rows from any sequence that contributed lot data:
+                // good parts, defects, or tracked time.
+                let seqEntries = Object.keys(wsPcdBySequence)
+                    .filter(seq => seq && seq !== '__events__')
+                    .map(seq => {
+                        const goodCount = wsSeqGood[seq] || 0;
+                        const seqDefs = wsSeqDefects[seq] || {};
+                        const badTotal = Object.values(seqDefs).reduce((a, b) => a + b, 0);
+                        const pcdBuckets = wsPcdBySequence[seq] || [];
+                        const totalSeqMins = pcdBuckets.reduce((sum, b) => sum + (b.seqMins || 0), 0);
+                        const lotStartMins = (wsSnap.seqMinsAtLotStart || {})[seq] || 0;
+                        const lotMins = Math.max(0, totalSeqMins - lotStartMins);
+                        return { seq, goodCount, seqDefs, badTotal, lotMins };
+                    })
+                    .filter(entry => entry.goodCount > 0 || entry.badTotal > 0 || entry.lotMins > 0);
+                // Backward compat: if no sequence-level data exists yet, fall back to a single row
+                if (seqEntries.length === 0) {
+                    seqEntries = [{
+                        seq: wsSnap.sequence || '',
+                        goodCount: wsSnap.totalGood || 0,
+                        seqDefs: wsSeqDefects[wsSnap.sequence || ''] || {},
+                        badTotal: Object.values(wsSeqDefects[wsSnap.sequence || ''] || {}).reduce((a, b) => a + b, 0),
+                        lotMins: 0
+                    }];
+                }
+
+                let submittedCount = 0;
+
+                for (const { seq, goodCount, seqDefs, badTotal, lotMins } of seqEntries) {
+                    const isActiveRow = (seq === activeSeq);
+                    // Safety floor: if parts were counted but time rounds to 0, use 1 min
+                    // to prevent blank time in Smartsheet (time tracking gap, not truly 0).
+                    const safeLotMins = (lotMins === 0 && goodCount > 0) ? 1 : lotMins;
+
+                    const rowPayload = {};
+                    rowPayload['Entry Type'] = 'Job';
+                    rowPayload['Work Date'] = state.workDate;
+                    rowPayload['Associate Name'] = op;
+                    rowPayload['Sequence'] = seq;
+                    rowPayload['Lot Number'] = wsSnap.lotNumber || '';
+                    rowPayload['Item'] = wsSnap.itemNumber || '';
+                    rowPayload['End Quantity'] = goodCount;
+                    rowPayload['Start Quantity'] = goodCount + badTotal;
+                    rowPayload['Time worked (Min)'] = safeLotMins;
+
+                    // Notes, RCA, Spool Check fields only on the active (primary) row
+                    if (isActiveRow) {
+                        if (seq === 'Spool Check') {
+                            rowPayload['Reason for Fail'] = wsSnap.handoverNotes || '';
+                            rowPayload['Notes'] = wsSnap.nextShiftNote || '';
+                            rowPayload['Spool Check Sequence'] = wsSnap.spoolCheckSequence || '';
+                            rowPayload['Check #'] = wsSnap.spoolCheckNumber || '';
+                        } else {
+                            rowPayload['Notes'] = wsSnap.handoverNotes || '';
+                        }
+                        rowPayload['PTFE Oven Head'] = wsSnap.rca?.ptfeHead || '';
+                        rowPayload['PTFE  Operators'] = wsSnap.rca?.ptfeOps || '';
+                        rowPayload['Etch Operators'] = wsSnap.rca?.etchOps || '';
+                        rowPayload['Teco Oven Head'] = wsSnap.rca?.tecoHead || '';
+                        rowPayload['Teco Operators'] = wsSnap.rca?.tecoOps || '';
+                        rowPayload['Pebax Oven  Head'] = wsSnap.rca?.pebaxHead || '';
+                        rowPayload['Pebax Operators'] = wsSnap.rca?.pebaxOps || '';
+                        rowPayload['Did Operators leave a Comment?'] = wsSnap.rca?.commentStatus === 'Yes' ? 'true' : 'false';
+                    } else {
+                        rowPayload['Notes'] = '';
+                    }
+
+                    // Yield flag per-row
+                    if ((goodCount + badTotal) > 0 && (goodCount / (goodCount + badTotal)) <= 0.5) {
+                        rowPayload['=< 50% Yield'] = 'true';
+                    }
+
+                    // Defects specific to this sequence
+                    for (const [uiN, sH] of Object.entries(defectMap)) {
+                        rowPayload[sH] = seqDefs[uiN] || 0;
+                    }
+
+                    try {
+                        const resp = await fetchWithTimeout(`${API_BASE_URL}/submit`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(rowPayload)
+                        });
+                        const result = await resp.json();
+                        if (result.success) submittedCount++;
+                        else console.error(`Submission failed for sequence ${seq}:`, result);
+                    } catch (err) {
+                        console.error(`Network error submitting row for ${seq}:`, err);
+                    }
+                }
+
+                const totalExpected = seqEntries.length;
+                if (submittedCount === 0) {
+                    showToast(`❌ Failed to save ${op}'s data.`);
+                    return false;
+                } else if (submittedCount < totalExpected) {
+                    showToast(`⚠️ Partial save: ${submittedCount}/${totalExpected} sequences saved. Please contact your supervisor.`);
+                    return false;
+                }
+                showToast(op === 'test1' || op === 'test2'
+                    ? `✅ (Training Mode) Simulated submission successful!`
+                    : `✅ Data for ${op} saved to Smartsheet!`);
+                return true;
+
+            } else {
+                // Event submission — single row, unchanged
+                const payload = {};
+                payload['Entry Type'] = typeOverride;
+                payload['Work Date'] = state.workDate;
+                payload['Associate Name'] = op;
+                payload['Notes'] = ws.handoverNotes || '';
+                payload['Event'] = eventName;
+                payload['Time worked (Min)'] = manualMins;
+
+                try {
+                    const response = await fetchWithTimeout(`${API_BASE_URL}/submit`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (!result.success) {
+                        console.error(`Submission failed for ${op}:`, result);
+                        showToast(`❌ Failed to save ${op}'s data.`);
+                        return false;
+                    }
+                } catch (err) {
+                    console.error(`API error for ${op}:`, err);
+                    if (err.message.includes('timed out')) {
+                        showToast(`❌ Server timed out for ${op}. Try again.`);
+                    } else {
+                        showToast(`❌ Network error for ${op}.`);
+                    }
+                    return false;
+                }
+
+                if (op === 'test1' || op === 'test2') {
+                    showToast(`✅ (Training Mode) Simulated submission successful!`);
+                } else {
+                    showToast(`✅ Data for ${op} saved to Smartsheet!`);
+                }
+                return true;
+            }
+        }
+
+        async function submitPcdToSmartsheet(opName = "") {
+            ensurePcdState();
+            const op = opName || state.selectedOperator || state.associate || '';
+            if (!op) return false;
+
+            // Flush any un-committed on-sequence time before snapshotting
+            if (op === (state.selectedOperator || state.associate) && state.sequence && state.sequenceStartTime) {
+                flushSequenceTime(state.sequence);
+                // Restart timer so ongoing time continues accumulating if the shift is still active
+                state.sequenceStartTime = state.sequence ? Date.now() : null;
+            }
+
+            // Get workspace for PCD data source
+            const ws = (op === state.selectedOperator) ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
+            const allRows = [];
+
+            PCD_SEQUENCES.forEach(seq => {
+                const buckets = ws.pcdBySequence[seq] || [];
+                const row = {
+                    'Work Date': state.workDate,
+                    'Associate Name': op,
+                    'Sequence': seq
+                };
+
+                buckets.forEach(h => {
+                    row[`H${h.hour}_Good`] = h.good || 0;
+                    row[`H${h.hour}_Bad`] = h.bad || 0;
+                    row[`H${h.hour}_Mins`] = h.seqMins || 0;
+                });
+
+                allRows.push(row);
+            });
+
+            // Build Event row from __events__ buckets
+            const evBuckets = ws.pcdBySequence['__events__'] || [];
+            const hasEventData = evBuckets.some(b => (b.seqMins || 0) > 0);
+            if (hasEventData) {
+                const evRow = {
+                    'Work Date': state.workDate,
+                    'Associate Name': op,
+                    'Sequence': 'Event',
+                    'Event Name': [...new Set(evBuckets.flatMap(b => b.eventNames || []))].join(', ')
+                };
+                evBuckets.forEach(b => {
+                    evRow[`H${b.hour}_Mins`] = b.seqMins || 0;
+                });
+                allRows.push(evRow);
+            }
+
+            const filteredRows = allRows.filter(row => {
+                for (let i = 1; i <= 12; i++) {
+                    if ((row[`H${i}_Good`] || 0) > 0) return true;
+                    if ((row[`H${i}_Bad`] || 0) > 0) return true;
+                    if ((row[`H${i}_Mins`] || 0) > 0) return true;
+                }
+                return false;
+            });
+
+            if (!filteredRows.length) return true;
+
+            showToast("Submitting hour-by-hour tracker...");
+
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-pcd`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(filteredRows)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    if (op === 'test1' || op === 'test2') {
+                        showToast("✅ (Training Mode) Simulated hour-by-hour tracker saved.");
+                    } else {
+                        showToast("✅ Hour-by-hour tracker saved.");
+                    }
+                    return true;
+                }
+
+                console.error("PCD submission failed:", result);
+                showToast("❌ Failed to save hour-by-hour tracker.");
+                return false;
+            } catch (err) {
+                console.error("PCD API error:", err);
+                if (err.message.includes('timed out')) {
+                    showToast("❌ Server timed out saving tracker. Try again.");
+                } else {
+                    showToast("❌ Network error saving hour-by-hour tracker.");
+                }
+                return false;
+            }
+        }
+
+        // Expose init/build functions so fetchSmartsheetData can call them once data arrives.
+        function renderDropdowns() {
+            initKioskBar();
+            initRosterDropdowns();
+            initSequenceDropdown();
+            initEventDropdown();
+        }
+        function renderDefectLog() {
+            buildDefects();
+            // Re-sync UI to make sure values map to new elements properly
+            syncUIToState();
+        }
+
+        function handleUserLogout(op) {
+            const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+            if (currentUser.role === 'Supervisor' && currentUser.name === op) {
+                customConfirm('Logout', `Log out ${op}?`, performLogout);
+                return;
+            }
+            const isCurrentlySelected = (op === state.selectedOperator);
+            const ws = isCurrentlySelected ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
+            const rd = Object.values(ws.defects || {}).reduce((a, b) => a + (b || 0), 0);
+            const hasUnsaved = ws.lotNumber || (ws.totalGood > 0) || (rd > 0);
+
+            const performUserLogout = () => {
+                (async () => {
+                    const isTest = (op === 'test1' || op === 'test2');
+                    showSubmittingOverlay('Please Wait', `Submitting ${op}'s data to Smartsheet...`);
+                    if (hasUnsaved) {
+                        const lotSaved = await submitToSmartsheet("Job", "", 0, op);
+                        if (!lotSaved) {
+                            updateSubmittingOverlay('Submission Failed', 'Failed to submit active lot. Logout aborted.', true);
+                            return;
+                        }
+                        
+                        // clear state so it doesn't leak if they are the currently selected operator
+                        if (isCurrentlySelected) {
+                            state.lotNumber = ""; state.itemNumber = ""; state.totalGood = 0; state.sequence = "";
+                            state.defects = Object.fromEntries(DEFECTS.map(d => [d, 0]));
+                        }
+                    }
+
+                    const saved = await submitToSmartsheet("Event", "Shift End", 0, op);
+                    if (!saved) {
+                        updateSubmittingOverlay('Submission Failed', 'Failed to submit Shift End event.', true);
+                        return;
+                    }
+                    const pcdSaved = await submitPcdToSmartsheet(op);
+                    if (!pcdSaved) {
+                        updateSubmittingOverlay('Submission Failed', 'Failed to submit hour-by-hour data.', true);
+                        return;
+                    }
+                    hideSubmittingOverlay();
+
+                    if (state.workspaces) delete state.workspaces[op];
+
+                    // If they are the primary local storage user, pass ownership
+                    const lsUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+                    const remaining = state.activeUsers.filter(u => u !== op);
+                    if (lsUser.name === op && remaining.length > 0) {
+                        localStorage.setItem('currentUser', JSON.stringify({ name: remaining[0], role: 'Associate' }));
+                    }
+
+                    if (remaining.length === 0) {
+                        performLogout();
+                    } else {
+                        removeKioskUser(op);
+                        showToast(`✅ ${op} logged out successfully.`);
+                    }
+                })();
+            };
+
+            const now = new Date(); 
+            const [endH, endM] = (ws.endTime || state.endTime || "13:00").split(':').map(Number);
+            const shiftEnd = new Date(now); shiftEnd.setHours(endH, endM, 0, 0);
+            const graceMs = 15 * 60 * 1000;
+            const isEarlyLogout = now < (shiftEnd - graceMs);
+
+            if (isEarlyLogout) {
+                const notes = (ws.handoverNotes || "").trim();
+                // Ensure the user switches to the operator first if they need to type notes for them
+                if (notes.length < 10) { 
+                    showToast(`⚠️ EARLY LOGOUT: Minimum 10 characters required in Notes for ${op}. Select them and add notes.`); 
+                    return; 
+                }
+            }
+
+            if (hasUnsaved) {
+                customConfirm('⚠️ Unsubmitted Work', `Submit active lot and log out ${op}?`, performUserLogout);
+            } else {
+                customConfirm('Logout Operator', `Are you sure you want to securely log out ${op}?`, performUserLogout);
+            }
+        }
+
+        function performLogout() {
+            localStorage.removeItem('currentUser');
+            // Clear kiosk state so it doesn't leak to the next login session
+            const data = localStorage.getItem(SHIFT_KEY);
+            if (data) {
+                try {
+                    const saved = JSON.parse(data);
+                    saved.associate = "";
+                    saved.activeUsers = [];
+                    saved.selectedOperator = "";
+                    localStorage.setItem(SHIFT_KEY, JSON.stringify(saved));
+                } catch (e) { }
+            }
+            window.location.href = '/login.html';
+        }
+
+        function load() {
+            // Trigger the background data fetch from Smartsheet.
+            // renderDropdowns() and renderDefectLog() will be called automatically when data arrives.
+            fetchSmartsheetData();
+
+            initTimeDropdowns();      // populate hour selects (1-12)
+
+            const user = JSON.parse(localStorage.getItem('currentUser')) || {};
+            const adminBtn = document.getElementById('navAdminBtn');
+            if (adminBtn && user.role === 'Supervisor') adminBtn.style.display = 'inline-block';
+
+            const data = localStorage.getItem(SHIFT_KEY);
+            if (data) {
+                try {
+                    const saved = JSON.parse(data);
+                    const fresh = createInitialState();
+                    state = { ...fresh, ...saved };
+
+                    const loadedBySequence = (saved && typeof saved.pcdBySequence === 'object') ? saved.pcdBySequence : {};
+                    state.pcdBySequence = { ...fresh.pcdBySequence };
+                    PCD_SEQUENCES.forEach(seq => {
+                        if (Array.isArray(loadedBySequence[seq])) {
+                            state.pcdBySequence[seq] = loadedBySequence[seq];
+                        }
+                    });
+                    // Restore __events__ buckets (not in PCD_SEQUENCES so must be handled separately)
+                    if (Array.isArray(loadedBySequence['__events__'])) {
+                        state.pcdBySequence['__events__'] = loadedBySequence['__events__'];
+                    }
+                    // Backward compatibility for old saves that only had state.pcd
+                    if (Array.isArray(saved?.pcd) && !Array.isArray(loadedBySequence?.Inspect)) {
+                        state.pcdBySequence.Inspect = saved.pcd;
+                    }
+                    state.activePcdTab = PCD_SEQUENCES.includes(saved?.activePcdTab) ? saved.activePcdTab : 'Inspect';
+                    ensurePcdState();
+                    state.shiftTotalGood = saved.shiftTotalGood || 0;
+                    state.shiftTotalBad = saved.shiftTotalBad || 0;
+                    state.rca = { ...fresh.rca, ...(saved.rca || {}) };
+                    state.eventData = { ...fresh.eventData, ...(saved.eventData || {}) };
+                    state.eventTimer = { ...fresh.eventTimer, ...(saved.eventTimer || {}) };
+                    // We don't restore defects immediately because the DOM elements haven't been built by the async fetch yet.
+                    // Instead, syncUIToState handles it once renderDefectLog runs.
+                    state.defects = { ...fresh.defects, ...(saved.defects || {}) };
+                } catch (e) { state = createInitialState(); }
+            }
+            if (user && user.name) {
+                // Kiosk: ensure the current user is in activeUsers
+                if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
+                if (!state.activeUsers.includes(user.name)) {
+                    state.activeUsers.unshift(user.name);
+                }
+
+                // Initialize workspaces if missing
+                if (!state.workspaces) state.workspaces = {};
+
+                if (!state.selectedOperator || !state.activeUsers.includes(state.selectedOperator)) {
+                    state.selectedOperator = user.name;
+                    state.associate = user.name;
+                    // Load workspace if it exists
+                    if (state.workspaces[user.name]) {
+                        applyWorkspaceSnapshot(state.workspaces[user.name]);
+                    }
+                }
+            }
+            ensurePcdState();
+            // Restart the sequence timer from page-load time (avoids stale timestamps from localStorage)
+            state.sequenceStartTime = state.sequence ? Date.now() : null;
+
+            // --- FIX 1: STALE SHIFT DETECTION ---
+            // If the saved work date is not today, prompt the user
+            const today = getLocalDate();
+            if (state.workDate && state.workDate !== today) {
+                const staleDate = state.workDate;
+                const hasWork = (state.totalGood > 0) || (state.shiftTotalGood > 0) || state.lotNumber;
+                if (hasWork) {
+                    // Use setTimeout so the rest of load() finishes and the modal system is ready
+                    setTimeout(() => {
+                        customConfirm(
+                            '⚠️ Stale Shift Detected',
+                            `Data from ${staleDate} was never submitted via End Shift. Discard old data and start fresh?`,
+                            () => {
+                                localStorage.removeItem(SHIFT_KEY);
+                                localStorage.removeItem('pcd_handover_note');
+                                showToast('Old shift data discarded.');
+                                setTimeout(() => location.reload(), 300);
+                            }
+                        );
+                    }, 200);
+                } else {
+                    // No meaningful work — silently update the date
+                    state.workDate = today;
+                    save();
+                }
+            }
+
+            syncUIToState();
+            render();
+
+            const bannerNote = localStorage.getItem('pcd_handover_note');
+            const bannerEl = document.getElementById('handoverBanner');
+            const bannerTextEl = document.getElementById('handoverBannerText');
+            if (bannerNote && bannerEl && bannerTextEl) {
+                bannerTextEl.textContent = bannerNote;
+                bannerEl.style.display = 'flex';
+            }
+        }
+
+        /** 6. BOOTSTRAP **/
+        window.onload = function () {
+            load();
+            const sInp = document.getElementById('sequenceInput'); if (sInp) sInp.onchange = (e) => {
+                const oldSeq = state.sequence;
+                if (oldSeq && state.sequenceStartTime) flushSequenceTime(oldSeq);
+                // Save current defects to old sequence bucket before switching
+                if (oldSeq) {
+                    if (!state.seqDefects) state.seqDefects = {};
+                    state.seqDefects[oldSeq] = JSON.parse(JSON.stringify(state.defects));
+                }
+                state.sequence = e.target.value;
+                state.sequenceStartTime = e.target.value ? Date.now() : null;
+                // Restore defects for new sequence (or zeros if first time on this sequence)
+                if (state.sequence) {
+                    if (!state.seqDefects) state.seqDefects = {};
+                    state.defects = state.seqDefects[state.sequence]
+                        ? JSON.parse(JSON.stringify(state.seqDefects[state.sequence]))
+                        : Object.fromEntries(DEFECTS.map(d => [d, 0]));
+                }
+                save(); updateSpoolCheckUI(); applyPcdTabUI(); syncUIToState();
+            };
+            const wInp = document.getElementById('workDateInput'); if (wInp) wInp.onchange = (e) => { state.workDate = e.target.value; save(); };
+            const nInp = document.getElementById('handoverNotes'); if (nInp) nInp.oninput = (e) => { state.handoverNotes = e.target.value; e.target.classList.remove('input-error'); save(); };
+            const nsnInp = document.getElementById('nextShiftNoteInput'); if (nsnInp) nsnInp.oninput = (e) => { state.nextShiftNote = e.target.value; save(); };
+            const lInp = document.getElementById('lotNumber'); if (lInp) lInp.oninput = (e) => { state.lotNumber = e.target.value; save(); };
+            const iInp = document.getElementById('itemNumber'); if (iInp) iInp.oninput = (e) => { state.itemNumber = e.target.value; save(); };
+            const eS = document.getElementById('eventSelect'); if (eS) eS.onchange = (e) => { state.eventData.type = e.target.value; save(); };
+            const eM = document.getElementById('eventMinutesInput'); if (eM) eM.oninput = (e) => { state.eventData.minutes = parseInt(e.target.value) || 0; save(); };
+            const eT = document.getElementById('eventStartTimeRef'); if (eT) eT.onchange = (e) => { state.eventData.startTimeRef = e.target.value; state.eventData.exactStartMs = null; save(); };
+            const rcPH = document.getElementById('rca_ptfe_head'); if (rcPH) rcPH.oninput = (e) => { state.rca.ptfeHead = e.target.value; save(); };
+            const rcPO = document.getElementById('rca_ptfe_ops'); if (rcPO) rcPO.onchange = (e) => { state.rca.ptfeOps = e.target.value; save(); };
+            const rcEO = document.getElementById('rca_etch_ops'); if (rcEO) rcEO.onchange = (e) => { state.rca.etchOps = e.target.value; save(); };
+            const rcTH = document.getElementById('rca_teco_head'); if (rcTH) rcTH.oninput = (e) => { state.rca.tecoHead = e.target.value; save(); };
+            const rcTO = document.getElementById('rca_teco_ops'); if (rcTO) rcTO.onchange = (e) => { state.rca.tecoOps = e.target.value; save(); };
+            const rcBH = document.getElementById('rca_pebax_head'); if (rcBH) rcBH.oninput = (e) => { state.rca.pebaxHead = e.target.value; save(); };
+            const rcBO = document.getElementById('rca_pebax_ops'); if (rcBO) rcBO.onchange = (e) => { state.rca.pebaxOps = e.target.value; save(); };
+            const rcCS = document.getElementById('rca_comment_status'); if (rcCS) rcCS.onchange = (e) => { state.rca.commentStatus = e.target.value; save(); };
+
+            updateTimeFromUI();
+            setInterval(updateClock, 1000);
+
+            // #1: "G" keyboard shortcut for +5 Good Units (only when not typing in an input/textarea)
+            document.addEventListener('keydown', (e) => {
+                // Supervisor Reset: Ctrl+Shift+X with PIN
+                if (e.ctrlKey && e.shiftKey && (e.key === 'X' || e.key === 'x')) {
+                    e.preventDefault();
+                    const pin = prompt('Supervisor PIN required:');
+                    if (pin === '2026') {
+                        localStorage.removeItem(SHIFT_KEY);
+                        localStorage.removeItem('pcd_handover_note');
+                        showToast('🔒 Supervisor Reset — Portal cleared.');
+                        setTimeout(() => location.reload(), 500);
+                    } else if (pin !== null) {
+                        showToast('❌ Incorrect PIN.');
+                    }
+                    return;
+                }
+                const tag = (e.target.tagName || '').toLowerCase();
+                if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+                if (e.key === 'g' || e.key === 'G') { addGood(5); }
+                if (e.key === 'h' || e.key === 'H') { addGood(1); }
+            });
+
+            // --- FIX 2: TAB LOCK ---
+            // Prevent two tabs from running the portal simultaneously
+            (function initTabLock() {
+                if (typeof BroadcastChannel === 'undefined') return; // unsupported browser, skip gracefully
+                const channel = new BroadcastChannel('pl_portal_tab');
+                let isBlocked = false;
+                let heartbeatTimer = null;
+                let lastHeartbeat = Date.now();
+
+                // Send a claim + start heartbeat
+                channel.postMessage({ type: 'claim' });
+                heartbeatTimer = setInterval(() => {
+                    if (!isBlocked) channel.postMessage({ type: 'heartbeat' });
+                }, 3000);
+
+                channel.onmessage = (e) => {
+                    if (e.data.type === 'claim' && !isBlocked) {
+                        // Another tab just opened — tell it we're already here
+                        channel.postMessage({ type: 'already_open' });
+                    }
+                    if (e.data.type === 'already_open') {
+                        // We are the second tab — block ourselves
+                        blockTab();
+                    }
+                    if (e.data.type === 'heartbeat') {
+                        lastHeartbeat = Date.now();
+                    }
+                };
+
+                // If we're blocked, check if original tab went away
+                function checkHeartbeat() {
+                    if (isBlocked && (Date.now() - lastHeartbeat > 8000)) {
+                        // Original tab is gone — unblock
+                        unblockTab();
+                    }
+                }
+                setInterval(checkHeartbeat, 3000);
+
+                function blockTab() {
+                    if (isBlocked) return;
+                    isBlocked = true;
+                    clearInterval(heartbeatTimer);
+                    const overlay = document.createElement('div');
+                    overlay.id = 'tabLockOverlay';
+                    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;';
+                    overlay.innerHTML = `
+                        <div style="font-size:48px;">🔒</div>
+                        <h2 style="color:#fff;margin:0;font-size:22px;">Portal Already Open</h2>
+                        <p style="color:#94a3b8;margin:0;max-width:360px;text-align:center;line-height:1.6;">This portal is already running in another tab. Close this tab and use the existing one.</p>
+                        <p id="tabLockStatus" style="color:#4b5563;font-size:12px;margin-top:8px;">Waiting for other tab...</p>
+                    `;
+                    document.body.appendChild(overlay);
+                }
+
+                function unblockTab() {
+                    isBlocked = false;
+                    const overlay = document.getElementById('tabLockOverlay');
+                    if (overlay) overlay.remove();
+                    // Re-claim this tab
+                    channel.postMessage({ type: 'claim' });
+                    heartbeatTimer = setInterval(() => {
+                        if (!isBlocked) channel.postMessage({ type: 'heartbeat' });
+                    }, 3000);
+                    location.reload(); // Reload to get fresh state
+                }
+            })();
+        };
+    </script>
+</body>
+
+</html>

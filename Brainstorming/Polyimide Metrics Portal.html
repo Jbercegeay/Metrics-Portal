@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polyimide Metrics Portal</title>
+  
+  <!-- Tailwind CSS (Local) -->
+  <script src="lib/tailwind.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'custom-bg': '#f8f9fa',
+            'custom-card': '#ffffff',
+            'custom-card-border': '#dee2e6',
+            'custom-text': '#212529',
+            'custom-muted': '#6c757d',
+            'custom-accent': '#005587',
+            'custom-accent2': '#007bff',
+            'gauge-green': '#28a745',
+            'gauge-yellow': '#ffc107',
+            'gauge-red': '#dc3545',
+            'gauge-bg': '#e9ecef',
+            'input-bg': '#ffffff',
+            'input-border': '#ced4da',
+          },
+        },
+      },
+    }
+  </script>
+
+  <!-- React Libraries (Local) -->
+  <script src="lib/react.js"></script>
+  <script src="lib/react-dom.js"></script>
+
+  <!-- Babel Standalone for JSX Transpilation (Local) -->
+  <script src="lib/babel.js"></script>
+
+  <style>
+    /* Hide number input arrows on Chrome, Safari, Edge, Opera */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Hide number input arrows on Firefox */
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-custom-bg text-custom-text antialiased p-4 sm:p-6">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useMemo } = React;
+
+    const App = () => {
+        // --- State ---
+        const [entryType, setEntryType] = useState('job');
+        
+        // Common Fields
+        const [associateName, setAssociateName] = useState('');
+        const [eventDate, setEventDate] = useState('');
+        const [timeWorked, setTimeWorked] = useState('');
+        const [comments, setComments] = useState('');
+
+        // Job Fields
+        const [itemNumber, setItemNumber] = useState('');
+        const [lotNumber, setLotNumber] = useState('');
+        const [spoolFeet, setSpoolFeet] = useState('');
+        const [partLength, setPartLength] = useState('');
+        const [partUnit, setPartUnit] = useState('in');
+        const [startQty, setStartQty] = useState('');
+        const [endQty, setEndQty] = useState('');
+        const [productionSequence, setProductionSequence] = useState('');
+        const [recuts, setRecuts] = useState('');
+        const [pullingWraps, setPullingWraps] = useState('');
+        
+        // Event Fields
+        const [eventDropdown, setEventDropdown] = useState('');
+
+        // Pareto Checkboxes
+        const [inspectionPareto, setInspectionPareto] = useState({});
+        const [pullingPareto, setPullingPareto] = useState({});
+        const [pullingMethods, setPullingMethods] = useState({});
+
+        // Calculated Results
+        const [lengthInInches, setLengthInInches] = useState(0);
+        const [totalInches, setTotalInches] = useState(0);
+        const [partsFromSpool, setPartsFromSpool] = useState(0);
+        const [isStartQtyAuto, setIsStartQtyAuto] = useState(false);
+        const [scrapParts, setScrapParts] = useState(0);
+        const [pph, setPph] = useState('—');
+        const [yieldPercent, setYieldPercent] = useState(0);
+        const [scrapPercent, setScrapPercent] = useState(0);
+        const [baseStandardPph, setBaseStandardPph] = useState(0);
+        const [adjustedStandard, setAdjustedStandard] = useState(0);
+        const [sequenceOe, setSequenceOe] = useState(0);
+        
+        // UI State
+        const [showInspectionPareto, setShowInspectionPareto] = useState(false);
+        const [showPullingPareto, setShowPullingPareto] = useState(false);
+        const [showPullingExtras, setShowPullingExtras] = useState(false);
+        const [showRecuts, setShowRecuts] = useState(false);
+        const [showSpoolFields, setShowSpoolFields] = useState(false);
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+        const [errorMessages, setErrorMessages] = useState([]);
+        const [isMultiplierModalOpen, setIsMultiplierModalOpen] = useState(false);
+        const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+        const [jobHistory, setJobHistory] = useState([]);
+
+        const ASSOCIATES_LIST = [
+          "Peek, Ashley", "Higdon,Ryan", "Shupe,Vanessa", "Chaney,Jessica",
+          "Higdon, Canaan", "Brown, Josh", "Campbell, Bryson",
+          "Clark,Ann", "Pearson,Mary", "Davis,Ashley", "Konrad,Hayden",
+          "Counts, Amanda",
+          "Cameron, Meagan", "Bailey, Eason", "McGill, Caleb",
+          "Beasley,Jeremy", "Bates,Amir", "Strickland,Freddie",
+          "1st LP", "2nd LP",
+          "Dunn,Doris", "Link,Robert", "Higdon, Tanner",
+          "3rd LP", "Culbert, Keisha", "Gordy, Austin",
+          "Kelley, Thomas", "Bone, Noah",
+          "Cranmore,Michelle", "Welden,Tad", "Wilson, Rhonda", "Blackwood, Brandon",
+          "Extra Help", "Renner, Alexander", "Clark, Josh", "Wooten, Amber"
+        ];
+
+        // Deduplicate list just in case
+        const ASSOCIATES = [...new Set(ASSOCIATES_LIST)].sort();
+        
+        // Set all rates to 0.80
+        const ASSOCIATE_RATES = ASSOCIATES.reduce((acc, name) => {
+            acc[name] = 0.80;
+            return acc;
+        }, {});
+        
+        const PPH_STANDARDS = {
+"110031": {"Long Pull": 13244, "Table Pull": 5911, "CTL": 21275, "Specs": 107, "Inspection": 6708, "Packaging": 6678, "Flush": 17343, "Wrapping": 6496, "Flush/Wrap": 3000, "Check Flush": 12729, "Pressure Test": 3000, "Overall Length": 152, "Roll Cut (Both Ends)": 147},
+"110066": {"Long Pull": 3494, "CTL": 21971, "Inspection": 4180, "Packaging": 3043, "Flush": 11595, "Wrapping": 47400},
+"110096": {"Long Pull": 4318, "Table Pull": 1413, "CTL": 21686, "Specs": 110, "Inspection": 5363, "Packaging": 5090, "Flush": 10031, "Wrapping": 9564, "Re-Inspection": 259},
+"110096*": {"Long Pull": 3396, "Table Pull": 1413, "CTL": 13222, "Specs": 110, "Inspection": 4267, "Packaging": 5130, "Flush": 8313, "Wrapping": 7675},
+"110098": {"Long Pull": 1953, "Table Pull": 942, "CTL": 4348, "Inspection": 1592, "Packaging": 3495, "Flush": 2730, "Wrapping": 1433},
+"110099": {"Long Pull": 2129, "Table Pull": 1361, "CTL": 16685, "Inspection": 3445, "Packaging": 5401, "Flush": 12612, "Wrapping": 10599},
+"110109": {"Long Pull": 3352, "CTL": 12091, "Inspection": 1888, "Packaging": 3244, "Flush": 5595, "Wrapping": 8241},
+"110115": {"Long Pull": 2512, "Table Pull": 1149, "CTL": 6839, "Inspection": 948, "Packaging": 3626, "Flush": 3600, "Wrapping": 7280},
+"110117": {"Long Pull": 4712, "Table Pull": 5690, "CTL": 16059, "Specs": 103, "Inspection": 3184, "Packaging": 4847, "Flush": 11078, "Wrapping": 11217, "Flush/Wrap": 6321, "Pressure Test": 2700, "10X": 100},
+"110118": {"Long Pull": 1418, "Table Pull": 1149, "CTL": 7011, "Specs": 2133, "Inspection": 1119, "Packaging": 3877, "Flush": 5123, "Wrapping": 4997},
+"110121": {"Long Pull": 2785, "Table Pull": 1128, "CTL": 8063, "Inspection": 2018, "Packaging": 3319, "Flush": 3394, "Wrapping": 2566},
+"110125": {"Table Pull": 1488, "CTL": 3136, "Specs": 90, "Inspection": 1544, "Packaging": 1862, "Flush": 1934, "Wrapping": 2227, "Flush/Wrap": 1029, "Pressure Test": 971, "10X": 32},
+"110134": {"Long Pull": 721, "Table Pull": 230, "CTL": 2508, "Specs": 21, "Inspection": 702, "Packaging": 1374, "Flush": 2040, "Wrapping": 2856, "Flush/Wrap": 660, "Check Flush": 1436, "Pressure Test": 660, "First Cut": 137, "Overall Length": 130, "Roll Cut (Both Ends)": 74},
+"110135": {"Long Pull": 1120, "Table Pull": 393, "Inspection": 1317, "Packaging": 3904, "Flush": 2015, "Wrapping": 7370, "Check Flush": 1100, "First Cut": 149, "Overall Length": 155, "Roll Cut (Both Ends)": 97},
+"110189": {"Long Pull": 9844, "Table Pull": 3714, "CTL": 28235, "Inspection": 4692, "Packaging": 5734, "Flush": 19105, "Wrapping": 18368},
+"110192": {"Long Pull": 1572, "CTL": 3173, "Specs": 155, "Inspection": 1078, "Packaging": 1886, "Flush": 2292, "Wrapping": 1681, "Flush/Wrap": 917, "Pressure Test": 1000, "10X": 95, "Tensile Test": 70},
+"110243": {"Long Pull": 1861, "Table Pull": 401, "CTL": 2208, "Specs": 228, "Inspection": 396, "Packaging": 1627, "Flush": 356, "Wrapping": 1048, "Flush/Wrap": 667, "Check Flush": 2749, "Pressure Test": 667, "Tensile Test": 19},
+"110268": {"Long Pull": 1973, "Table Pull": 719, "CTL": 8117, "Inspection": 600, "Packaging": 2523, "Flush": 3398, "Wrapping": 1488},
+"110275": {"Long Pull": 2018, "CTL": 2733, "Specs": 69, "Inspection": 1676, "Packaging": 1596, "Flush": 1668, "Wrapping": 1852, "First Cut": 133, "Overall Length": 72, "Roll Cut (Both Ends)": 102},
+"110290": {"Table Pull": 485, "CTL": 4608, "Specs": 69, "Inspection": 182, "Packaging": 1338, "Flush": 550, "Wrapping": 1536, "Flush/Wrap": 550, "Pressure Test": 550},
+"110306": {"Table Pull": 882, "CTL": 5340, "Specs": 93, "Inspection": 1097, "Packaging": 2963, "Flush": 4362, "Wrapping": 2392},
+"110316": {"Table Pull": 1253, "CTL": 5340, "Specs": 93, "Packaging": 2963, "Wrapping": 3760},
+"110386": {"Table Pull": 302, "CTL": 69, "Inspection": 282, "Packaging": 470, "Flush": 595, "Wrapping": 591, "Flush/Wrap": 465, "Check Flush": 594, "Pressure Test": 55, "First Cut": 147, "Overall Length": 77, "Roll Cut (Both Ends)": 39},
+"110471": {"Long Pull": 5298, "Table Pull": 1750, "CTL": 8229, "Specs": 88, "Inspection": 2963, "Packaging": 2694, "Flush": 3268, "Wrapping": 6998, "Flush/Wrap": 1096, "Pressure Test": 1096},
+"110472": {"Table Pull": 3600, "CTL": 2700, "Specs": 76, "Inspection": 675, "Packaging": 3692, "Flush": 3067, "Wrapping": 6120},
+"110473": {"Long Pull": 5760, "Table Pull": 2213, "CTL": 3831, "Specs": 95, "Inspection": 2758, "Packaging": 4723, "Flush": 3624, "Wrapping": 6000, "Flush/Wrap": 950, "Pressure Test": 950},
+"110474": {"Long Pull": 3727, "Table Pull": 2434, "CTL": 2631, "Inspection": 1578, "Packaging": 3091, "Flush": 7200},
+"110539": {"Long Pull": 856, "Table Pull": 895, "CTL": 5334, "Specs": 66, "Inspection": 1095, "Packaging": 4148, "Flush": 3112, "Wrapping": 2967, "Flush/Wrap": 2168, "Check Flush": 1857, "Pressure Test": 1150},
+"110548": {"Table Pull": 909, "CTL": 4578, "Specs": 192, "Inspection": 434, "Packaging": 3583, "Flush": 2226, "Wrapping": 1480, "Flush/Wrap": 862, "Check Flush": 1185, "First Cut": 217, "Overall Length": 1889},
+"110588": {"Table Pull": 1700, "CTL": 4764, "Specs": 57, "Inspection": 941, "Packaging": 2135, "Flush": 3096, "Wrapping": 3850, "Flush/Wrap": 862, "Check Flush": 1158, "Pressure Test": 370, "First Cut": 84, "Overall Length": 64, "Roll Cut (Both Ends)": 110},
+"113056": {"Long Pull": 6048, "CTL": 24686, "Inspection": 1471, "Packaging": 6245, "Wrapping": 6302},
+"113061": {"Long Pull": 3004, "CTL": 23098, "Inspection": 2556, "Packaging": 3628, "Flush": 9202, "Wrapping": 12449},
+"113061*": {"Long Pull": 3031, "CTL": 14375, "Specs": 103, "Inspection": 2089, "Packaging": 3918, "Flush": 9202, "Wrapping": 6601},
+"113063": {"Long Pull": 3033, "Table Pull": 811, "CTL": 14707, "Inspection": 4687, "Packaging": 3774, "Flush": 7925, "Wrapping": 5557},
+"113064": {"Long Pull": 4171, "CTL": 16593, "Inspection": 2082, "Packaging": 5569, "Flush": 11250, "Wrapping": 4439},
+"113064*": {"Long Pull": 3396, "Table Pull": 1413, "CTL": 13222, "Specs": 110, "Inspection": 4267, "Packaging": 5130, "Flush": 8313, "Wrapping": 7675},
+"113065": {"Long Pull": 2466, "CTL": 12901, "Inspection": 1496, "Packaging": 3088, "Flush": 3792, "Wrapping": 2475},
+"113266": {"Table Pull": 4443, "Specs": 57, "Inspection": 6852, "Packaging": 3938, "Flush": 6120, "Wrapping": 7684},
+"113267": {"Table Pull": 2903, "Specs": 83, "Inspection": 3870, "Flush": 5529, "Wrapping": 7740},
+"113268": {"Table Pull": 350, "Inspection": 273, "Flush": 1000, "Wrapping": 1000, "Flush/Wrap": 1050, "Pressure Test": 1000},
+"201671": {"Table Pull": 167, "CTL": 1971, "Specs": 70, "Inspection": 468, "Packaging": 1664, "Flush": 1624, "Wrapping": 920, "Flush/Wrap": 550, "Check Flush": 887, "Pressure Test": 550, "Tensile Test": 55},
+"201783": {"Long Pull": 2006, "CTL": 5973, "Inspection": 1267, "Packaging": 3365, "Flush": 5492, "Wrapping": 3367},
+"202199": {"Table Pull": 670, "CTL": 5306, "Specs": 73, "Inspection": 839, "Packaging": 2077, "Flush": 2662, "Wrapping": 1057},
+"202364": {"Long Pull": 1360, "Table Pull": 215, "CTL": 3024, "Specs": 157, "Inspection": 1278, "Packaging": 7272, "Flush": 1163, "Wrapping": 1391, "Flush/Wrap": 1211, "Check Flush": 300, "Pressure Test": 300, "Roll Cut (Both Ends)": 60},
+"202376": {"Long Pull": 715, "CTL": 3015, "Inspection": 448, "Packaging": 859, "Flush": 1163, "Wrapping": 1890},
+"202830": {"Table Pull": 833, "CTL": 3600, "Inspection": 924, "Packaging": 1327, "Flush": 2372, "Wrapping": 806},
+"202835": {"Table Pull": 4189, "CTL": 25200, "Inspection": 6256, "Packaging": 6506, "Flush": 10684, "Wrapping": 7078, "Pressure Test": 6409, "10X": 100},
+"203033": {"Table Pull": 144, "CTL": 4392, "Specs": 81, "Inspection": 623, "Packaging": 2162, "Flush": 947, "Wrapping": 1717},
+"203090": {"Table Pull": 765, "CTL": 9650, "Inspection": 1272, "Packaging": 2538, "Flush": 2533, "Wrapping": 2900},
+"203667": {"Table Pull": 1131, "CTL": 6784, "Specs": 35, "Inspection": 1620, "Packaging": 3322},
+"203860": {"Table Pull": 349, "CTL": 3297, "Specs": 3066, "Inspection": 267, "Packaging": 1545, "Flush": 1221, "Wrapping": 740, "Check Flush": 719, "First Cut": 161, "Overall Length": 1990, "Roll Cut (Both Ends)": 95},
+"204329": {"Long Pull": 3012, "CTL": 15587, "Inspection": 2642, "Packaging": 3121, "Flush": 5202, "Wrapping": 9216},
+"204546": {"Long Pull": 2468, "Table Pull": 545, "CTL": 6903, "Inspection": 1380, "Packaging": 1920, "Flush": 4615, "Wrapping": 6967, "Flush/Wrap": 2343, "Pressure Test": 2000},
+"204646": {"Long Pull": 14081, "CTL": 51800, "Specs": 95, "Inspection": 7261, "Packaging": 18348, "Flush": 38424, "Wrapping": 32091},
+"204647": {"Long Pull": 8910, "Table Pull": 4059, "CTL": 29440, "Inspection": 6476, "Packaging": 13760, "Flush": 12618, "Wrapping": 10045},
+"205742": {"Long Pull": 2015, "Table Pull": 721, "CTL": 4953, "Inspection": 946, "Packaging": 2969, "Flush": 2147, "Wrapping": 1218},
+"206337": {"Long Pull": 5798, "Table Pull": 830, "CTL": 13482, "Specs": 96, "Inspection": 3237, "Packaging": 3578, "Flush": 1482, "Wrapping": 3880, "Flush/Wrap": 710, "Pressure Test": 595},
+"208039": {"Table Pull": 572, "CTL": 2400, "Inspection": 353, "Packaging": 91, "Flush": 1657, "Wrapping": 666},
+"208583": {"Table Pull": 954, "CTL": 10072, "Specs": 86, "Inspection": 1003, "Packaging": 2939, "Flush": 4019, "Wrapping": 4248},
+"209076": {"Long Pull": 1008, "Table Pull": 2818, "CTL": 534, "Specs": 43, "Inspection": 2308, "Packaging": 1493, "Flush": 381, "Wrapping": 5764, "Flush/Wrap": 381, "Pressure Test": 381},
+"212337": {"Long Pull": 2549, "Table Pull": 1134, "CTL": 6205, "Inspection": 1738, "Packaging": 2903, "Flush": 2949, "Wrapping": 2680},
+"214257": {"Table Pull": 2554, "CTL": 16699, "Specs": 5782, "Inspection": 13007, "Packaging": 18053, "Flush": 5882, "Wrapping": 7728, "Flush/Wrap": 3000, "Pressure Test": 3000},
+"214585": {"Long Pull": 1749, "Table Pull": 737, "CTL": 4630, "Specs": 135, "Inspection": 1033, "Packaging": 1952, "Flush": 2681, "Wrapping": 1771, "Flush/Wrap": 1443, "Check Flush": 680, "Pressure Test": 187, "10X": 121, "Tensile Test": 71},
+"215043": {"Long Pull": 1233, "Table Pull": 563, "CTL": 4532, "Specs": 82, "Inspection": 280, "Packaging": 2201, "Flush": 1863, "Wrapping": 902, "Check Flush": 936},
+"215355": {"Specs": 23631, "Inspection": 29741, "Flush": 227, "Wrapping": 227},
+"215358": {"Specs": 23631, "Inspection": 29741, "Flush": 227, "Wrapping": 227},
+"215941": {"Table Pull": 228},
+"216313": {"Long Pull": 1346, "Table Pull": 1212, "CTL": 4776, "Specs": 46, "Inspection": 1158, "Packaging": 1946, "Flush": 2923, "Wrapping": 1544, "Check Flush": 1023, "Tensile Test": 122, "First Cut": 207, "Overall Length": 125, "Roll Cut (Both Ends)": 75},
+"216767": {"Table Pull": 150, "Inspection": 248, "Flush": 400, "Wrapping": 400, "Flush/Wrap": 400, "Pressure Test": 400},
+"218558": {"Long Pull": 4846, "Table Pull": 331, "Inspection": 160, "Flush": 1323, "Wrapping": 15120, "Flush/Wrap": 490, "Pressure Test": 490},
+"218614": {"Table Pull": 1035, "CTL": 4406, "Specs": 74, "Inspection": 1020, "Packaging": 3509, "Flush": 2136, "Wrapping": 955, "Check Flush": 1078, "First Cut": 176, "Overall Length": 88, "Roll Cut (Both Ends)": 80},
+"218926": {"Table Pull": 28800, "Specs": 100, "Inspection": 24814, "Flush": 8640, "Wrapping": 64260},
+"218969": {"Table Pull": 1632, "CTL": 9750, "Inspection": 1057, "Packaging": 1984, "Flush": 5897, "Wrapping": 2760},
+"220324": {"Table Pull": 622, "CTL": 6424, "Specs": 69, "Inspection": 1373, "Packaging": 3042, "Flush": 3304, "Wrapping": 2294},
+"221127": {"Table Pull": 5217, "CTL": 20871, "Specs": 92, "Inspection": 5566, "Packaging": 4036, "Flush": 10867, "Wrapping": 19220, "10X": 100},
+"222242": {"Table Pull": 600, "CTL": 3540, "Specs": 60, "Inspection": 605, "Packaging": 1504, "Flush": 1137, "Wrapping": 1080, "Check Flush": 982},
+"222768": {"Table Pull": 5832, "Inspection": 6201, "Packaging": 5711, "Flush": 4602, "Wrapping": 4602, "Flush/Wrap": 4602, "Pressure Test": 4602},
+"222831": {"Table Pull": 198, "Inspection": 472, "Flush": 599, "Wrapping": 599, "Flush/Wrap": 599, "Pressure Test": 599},
+"224214": {"Long Pull": 480, "Table Pull": 541, "CTL": 4644, "Specs": 49, "Inspection": 2000, "Packaging": 3217, "Flush": 3382, "Wrapping": 4112, "Flush/Wrap": 883, "Pressure Test": 490},
+"225157": {"Long Pull": 2856, "CTL": 945, "Specs": 38, "Inspection": 575, "Packaging": 3335, "Flush": 3212, "Wrapping": 5288},
+"225652": {"Table Pull": 8229, "Inspection": 26494, "Packaging": 2614, "Flush": 8757, "Wrapping": 18000, "Flush/Wrap": 599, "Pressure Test": 599, "Overall Length": 146, "Roll Cut (Both Ends)": 204},
+"226021": {"Table Pull": 546, "Specs": 115, "Packaging": 900},
+"226098": {"Table Pull": 616, "Specs": 88, "Packaging": 984},
+"226100": {"Table Pull": 726, "Specs": 89, "Packaging": 1037},
+"226102": {"Table Pull": 545, "CTL": 2912, "Specs": 87, "Packaging": 878},
+"228475": {"Table Pull": 865, "CTL": 7005, "Specs": 62, "Inspection": 722, "Packaging": 2294, "Flush": 3518, "Wrapping": 2570},
+"229955": {"Long Pull": 1415, "Table Pull": 675, "CTL": 4674, "Specs": 85, "Inspection": 491, "Packaging": 2424, "Flush": 4461, "Wrapping": 3281, "Check Flush": 630},
+"230917": {"Table Pull": 583, "CTL": 5448, "Inspection": 421, "Packaging": 999, "Flush": 2095, "Wrapping": 2594, "Flush/Wrap": 2115, "Pressure Test": 1668, "10X": 100},
+"231080": {"Long Pull": 4126, "Table Pull": 687, "CTL": 12514, "Specs": 123, "Inspection": 2031, "Packaging": 3427, "Flush": 7081, "Wrapping": 10438, "Flush/Wrap": 3120, "Check Flush": 2846, "Pressure Test": 3350, "10X": 360, "Tensile Test": 2516, "First Cut": 153, "Overall Length": 142, "Roll Cut (Both Ends)": 87},
+"231277": {"Table Pull": 985, "CTL": 5553, "Specs": 46, "Inspection": 967, "Packaging": 2108, "Flush": 4998, "Wrapping": 5844, "Check Flush": 1888, "Tensile Test": 25},
+"231279": {"Table Pull": 1743, "CTL": 7079, "Specs": 88, "Inspection": 644, "Packaging": 2590, "Flush": 13063, "Wrapping": 13260, "Check Flush": 2407},
+"231281": {"Table Pull": 1250, "CTL": 8359, "Specs": 55, "Inspection": 884, "Packaging": 2689, "Flush": 7962, "Wrapping": 13536, "Check Flush": 1440, "Tensile Test": 35},
+"231283": {"Table Pull": 1650, "CTL": 5989, "Specs": 80, "Inspection": 347, "Packaging": 1603, "Flush": 3649, "Wrapping": 6259, "Check Flush": 2218},
+"231285": {"Table Pull": 1111, "CTL": 2832, "Specs": 49, "Inspection": 730, "Packaging": 1216, "Flush": 4235, "Wrapping": 1890, "Check Flush": 685, "Tensile Test": 25},
+"233573": {"Long Pull": 22015, "Table Pull": 16426, "CTL": 569, "Inspection": 14628, "Packaging": 29248, "Flush": 58062, "Wrapping": 31722, "Roll Cut (Both Ends)": 606},
+"234285": {"Table Pull": 1178, "CTL": 13016, "Inspection": 2269, "Packaging": 1295, "Flush": 5884, "Wrapping": 1464, "Pressure Test": 2034},
+"234397": {"Long Pull": 1040},
+"234417": {"Long Pull": 1324, "Table Pull": 350},
+"234444": {"Long Pull": 1191},
+"234447": {"Long Pull": 695},
+"235090": {"Long Pull": 2160, "Table Pull": 868, "CTL": 5598, "Specs": 114, "Inspection": 4745, "Packaging": 3000, "Flush": 3856, "Wrapping": 5400, "Flush/Wrap": 1676, "Pressure Test": 1291},
+"236456": {"Table Pull": 146, "CTL": 4735, "Specs": 73, "Inspection": 111, "Packaging": 505, "Flush": 171, "Wrapping": 258},
+"238290": {"Table Pull": 1015, "CTL": 10620, "Specs": 5158, "Inspection": 1982, "Packaging": 1531, "Flush": 23000, "Wrapping": 14372, "Check Flush": 2495},
+"238293": {"Long Pull": 1133, "Table Pull": 3922, "CTL": 85, "Specs": 136, "Inspection": 1241, "Packaging": 2596, "Flush": 24500, "Wrapping": 12819, "Check Flush": 2219},
+"239396": {"Table Pull": 1029, "CTL": 3429, "Specs": 72, "Inspection": 1499, "Packaging": 1509, "Flush": 4144, "Wrapping": 6539},
+"239652": {"Inspection": 320, "Packaging": 1146, "Wrapping": 1083, "Pressure Test": 1402},
+"240214": {"Specs": 65283, "Inspection": 18388, "Flush": 1100, "Wrapping": 1100, "Flush/Wrap": 1100, "Pressure Test": 1100},
+"241147": {"Table Pull": 819, "CTL": 5760, "Specs": 56, "Inspection": 349, "Packaging": 548, "Flush": 1189, "Wrapping": 300, "Pressure Test": 1368},
+"242855": {"Specs": 53, "Inspection": 50593, "Packaging": 5447, "Flush": 990, "Wrapping": 990, "Flush/Wrap": 990, "Pressure Test": 990},
+"243178": {"Long Pull": 15050, "CTL": 1344, "Inspection": 8637, "Flush": 19908, "Wrapping": 926, "Flush/Wrap": 20324, "Pressure Test": 2320},
+"243688": {"Long Pull": 17420, "Table Pull": 8951, "Inspection": 11128, "Flush": 34298, "Wrapping": 20800, "Flush/Wrap": 20324},
+"244815": {"Long Pull": 13902, "Inspection": 10931, "Flush": 17949, "Wrapping": 940, "Flush/Wrap": 10192, "Pressure Test": 1248},
+"245030": {"Long Pull": 2392, "Table Pull": 925, "CTL": 5649, "Inspection": 1233, "Packaging": 2875, "Flush": 2087, "Wrapping": 2157, "Re-Inspection": 1717},
+"245455": {"Table Pull": 926, "CTL": 2838, "Specs": 60, "Inspection": 312, "Packaging": 789, "Flush": 555, "Wrapping": 972, "Flush/Wrap": 1150, "Pressure Test": 1150},
+"245459": {"Table Pull": 396, "CTL": 762, "Specs": 64, "Inspection": 259, "Packaging": 708, "Flush": 440, "Wrapping": 440},
+"245463": {"Table Pull": 394, "CTL": 2030, "Specs": 84, "Inspection": 158, "Packaging": 393, "Flush": 576, "Wrapping": 257, "Flush/Wrap": 180, "Pressure Test": 180},
+"245470": {"Table Pull": 944, "CTL": 1656, "Specs": 69, "Inspection": 312, "Packaging": 404, "Flush": 597, "Wrapping": 379, "Flush/Wrap": 191, "Pressure Test": 191},
+"245476": {"Table Pull": 735, "CTL": 3495, "Inspection": 232, "Packaging": 535, "Flush": 1133, "Wrapping": 403},
+"245480": {"Table Pull": 389, "CTL": 1889, "Inspection": 167, "Packaging": 397, "Flush": 479, "Wrapping": 450},
+"245486": {"Long Pull": 653, "Table Pull": 304, "CTL": 1634, "Specs": 76, "Inspection": 145, "Packaging": 427, "Flush": 411, "Wrapping": 179},
+"245491": {"Table Pull": 367, "CTL": 1486, "Specs": 51, "Inspection": 126, "Packaging": 499, "Flush": 694, "Wrapping": 244},
+"247251": {"Table Pull": 300, "Inspection": 97, "Flush": 197, "Wrapping": 379, "Flush/Wrap": 197, "Pressure Test": 560},
+"247454": {"Table Pull": 600, "Inspection": 165, "Flush": 230, "Wrapping": 230, "Flush/Wrap": 230, "Pressure Test": 230, "First Cut": 59, "Overall Length": 27, "Roll Cut (Both Ends)": 43},
+"247806": {"Table Pull": 360, "Inspection": 165, "Flush": 230, "Wrapping": 818, "Flush/Wrap": 230, "Pressure Test": 954, "First Cut": 59, "Overall Length": 27, "Roll Cut (Both Ends)": 43},
+"249375": {"Long Pull": 2891, "CTL": 14676, "Specs": 87, "Inspection": 1855, "Packaging": 4311, "Flush": 3916, "Wrapping": 6667},
+"249537": {"Table Pull": 1163, "CTL": 3776, "Specs": 58, "Inspection": 637, "Packaging": 1148},
+"249593": {"Table Pull": 501, "CTL": 5235, "Specs": 61, "Inspection": 1824, "Packaging": 2811, "First Cut": 174, "Overall Length": 175, "Roll Cut (Both Ends)": 88},
+"249799": {"Long Pull": 3931, "CTL": 7560, "Inspection": 1550, "Packaging": 3009, "Flush": 4467, "Wrapping": 14040, "Flush/Wrap": 4283, "Pressure Test": 1580},
+"250527": {"Long Pull": 1095, "Table Pull": 541, "CTL": 6408, "Inspection": 716, "Packaging": 1150, "Flush": 1770, "Wrapping": 1303, "Flush/Wrap": 555, "Pressure Test": 488},
+"251107": {"Long Pull": 1095, "Table Pull": 7449, "CTL": 3664, "Specs": 133, "Inspection": 8029, "Packaging": 6408, "Flush": 24480, "Wrapping": 36720, "Flush/Wrap": 555, "Pressure Test": 488},
+"251474": {"Long Pull": 1920, "Table Pull": 619, "CTL": 2508, "Inspection": 700, "Packaging": 3212, "Flush": 3407, "Wrapping": 4436, "Flush/Wrap": 1488, "Check Flush": 1085},
+"251577": {"Table Pull": 7997, "Inspection": 15056, "Packaging": 15971, "Flush": 37866, "Wrapping": 38337, "Pressure Test": 72655},
+"251859": {"Long Pull": 1979, "Table Pull": 821, "CTL": 4834, "Inspection": 2194, "Packaging": 2368, "Flush": 951, "Wrapping": 951, "Flush/Wrap": 951, "Pressure Test": 951},
+"251978": {"Long Pull": 18664, "Inspection": 12018, "Packaging": 8765, "Flush": 51120, "Wrapping": 32472},
+"252065": {"Long Pull": 1362, "Table Pull": 517, "CTL": 3975, "Inspection": 966, "Packaging": 4394, "Flush": 4527, "Wrapping": 1665, "Check Flush": 1242, "Pressure Test": 420, "First Cut": 142, "Overall Length": 126, "Roll Cut (Both Ends)": 67},
+"252953": {"Long Pull": 400, "Inspection": 168, "Flush": 550, "Wrapping": 550, "Flush/Wrap": 550, "Check Flush": 500, "Pressure Test": 550},
+"253149": {"Long Pull": 6048, "Table Pull": 3459, "CTL": 1056, "Specs": 73, "Inspection": 5502, "Packaging": 2100, "Flush": 14902, "Wrapping": 17876},
+"253151": {"Table Pull": 2550, "CTL": 1005, "Specs": 61, "Inspection": 4056, "Packaging": 4384, "Flush": 8594, "Wrapping": 10860, "Check Flush": 194, "Overall Length": 183},
+"253944": {"Table Pull": 225, "CTL": 770, "Specs": 1719, "Inspection": 461, "Packaging": 1123, "Wrapping": 360, "Pressure Test": 1579},
+"254211": {"Long Pull": 1132, "Table Pull": 777, "CTL": 2840, "Specs": 151, "Inspection": 616, "Packaging": 1546, "Flush": 1215, "Wrapping": 5092, "Pressure Test": 1942},
+"254373": {"Table Pull": 37656, "CTL": 173551, "Inspection": 30457, "Packaging": 99840, "Flush": 104303, "Wrapping": 75926, "Check Flush": 37166},
+"254374": {"Table Pull": 27634, "CTL": 138000, "Inspection": 39533, "Packaging": 85277, "Flush": 20000, "Wrapping": 20000, "Flush/Wrap": 20000, "Check Flush": 32839, "Pressure Test": 20000},
+"254560": {"Table Pull": 29659, "CTL": 190404, "Specs": 48, "Inspection": 64929, "Packaging": 81600, "Flush": 63468, "Wrapping": 103781, "Flush/Wrap": 20000, "Pressure Test": 20000},
+"254791": {"Long Pull": 260, "Table Pull": 500, "CTL": 1459, "Specs": 80, "Inspection": 1154, "Packaging": 1213, "Wrapping": 1052, "Pressure Test": 1675},
+"255013": {"Table Pull": 1642, "CTL": 8866, "Specs": 85, "Inspection": 1688, "Packaging": 4817, "Flush": 9622, "Wrapping": 4913, "Flush/Wrap": 3695, "Check Flush": 2543, "Tensile Test": 22},
+"255014": {"Table Pull": 2036, "CTL": 9252, "Specs": 101, "Inspection": 1299, "Packaging": 5318, "Flush": 7887, "Wrapping": 4284, "Check Flush": 4425, "Tensile Test": 28},
+"255021": {"Table Pull": 1296, "CTL": 6960, "Specs": 67, "Inspection": 1017, "Packaging": 3354, "Flush": 5196, "Wrapping": 5934, "Flush/Wrap": 2333, "Check Flush": 1656, "Tensile Test": 21},
+"255210": {"Table Pull": 468, "CTL": 1337, "Specs": 71, "Inspection": 444, "Packaging": 747, "Flush": 390, "Wrapping": 1560, "Check Flush": 360, "Tensile Test": 21},
+"256072": {"Table Pull": 806, "CTL": 5685, "Specs": 85, "Inspection": 416, "Packaging": 1505, "Flush": 9810, "Wrapping": 6467, "Flush/Wrap": 2348, "Check Flush": 1613, "Pressure Test": 2325, "Tensile Test": 21},
+"256813": {"Table Pull": 4555, "Inspection": 10220, "Packaging": 4636, "Flush": 11309, "Wrapping": 37992},
+"259884": {"Table Pull": 5177, "Specs": 60, "Inspection": 11825, "Flush": 8578, "Wrapping": 26688, "Flush/Wrap": 3450, "Pressure Test": 1150},
+"260369": {"Table Pull": 180, "CTL": 6655, "Inspection": 1074, "Packaging": 2778},
+"260376": {"Table Pull": 130, "CTL": 8198, "Specs": 1440, "Inspection": 1820, "Packaging": 3164, "Flush": 1300, "Wrapping": 1300, "Flush/Wrap": 1300, "Pressure Test": 1300},
+"260378": {"Table Pull": 143, "CTL": 5088, "Specs": 93, "Inspection": 618, "Packaging": 1154},
+"260392": {"Table Pull": 162546, "CTL": 1879698, "Inspection": 675011, "Packaging": 730402},
+"260394": {"Table Pull": 279, "CTL": 4807, "Inspection": 577, "Packaging": 1951},
+"260472": {"Table Pull": 11562, "Specs": 79, "Inspection": 30797, "Packaging": 6598, "Flush": 18844, "Wrapping": 42600},
+"261488": {"Flush": 1965, "Wrapping": 1480, "Pressure Test": 2655},
+"261607": {"Long Pull": 1210, "Table Pull": 215, "CTL": 3024, "Inspection": 992, "Packaging": 7272, "Flush": 1163, "Wrapping": 1210, "Flush/Wrap": 1211, "Check Flush": 300, "Pressure Test": 300, "Roll Cut (Both Ends)": 60},
+"261870": {"Long Pull": 848, "Table Pull": 215, "Inspection": 243, "Packaging": 3434, "Flush": 791, "Wrapping": 1503, "Flush/Wrap": 1211, "Check Flush": 549, "Pressure Test": 300, "Roll Cut (Both Ends)": 60},
+"263928": {"Long Pull": 521, "Table Pull": 215, "CTL": 1163, "Specs": 96, "Inspection": 705, "Packaging": 1361, "Flush": 1079, "Wrapping": 2631, "Flush/Wrap": 958, "Check Flush": 629, "Pressure Test": 300, "First Cut": 169, "Overall Length": 175, "Roll Cut (Both Ends)": 77},
+"264388": {"Long Pull": 21887, "Table Pull": 11434, "Inspection": 15646, "Packaging": 15461, "Flush": 63053, "Wrapping": 33728},
+"264472": {"Table Pull": 396, "CTL": 2693, "Specs": 100, "Inspection": 308, "Packaging": 1296, "Flush": 1799, "Wrapping": 1290, "First Cut": 148, "Overall Length": 1149},
+"264699": {"Long Pull": 1968, "CTL": 3638, "Specs": 41, "Inspection": 1297, "Packaging": 2412, "Flush": 1789, "Wrapping": 4115, "Flush/Wrap": 1080},
+"264700": {"Long Pull": 672, "Table Pull": 409, "CTL": 3033, "Specs": 64, "Inspection": 2473, "Packaging": 2132, "Flush": 609, "Wrapping": 2100, "Flush/Wrap": 292, "Pressure Test": 292},
+"265148": {"Long Pull": 61824, "Table Pull": 569, "CTL": 106920, "Specs": 50, "Inspection": 19773, "Packaging": 3107, "Flush": 64100, "Wrapping": 113601, "Flush/Wrap": 292, "Pressure Test": 292},
+"266029": {"Specs": 54, "Inspection": 210},
+"266806": {"Long Pull": 2320, "Table Pull": 400, "Inspection": 1313, "Flush": 1650, "Wrapping": 1650, "Flush/Wrap": 1650, "Check Flush": 1000, "Pressure Test": 1650, "Roll Cut (Both Ends)": 75},
+"266853": {"Table Pull": 1033, "CTL": 6842, "Inspection": 1652, "Packaging": 4077, "Flush": 5118, "Wrapping": 5023},
+"267309": {"Table Pull": 420900, "CTL": 2196000, "Specs": 43, "Inspection": 450183, "Packaging": 1679940, "Flush": 4488525, "Wrapping": 7694614, "Flush/Wrap": 638684, "Pressure Test": 680000},
+"268671": {"Long Pull": 15622, "CTL": 85616, "Inspection": 16361, "Packaging": 19221, "Flush": 36152, "Wrapping": 50093},
+"268672": {"Long Pull": 3034, "CTL": 18953, "Inspection": 3895, "Packaging": 3056, "Flush": 11982, "Wrapping": 17400},
+"268720": {"Table Pull": 1079, "CTL": 6832, "Specs": 63, "Inspection": 1317, "Packaging": 2833, "Flush": 2428, "Wrapping": 2910, "Flush/Wrap": 1598, "Re-Inspection": 881},
+"300133": {"Long Pull": 6624, "CTL": 10228, "Inspection": 1528, "Packaging": 4596, "Flush": 4746, "Wrapping": 10248},
+"300134": {"Long Pull": 10335, "Inspection": 17094, "Packaging": 5040, "Flush": 18704, "Wrapping": 17095, "Roll Cut (Both Ends)": 39},
+"300135": {"Long Pull": 11200, "Table Pull": 3563, "CTL": 6221, "Specs": 59, "Inspection": 6273, "Packaging": 5172, "Flush": 2925, "Wrapping": 11700},
+"300136": {"Table Pull": 7334, "CTL": 4286, "Inspection": 15639, "Packaging": 5077, "Flush": 12936, "Wrapping": 6394},
+"300138": {"Table Pull": 862, "CTL": 1542, "Specs": 60, "Inspection": 277, "Packaging": 1644, "Flush": 1772, "Wrapping": 3494, "Flush/Wrap": 4800, "Check Flush": 1219, "Pressure Test": 4800},
+"300142": {"Long Pull": 673, "Table Pull": 1700, "CTL": 4764, "Specs": 57, "Inspection": 941, "Packaging": 2135, "Flush": 3096, "Wrapping": 3850, "Flush/Wrap": 862, "Check Flush": 1158, "Pressure Test": 370, "First Cut": 84, "Overall Length": 64, "Roll Cut (Both Ends)": 110},
+"301368": {"Table Pull": 15685, "Inspection": 8303, "Packaging": 50696, "Flush": 20350, "Wrapping": 20350, "Flush/Wrap": 20350, "Check Flush": 28571, "Pressure Test": 20350},
+"301388": {"Long Pull": 1280, "Table Pull": 2025, "CTL": 6623, "Specs": 115, "Inspection": 489, "Packaging": 2327, "Flush": 3431, "Wrapping": 2998},
+"301580": {"Long Pull": 2062, "Table Pull": 827, "CTL": 4588, "Inspection": 186, "Packaging": 2422, "Flush": 3092, "Wrapping": 1551, "10X": 186},
+"301581": {"Table Pull": 851, "CTL": 4535, "Specs": 436, "Inspection": 740, "Packaging": 2652, "Flush": 5330, "Wrapping": 3073, "Check Flush": 1129},
+"301588": {"Long Pull": 2353, "Table Pull": 1856, "CTL": 12326, "Inspection": 1605, "Packaging": 5455, "Flush": 6815, "Wrapping": 9559, "Check Flush": 4024, "First Cut": 162, "Overall Length": 278, "Roll Cut (Both Ends)": 89},
+"301744": {"Long Pull": 367, "Table Pull": 299},
+"301905": {"Long Pull": 5670, "CTL": 11340, "Packaging": 3935},
+"302209": {"Table Pull": 742, "CTL": 5072, "Specs": 33, "Inspection": 620, "Packaging": 2448, "Flush": 1936, "Wrapping": 2262, "Flush/Wrap": 1474, "Check Flush": 842, "Pressure Test": 1609, "Tensile Test": 687},
+"302500": {"Long Pull": 2000, "Table Pull": 1413, "CTL": 16993, "Specs": 105, "Inspection": 3127, "Packaging": 1882, "Flush": 7730, "Wrapping": 7276},
+"302556": {"Table Pull": 1360, "CTL": 6152, "Inspection": 850, "Packaging": 3472, "Flush": 2829, "Wrapping": 3620},
+"302616": {"Table Pull": 1152, "CTL": 6227, "Specs": 108, "Inspection": 423, "Packaging": 2009, "Flush": 5477, "Wrapping": 4307},
+"303276": {"Table Pull": 308, "CTL": 3331, "Inspection": 61, "Packaging": 217, "Flush": 392, "Wrapping": 369},
+"303322": {"Table Pull": 434, "CTL": 4553, "Inspection": 630, "Packaging": 2267, "Flush": 392, "Wrapping": 369},
+"303674": {"Table Pull": 169, "Inspection": 81, "Packaging": 966, "Flush": 475, "Wrapping": 475, "Flush/Wrap": 475, "Check Flush": 237, "Pressure Test": 475},
+"303777": {"Table Pull": 2307, "CTL": 10073, "Specs": 139, "Inspection": 907, "Packaging": 2762, "Flush": 9418, "Wrapping": 6795, "10X": 772, "First Cut": 221, "Overall Length": 198, "Roll Cut (Both Ends)": 121},
+"303885": {"Long Pull": 2990, "CTL": 7354, "Inspection": 2988, "Packaging": 3954, "Flush": 8595, "Wrapping": 9310, "10X": 100},
+"303892": {"Table Pull": 1573, "CTL": 12660, "Specs": 122, "Inspection": 2884, "Packaging": 8482, "Flush": 7429, "Wrapping": 8646, "Check Flush": 1713, "First Cut": 178, "Overall Length": 158, "Roll Cut (Both Ends)": 57},
+"304102": {"Long Pull": 2049, "Table Pull": 1200, "CTL": 7176, "Specs": 71, "Inspection": 4328, "Packaging": 2245, "Flush": 8136, "Wrapping": 7228, "Flush/Wrap": 2571, "Pressure Test": 2500},
+"304104": {"Table Pull": 400, "Inspection": 740, "Flush": 1000, "Wrapping": 1000, "Flush/Wrap": 1000, "Pressure Test": 1000},
+"304633": {"Table Pull": 1409, "CTL": 7330, "Specs": 57, "Inspection": 1374, "Packaging": 2738, "Flush": 1266, "Wrapping": 1991, "10X": 42},
+"305082": {"Long Pull": 1173, "CTL": 2444, "Inspection": 514, "Packaging": 2050, "Flush": 1594, "Wrapping": 3666},
+"305147": {"CTL": 1584, "Specs": 27, "Inspection": 660, "Packaging": 1673, "Flush": 1215, "Wrapping": 1332},
+"305213": {"Long Pull": 3676, "Table Pull": 770, "CTL": 26906, "Specs": 103, "Inspection": 2588, "Packaging": 5813, "Flush": 9063, "Wrapping": 10793, "Flush/Wrap": 5259, "Pressure Test": 2400},
+"305517": {"Table Pull": 513},
+"305590": {"Table Pull": 46053, "CTL": 120705, "Inspection": 34727, "Packaging": 67634, "Flush": 115264, "Wrapping": 57127},
+"305680": {"Table Pull": 813, "CTL": 6326, "Inspection": 3700, "Packaging": 1197, "Flush": 1659, "Flush/Wrap": 5259, "Pressure Test": 2400},
+"305739": {"Table Pull": 360, "Inspection": 165, "Flush": 1227, "Wrapping": 1195, "Flush/Wrap": 230, "Pressure Test": 1306, "Roll Cut (Both Ends)": 60},
+"305754": {"Long Pull": 3269, "Table Pull": 2227, "CTL": 3999, "Inspection": 2355, "Packaging": 3792, "Flush": 3060, "Wrapping": 3825, "Flush/Wrap": 1650, "Pressure Test": 1650},
+"305879": {"Long Pull": 120, "Table Pull": 150, "Inspection": 210, "Flush": 400, "Wrapping": 400, "Flush/Wrap": 400, "Pressure Test": 400},
+"306281": {"Table Pull": 818, "CTL": 11784, "Inspection": 2058, "Packaging": 4982},
+"306282": {"Table Pull": 143, "CTL": 6702, "Inspection": 1084, "Packaging": 1672},
+"306454": {"Table Pull": 167, "CTL": 3960, "Inspection": 594, "Packaging": 1215},
+"306455": {"Table Pull": 175, "CTL": 2580, "Inspection": 593, "Packaging": 567},
+"306741": {"Table Pull": 3450, "CTL": 10400, "Inspection": 2433, "Packaging": 5084, "Flush": 3360, "Wrapping": 4200},
+"307191": {"Table Pull": 2520, "CTL": 2520, "Flush": 3360, "Wrapping": 4200},
+"307774": {"Table Pull": 555, "CTL": 5300, "Inspection": 157, "Packaging": 254, "Flush": 1655, "Wrapping": 1204},
+"307775": {"Table Pull": 876, "CTL": 3955, "Inspection": 210, "Packaging": 971, "Flush": 672, "Wrapping": 1851},
+"307834": {"Long Pull": 2882, "CTL": 12605, "Specs": 60, "Inspection": 2415, "Packaging": 3996, "Flush": 4641, "Wrapping": 7131},
+"307835": {"Long Pull": 2281, "CTL": 16566, "Specs": 84, "Inspection": 3790, "Packaging": 2618, "Flush": 5710, "Wrapping": 5127, "Flush/Wrap": 6111, "Pressure Test": 2400, "10X": 100},
+"307836": {"Table Pull": 722, "CTL": 4603, "Specs": 50, "Inspection": 1096, "Packaging": 2605, "Flush": 1598, "Wrapping": 1222},
+"307897": {"Table Pull": 893, "Inspection": 1402, "Packaging": 6008, "Flush": 5283, "Wrapping": 2660, "Check Flush": 1134, "First Cut": 191, "Overall Length": 916, "Roll Cut (Both Ends)": 156},
+"307938": {"Table Pull": 1700, "CTL": 7560, "Inspection": 2000, "Packaging": 2613, "Flush": 1615, "Wrapping": 4320, "Flush/Wrap": 1077, "Pressure Test": 3060},
+"307939": {"Table Pull": 1627, "CTL": 59030, "Specs": 52, "Inspection": 1543, "Packaging": 3735, "Flush": 1137, "Wrapping": 2400, "Flush/Wrap": 1077, "Pressure Test": 1260},
+"308251": {"Long Pull": 383, "CTL": 5477, "Inspection": 601, "Packaging": 2475, "Flush": 1848, "Wrapping": 2266},
+"308269": {"Long Pull": 1724, "CTL": 7305, "Specs": 104, "Inspection": 1763, "Packaging": 2037, "Flush": 4475, "Wrapping": 4047, "Flush/Wrap": 1475, "Check Flush": 2766, "Pressure Test": 468, "Tensile Test": 48, "First Cut": 162, "Overall Length": 152, "Roll Cut (Both Ends)": 98},
+"308831": {"Table Pull": 781, "CTL": 2632, "Inspection": 556, "Packaging": 2910, "Flush": 2336, "Wrapping": 1196, "Check Flush": 765},
+"309181": {"Long Pull": 1022, "Table Pull": 2129, "CTL": 5288, "Specs": 73, "Inspection": 2445, "Packaging": 5065, "Flush": 3938, "Wrapping": 4854},
+"309433": {"Long Pull": 329, "Table Pull": 544, "CTL": 3998, "Specs": 480, "Inspection": 203, "Packaging": 1883, "Flush": 602, "Wrapping": 1343, "Flush/Wrap": 586, "Pressure Test": 500},
+"309478": {"Long Pull": 960, "Table Pull": 744, "CTL": 5128, "Inspection": 1278, "Packaging": 3031, "Flush": 7686, "Wrapping": 1996, "Check Flush": 1187},
+"309554": {"Long Pull": 8320, "CTL": 5105, "Inspection": 8485, "Flush": 14040, "Wrapping": 12764, "Flush/Wrap": 7000, "Check Flush": 7020, "Pressure Test": 7000},
+"309637": {"Long Pull": 4009, "Table Pull": 873, "CTL": 8996, "Specs": 66, "Inspection": 2539, "Packaging": 4855, "Flush": 8165, "Wrapping": 5133},
+"309863": {"Flush": 1059, "Wrapping": 1059, "Flush/Wrap": 1059, "Pressure Test": 1059},
+"310060": {"Table Pull": 190, "CTL": 3324, "Specs": 76, "Inspection": 535, "Packaging": 1505, "Flush": 1333, "Wrapping": 1140, "Flush/Wrap": 300, "Pressure Test": 300},
+"310107": {"Long Pull": 1819, "Table Pull": 1230, "CTL": 3827, "Inspection": 2644, "Packaging": 40000, "Flush": 3189, "Wrapping": 3075, "Flush/Wrap": 1500, "Pressure Test": 1500},
+"310171": {"Long Pull": 1819, "Table Pull": 800, "CTL": 2034, "Inspection": 2644, "Packaging": 40000, "Flush": 3090, "Wrapping": 2814, "Flush/Wrap": 1500, "Pressure Test": 1500},
+"310343": {"Long Pull": 4838, "Table Pull": 800, "CTL": 2000, "Inspection": 30240, "Packaging": 40000, "Flush": 4032, "Wrapping": 12096, "Flush/Wrap": 1500, "Pressure Test": 1500},
+"310355": {"Table Pull": 2725, "CTL": 12264, "Inspection": 3298, "Packaging": 3748, "Flush": 4087, "Wrapping": 7044},
+"310532": {"Long Pull": 1435, "Table Pull": 516, "CTL": 5646, "Inspection": 800, "Packaging": 2210, "Flush": 1377, "Wrapping": 1166, "Check Flush": 3703, "Pressure Test": 2760, "10X": 120},
+"310537": {"Long Pull": 982, "Table Pull": 492, "CTL": 3857, "Specs": 128, "Inspection": 1290, "Packaging": 2580, "Flush": 1514, "Wrapping": 3677, "Flush/Wrap": 300, "Pressure Test": 300},
+"310649": {"Long Pull": 800, "Inspection": 189, "Flush": 480, "Wrapping": 480, "Flush/Wrap": 480, "Check Flush": 300, "Pressure Test": 480},
+"310659": {"Table Pull": 455, "CTL": 2821, "Specs": 46, "Inspection": 322, "Packaging": 561, "Flush": 1534, "Wrapping": 3345, "Flush/Wrap": 2348, "Check Flush": 1613, "Pressure Test": 2325, "Tensile Test": 19},
+"310663": {"Table Pull": 1109, "CTL": 9166, "Inspection": 1332, "Packaging": 1698, "Flush": 1200, "Wrapping": 1920, "Flush/Wrap": 1184, "Pressure Test": 1200, "10X": 218},
+"310689": {"Long Pull": 2834, "CTL": 6866, "Inspection": 1927, "Packaging": 3018, "Flush": 3284, "Wrapping": 3697, "Flush/Wrap": 1200, "Pressure Test": 1200},
+"310757": {"Long Pull": 2364, "CTL": 10365, "Inspection": 1076, "Packaging": 3564, "Flush": 5151, "Wrapping": 864},
+"310759": {"Long Pull": 1200, "Inspection": 315, "Flush": 800, "Wrapping": 800, "Flush/Wrap": 800, "Pressure Test": 800},
+"311012": {"Long Pull": 660, "Table Pull": 1576, "CTL": 4560, "Specs": 66, "Inspection": 2333, "Packaging": 2996, "Flush": 4069, "Wrapping": 1097, "Flush/Wrap": 2505, "Pressure Test": 2598},
+"311025": {"Table Pull": 728, "CTL": 3520, "Inspection": 1383, "Packaging": 2929, "Flush": 2125, "Wrapping": 5835, "Check Flush": 2078, "Tensile Test": 94, "First Cut": 181, "Overall Length": 126, "Roll Cut (Both Ends)": 153},
+"311040": {"Table Pull": 5240, "Inspection": 15671, "Flush": 16003, "Wrapping": 16832, "Check Flush": 5074},
+"311174": {"Table Pull": 30586, "CTL": 87840, "Inspection": 46830, "Packaging": 37457, "Flush": 43478, "Wrapping": 43478},
+"311545": {"Spark Test": 314, "Re-Spool": 418},
+"311709": {"Table Pull": 283, "Inspection": 791, "Packaging": 857, "Roll Cut (Both Ends)": 58},
+"311835": {"Long Pull": 1043, "Specs": 35, "Inspection": 794, "Packaging": 1107, "Flush": 1714, "Wrapping": 2624, "Check Flush": 860, "First Cut": 145, "Overall Length": 146, "Roll Cut (Both Ends)": 90},
+"311844": {"Wrapping": 3554, "Spark Test": 2870, "Re-Spool": 3107},
+"312059": {"Long Pull": 2468, "Table Pull": 600, "CTL": 1941, "Specs": 92, "Inspection": 11180, "Packaging": 1282, "Flush": 3212, "Wrapping": 6434, "Flush/Wrap": 2343, "Pressure Test": 2000},
+"312135": {"Inspection": 221, "Flush": 496, "Wrapping": 496, "Flush/Wrap": 496, "Pressure Test": 496},
+"312154": {"Table Pull": 827, "CTL": 2347, "Specs": 12, "Flush": 2839, "Wrapping": 2352, "Pressure Test": 5880},
+"312205": {"Table Pull": 2856, "CTL": 7417, "Inspection": 930, "Packaging": 2359, "Flush": 7315, "Wrapping": 1850, "Check Flush": 1145},
+"312338": {"Table Pull": 1758, "CTL": 6548, "Inspection": 1965, "Packaging": 1475, "Flush": 2059, "Wrapping": 3744},
+"312369": {"CTL": 6420, "Inspection": 1070, "Packaging": 6420, "Flush": 684, "Wrapping": 6500},
+"312866": {"Long Pull": 13440, "Inspection": 13440, "Flush": 15120, "Wrapping": 43200, "Flush/Wrap": 16800, "Pressure Test": 15000},
+"312947": {"Table Pull": 383, "CTL": 6548, "Specs": 53, "Inspection": 1965, "Packaging": 1475, "Flush": 2059, "Wrapping": 3744, "Flush/Wrap": 785},
+"312986": {"Table Pull": 660, "CTL": 15486, "Inspection": 1796, "Packaging": 1487, "Flush": 4870, "Wrapping": 10793},
+"313065": {"Long Pull": 2400, "Table Pull": 906, "Inspection": 508, "Packaging": 855, "Flush": 2469, "Flush/Wrap": 230, "Check Flush": 1258},
+"313067": {"Long Pull": 52719, "Inspection": 13469, "Flush": 97412, "Wrapping": 828000, "Check Flush": 47695},
+"313068": {"Long Pull": 88320, "Table Pull": 19299, "Inspection": 10196, "Flush": 97412, "Wrapping": 828000, "Check Flush": 50757},
+"313069": {"Long Pull": 3245, "Table Pull": 4140, "Inspection": 1248, "Packaging": 311, "Flush": 2469, "Flush/Wrap": 230, "Check Flush": 2765},
+"313070": {"Long Pull": 5714, "Table Pull": 4917, "Inspection": 2466, "Packaging": 311, "Flush": 2469, "Wrapping": 9519, "Flush/Wrap": 230, "Check Flush": 3279},
+"313071": {"Long Pull": 88320, "Inspection": 37968, "Flush": 97412, "Wrapping": 828000},
+"313073": {"Long Pull": 922, "Table Pull": 1516, "Inspection": 1655, "Packaging": 932, "Flush": 2469, "Flush/Wrap": 230, "Check Flush": 2204},
+"313190": {"Table Pull": 784, "CTL": 8045, "Inspection": 1264, "Packaging": 3456, "Flush": 5513, "Wrapping": 3849, "First Cut": 115, "Overall Length": 937, "Roll Cut (Both Ends)": 112},
+"313409": {"Long Pull": 1791, "CTL": 3984, "Specs": 107, "Inspection": 908, "Packaging": 2010, "Flush": 2587, "Wrapping": 1775},
+"313413": {"Long Pull": 1063, "CTL": 3960, "Inspection": 759, "Packaging": 2898, "Flush": 1194, "Wrapping": 2844, "Flush/Wrap": 1000, "Pressure Test": 1000},
+"313485": {"Long Pull": 1063, "Table Pull": 2240, "CTL": 4032, "Specs": 45, "Inspection": 759, "Packaging": 2000, "Flush": 3360, "Wrapping": 6048, "Flush/Wrap": 1000, "Pressure Test": 1000},
+"313533": {"Long Pull": 3294, "Table Pull": 1135, "Inspection": 1655, "Packaging": 932, "Flush": 2469, "Flush/Wrap": 230, "Check Flush": 5712},
+"313959": {"Long Pull": 2400, "Table Pull": 1986, "CTL": 7946, "Specs": 63, "Inspection": 1633, "Packaging": 3027, "Flush": 1914, "Wrapping": 1094, "Flush/Wrap": 391, "Check Flush": 4618, "First Cut": 142, "Overall Length": 126, "Roll Cut (Both Ends)": 58},
+"314084": {"Long Pull": 1200, "Inspection": 315, "Flush": 667, "Wrapping": 667, "Flush/Wrap": 667, "Pressure Test": 667},
+"314349": {"Wrapping": 764, "Pressure Test": 1091},
+"314431": {"Long Pull": 1942, "CTL": 6576, "Inspection": 1753, "Packaging": 3973, "Flush": 6484, "Wrapping": 5893},
+"314560": {"Table Pull": 680, "CTL": 4095, "Inspection": 244, "Packaging": 708, "Flush": 1154, "Wrapping": 1483, "Check Flush": 1271},
+"314584": {"Long Pull": 2314, "Table Pull": 1450, "CTL": 6677, "Inspection": 1241, "Packaging": 3561, "Flush": 3549, "Wrapping": 1761},
+"314585": {"Long Pull": 1725, "Table Pull": 954, "CTL": 5900, "Inspection": 1671, "Packaging": 2998, "Flush": 2181, "Wrapping": 2966, "Re-Inspection": 385},
+"314807": {"Table Pull": 378, "CTL": 5580, "Specs": 2209, "Inspection": 937, "Packaging": 1594, "Flush": 1567, "Wrapping": 2061, "Flush/Wrap": 865},
+"314808": {"Table Pull": 430, "CTL": 3901, "Inspection": 162, "Packaging": 902, "Flush": 1400, "Wrapping": 2061},
+"314827": {"Table Pull": 1398, "CTL": 6129, "Inspection": 1977, "Packaging": 5694, "Flush": 7084, "Wrapping": 4983, "Flush/Wrap": 2916},
+"314877": {"Wrapping": 458, "Pressure Test": 338},
+"314952": {"Long Pull": 889, "Table Pull": 484, "CTL": 2897, "Specs": 63, "Inspection": 978, "Packaging": 1963, "Flush": 2028, "Wrapping": 1329, "Check Flush": 811},
+"314953": {"Long Pull": 438, "Table Pull": 239, "CTL": 2280, "Specs": 63, "Inspection": 615, "Packaging": 3027, "Flush": 1914, "Wrapping": 1094, "Flush/Wrap": 391, "Check Flush": 1223},
+"315023": {"Long Pull": 1647, "Table Pull": 1452, "CTL": 22800, "Specs": 2401, "Inspection": 2533, "Packaging": 2926, "Flush": 4006, "Wrapping": 6833, "Flush/Wrap": 2733, "Pressure Test": 2500},
+"315288": {"Long Pull": 281018, "Specs": 141, "Inspection": 147247, "Flush": 212622, "Wrapping": 143520},
+"315434": {"Long Pull": 5679, "Table Pull": 1612, "CTL": 8011, "Specs": 117, "Inspection": 1193, "Packaging": 2662, "Flush": 6340, "Wrapping": 5670, "Flush/Wrap": 1050, "Check Flush": 2614, "Pressure Test": 500, "Tensile Test": 17, "First Cut": 180, "Overall Length": 153, "Roll Cut (Both Ends)": 85},
+"315757": {"Long Pull": 1006, "Table Pull": 544, "CTL": 4560, "Specs": 480, "Inspection": 507, "Packaging": 1998, "Flush": 2350, "Wrapping": 2675, "Flush/Wrap": 1050, "Pressure Test": 500},
+"315762": {"Table Pull": 234, "CTL": 3081, "Specs": 57, "Inspection": 501, "Packaging": 1636, "Flush": 1888, "Wrapping": 1177},
+"315763": {"Long Pull": 329, "Table Pull": 544, "CTL": 3998, "Specs": 480, "Inspection": 755, "Packaging": 1770, "Flush": 602, "Wrapping": 1343, "Flush/Wrap": 586, "Pressure Test": 500},
+"315804": {"Long Pull": 840, "Table Pull": 544, "CTL": 3828, "Specs": 480, "Inspection": 803, "Packaging": 703, "Flush": 1435, "Wrapping": 2068, "Flush/Wrap": 638, "Check Flush": 656, "Pressure Test": 500, "First Cut": 106, "Overall Length": 108, "Roll Cut (Both Ends)": 66},
+"315827": {"Table Pull": 229, "CTL": 7365, "Specs": 45, "Inspection": 815, "Packaging": 2786, "Flush": 675, "Wrapping": 590, "Flush/Wrap": 2916, "Check Flush": 547},
+"315836": {"Long Pull": 2053, "Table Pull": 544, "CTL": 4560, "Specs": 480, "Inspection": 209, "Packaging": 585, "Flush": 2718, "Wrapping": 5133, "Flush/Wrap": 586, "Pressure Test": 500},
+"315837": {"Long Pull": 231, "Table Pull": 544, "CTL": 4560, "Specs": 480, "Packaging": 3048, "Flush": 2718, "Wrapping": 6600, "Flush/Wrap": 586, "Pressure Test": 500},
+"315902": {"Long Pull": 1008, "Table Pull": 544, "CTL": 5040, "Specs": 480, "Inspection": 405, "Packaging": 1596, "Flush": 1096, "Wrapping": 6600, "Flush/Wrap": 586, "Pressure Test": 500},
+"316012": {"Table Pull": 1719, "CTL": 4770, "Inspection": 1011, "Packaging": 1769, "Flush": 6493, "Wrapping": 6600},
+"316103": {"Table Pull": 9398, "Inspection": 14233, "Flush": 9500, "Wrapping": 67079, "Spark Test": 1987, "Re-Spool": 2000},
+"316347": {"Table Pull": 524, "Specs": 41, "Inspection": 303, "Packaging": 1269, "Flush": 1802, "Wrapping": 1226, "Check Flush": 484, "Tensile Test": 48, "First Cut": 170, "Overall Length": 105},
+"316385": {"Table Pull": 101, "Specs": 37, "Inspection": 73, "Packaging": 348},
+"316521": {"Table Pull": 620, "CTL": 2160, "Specs": 60, "Inspection": 558, "Packaging": 1596, "Flush": 1080, "Wrapping": 864, "Flush/Wrap": 586, "Pressure Test": 500},
+"316734": {"Table Pull": 1114, "CTL": 4793, "Specs": 52, "Inspection": 1255, "Packaging": 3084, "Flush": 3381, "Wrapping": 3339, "Pressure Test": 1902, "10X": 60},
+"316786": {"Table Pull": 185, "CTL": 4533, "Specs": 46, "Inspection": 421, "Packaging": 504, "Flush": 706, "Wrapping": 3720, "Flush/Wrap": 586, "Pressure Test": 1902},
+"317071": {"Table Pull": 459, "CTL": 3150, "Specs": 57, "Inspection": 407, "Packaging": 1861, "Flush": 2230, "Wrapping": 1480, "Flush/Wrap": 586, "Check Flush": 542, "Pressure Test": 1902},
+"317167": {"Table Pull": 2756, "CTL": 4104, "Specs": 54, "Inspection": 803, "Packaging": 775, "Flush": 684, "Wrapping": 3420, "Flush/Wrap": 586, "Pressure Test": 1902},
+"317211": {"Table Pull": 371.8421053, "CTL": 4104, "Specs": 54.28571429, "Inspection": 803, "Packaging": 775.3846154, "Flush": 684, "Wrapping": 3420},
+"317276": {"Long Pull": 3051, "Table Pull": 763, "CTL": 12480, "Specs": 54, "Inspection": 803, "Packaging": 775, "Flush": 11000, "Wrapping": 3420, "Flush/Wrap": 586, "Check Flush": 2145, "Pressure Test": 1902},
+"317277": {"Table Pull": 2813, "CTL": 12480, "Specs": 54, "Inspection": 803, "Packaging": 775, "Flush": 10142, "Wrapping": 4230, "Flush/Wrap": 586, "Pressure Test": 1902, "Roll Cut (Both Ends)": 95},
+"317287": {"Long Pull": 2255, "Table Pull": 850, "Inspection": 2800, "Flush": 2800, "Wrapping": 3901},
+"317504": {"Long Pull": 976, "Table Pull": 1413, "CTL": 18045, "Inspection": 541, "Packaging": 1669, "Flush": 2330, "Wrapping": 7675, "Re-Inspection": 259},
+"317752": {"Long Pull": 1812, "Table Pull": 882, "CTL": 4399, "Inspection": 376, "Packaging": 1880, "Flush": 3933, "Wrapping": 1989, "10X": 151},
+"318034": {"Long Pull": 990, "CTL": 4276, "Inspection": 1802, "Packaging": 2478},
+"318038": {"Table Pull": 648, "CTL": 779, "Inspection": 663, "Packaging": 1868, "Flush": 684, "Wrapping": 791, "Check Flush": 752, "First Cut": 152, "Overall Length": 115, "Roll Cut (Both Ends)": 67, "Crush Test": 152},
+"318296": {"Table Pull": 170, "CTL": 1961, "Specs": 70, "Inspection": 286, "Packaging": 1148},
+"318314": {"Table Pull": 370, "CTL": 9066, "Specs": 91, "Inspection": 842, "Packaging": 1008, "Flush": 1412, "Wrapping": 7440, "Flush/Wrap": 1171, "Pressure Test": 3803},
+"318337": {"Table Pull": 196, "Inspection": 270, "Packaging": 1066, "First Cut": 128, "Overall Length": 73, "Roll Cut (Both Ends)": 42},
+"318749": {"Table Pull": 4860, "CTL": 9066, "Specs": 91, "Inspection": 1500, "Packaging": 1008, "Flush": 1412, "Wrapping": 7440, "Flush/Wrap": 1171, "Pressure Test": 3803},
+"318994": {"Table Pull": 3150, "CTL": 3405, "Inspection": 10490, "Packaging": 5371},
+"319004": {"Table Pull": 2962, "CTL": 2116, "Inspection": 3336, "Packaging": 4269},
+"319019": {"Long Pull": 3586, "CTL": 18345, "Inspection": 4168, "Packaging": 4282, "Flush": 7730, "Wrapping": 5683},
+"319019*": {"Long Pull": 3586, "CTL": 18345, "Packaging": 4282, "Flush": 7730, "Wrapping": 5683},
+"319024": {"Long Pull": 2954, "Table Pull": 1047, "CTL": 6625, "Inspection": 1653, "Packaging": 4660, "Flush": 4261, "Wrapping": 821},
+"319025": {"Long Pull": 780, "Table Pull": 551, "CTL": 2280, "Inspection": 435, "Packaging": 1547, "Flush": 2946, "Wrapping": 1094, "Check Flush": 361, "First Cut": 130, "Overall Length": 141, "Roll Cut (Both Ends)": 57},
+"319026": {"Table Pull": 862, "CTL": 7779, "Inspection": 2782, "Packaging": 2685, "Flush": 2593, "Wrapping": 2900},
+"319161": {"Long Pull": 1812, "CTL": 7076, "Specs": 62, "Inspection": 1361, "Packaging": 3325, "Flush": 5251, "Wrapping": 5893},
+"319226": {"Long Pull": 435, "Table Pull": 362, "CTL": 2265, "Specs": 57, "Inspection": 409, "Packaging": 1636, "Flush": 1888, "Wrapping": 1177},
+"319230": {"Long Pull": 435, "Table Pull": 362, "CTL": 2265, "Specs": 57, "Inspection": 409, "Packaging": 1636, "Flush": 1888, "Wrapping": 1177},
+"319231": {"Long Pull": 435, "Table Pull": 362, "CTL": 2265, "Specs": 57, "Inspection": 409, "Packaging": 1636, "Flush": 1888, "Wrapping": 1177},
+"319233": {"Long Pull": 435, "Table Pull": 362, "CTL": 2265, "Specs": 57, "Inspection": 409, "Packaging": 1636, "Flush": 1888, "Wrapping": 1177},
+"319260": {"Long Pull": 435, "Table Pull": 530, "CTL": 3767, "Specs": 57, "Inspection": 513, "Packaging": 1837, "Flush": 1888, "Wrapping": 1177},
+"319276": {"Long Pull": 608, "CTL": 2414, "Specs": 102, "Inspection": 1743, "Packaging": 1178, "Flush": 5202, "Wrapping": 5790},
+"319515": {"Long Pull": 1895, "Table Pull": 600, "CTL": 4606, "Specs": 134, "Inspection": 897, "Packaging": 3158, "Flush": 1873, "Wrapping": 1479},
+"319616": {"Long Pull": 3128, "Table Pull": 1413, "CTL": 18186, "Specs": 110, "Inspection": 3127, "Packaging": 4346, "Flush": 8288, "Wrapping": 7675},
+"319814": {"Long Pull": 8030, "Table Pull": 3776, "CTL": 21343, "Specs": 421, "Inspection": 5638, "Packaging": 14861, "Flush": 9854, "Wrapping": 15545},
+"319837": {"Table Pull": 185, "Packaging": 668},
+"319861": {"Long Pull": 2490, "Table Pull": 1375, "CTL": 3606, "Specs": 93, "Inspection": 1402, "Packaging": 2300, "Flush": 2192, "Wrapping": 2040},
+"319862": {"Long Pull": 2490, "Table Pull": 1051, "CTL": 7136, "Specs": 93, "Inspection": 1402, "Packaging": 3673, "Flush": 2192, "Wrapping": 2040},
+"319863": {"Table Pull": 420, "CTL": 3284, "Inspection": 283, "Packaging": 1475, "Flush": 392, "Wrapping": 369},
+"319869": {"Long Pull": 3933, "Table Pull": 1413, "CTL": 31209, "Specs": 110, "Inspection": 4267, "Packaging": 4349, "Flush": 8313, "Wrapping": 7675},
+"319870": {"Long Pull": 3451, "Table Pull": 811, "CTL": 9027, "Specs": 114, "Inspection": 3410, "Packaging": 3876, "Flush": 5443, "Wrapping": 4499},
+"319871": {"Long Pull": 1752, "Table Pull": 906, "CTL": 5828, "Specs": 198, "Inspection": 1410, "Packaging": 3239, "Flush": 1627, "Wrapping": 1516},
+"319879": {"Long Pull": 4712, "Table Pull": 5690, "CTL": 17522, "Specs": 103, "Inspection": 3184, "Packaging": 4847, "Flush": 11078, "Wrapping": 11217, "Flush/Wrap": 6321, "Pressure Test": 2700, "10X": 100},
+"319881": {"Long Pull": 2574, "CTL": 6097, "Specs": 103, "Inspection": 1667, "Packaging": 3506, "Flush": 3792, "Wrapping": 2908},
+"319882": {"Table Pull": 1003, "CTL": 6069, "Specs": 55, "Inspection": 2359, "Packaging": 1797, "Flush": 4068, "Wrapping": 2594, "Flush/Wrap": 2115, "Pressure Test": 1668, "10X": 100},
+"319989": {"Long Pull": 55906, "Table Pull": 32920, "Specs": 508, "Inspection": 28703, "Packaging": 60917, "Flush": 179175, "Wrapping": 134602},
+"320115": {"Long Pull": 3341, "CTL": 11427, "Specs": 117, "Inspection": 2228, "Packaging": 3365, "Flush": 8855, "Wrapping": 6195, "10X": 69},
+"320157": {"Long Pull": 4712, "Table Pull": 5690, "CTL": 17522, "Specs": 103, "Inspection": 3184, "Packaging": 4847, "Flush": 11078, "Wrapping": 11217, "Flush/Wrap": 6321, "Pressure Test": 2700, "10X": 100},
+"320158": {"Long Pull": 1920, "Table Pull": 955, "CTL": 1622, "Specs": 101, "Inspection": 1005, "Packaging": 3370, "Flush": 3407, "Wrapping": 4436, "Flush/Wrap": 1488, "Check Flush": 935},
+"320200": {"Long Pull": 1920, "Table Pull": 530, "CTL": 2880, "Specs": 101, "Inspection": 960, "Packaging": 2246, "Flush": 3407, "Wrapping": 4436, "Flush/Wrap": 1488, "Check Flush": 1085},
+"320236": {"Table Pull": 719, "CTL": 5312, "Inspection": 582, "Packaging": 2375, "Flush": 3000, "Wrapping": 37992},
+"320241": {"Table Pull": 677, "CTL": 4440, "Inspection": 699, "Packaging": 1776, "Flush": 3000, "Wrapping": 37992},
+"320275": {"Long Pull": 4608, "Table Pull": 1413, "CTL": 3226, "Inspection": 3790, "Packaging": 5377, "Flush": 8124, "Wrapping": 7675, "Re-Inspection": 259},
+"320333": {"Long Pull": 587, "Table Pull": 3863, "CTL": 1200, "Specs": 421, "Inspection": 619, "Packaging": 647, "Flush": 14200, "Wrapping": 7830},
+"320658": {"Long Pull": 2824, "Table Pull": 811, "CTL": 7599, "Inspection": 2023, "Packaging": 3193, "Flush": 7925, "Wrapping": 6471},
+"320660": {"Long Pull": 1040, "CTL": 7740, "Inspection": 1359, "Packaging": 1670, "Flush": 10031, "Wrapping": 4811},
+"320698": {"Table Pull": 3917, "CTL": 1200, "Specs": 421, "Inspection": 11895, "Packaging": 647, "Flush": 14200, "Wrapping": 7830},
+"320732": {"Table Pull": 935, "CTL": 5485, "Inspection": 973, "Packaging": 1126, "Flush": 1812, "Wrapping": 1500},
+"320734": {"Long Pull": 3546, "CTL": 15831, "Specs": 103, "Inspection": 2089, "Packaging": 3918, "Flush": 9202, "Wrapping": 7912},
+"320801": {"Long Pull": 4575, "CTL": 28235, "Inspection": 1076, "Packaging": 2603, "Flush": 19105, "Wrapping": 18368},
+"320859": {"Long Pull": 9844, "Table Pull": 3714, "CTL": 28235, "Inspection": 4692, "Packaging": 5734, "Flush": 19105, "Wrapping": 18368}
+};
+
+
+        const PRODUCTION_SEQUENCES = [
+          "Long Pull", "Table Pull", "CTL", "Inspection", "Packaging", "Flush", "Wrapping", "Check Flush", "Pressure Test", "10X", "Length Check", "First Cut", "Overall Length", "Roll Cut (Both Ends)", "Spark Test", "Crush Test"
+        ];
+
+        const EVENTS = [
+            "Baking", "Clean-Up", "Meeting", "Misc", "No Pay No Penalty", "PTO", "Toolbox", "Training"
+        ];
+
+        const INSPECTION_PARETO = [
+          { id: "insp_black_spots", label: "Black Spots" },
+          { id: "insp_blisters", label: "Blisters" },
+          { id: "insp_braid_breaks", label: "Braid Breaks" },
+          { id: "insp_bumps", label: "Bumps" },
+          { id: "insp_chatter_marks", label: "Chatter Marks" },
+          { id: "insp_delamination", label: "Delamination" },
+          { id: "insp_discoloration", label: "Discoloration" },
+          { id: "insp_fibers", label: "Fibers" },
+          { id: "insp_glue", label: "Glue" },
+          { id: "insp_green_folder", label: "Green Folder" },
+          { id: "insp_oxidation", label: "Oxidation" },
+          { id: "insp_other", label: "Other (Enter Comment)" },
+          { id: "insp_poly", label: "Poly didn't clean off" },
+          { id: "insp_red_folder", label: "Red Folder" },
+          { id: "insp_stretched", label: "Stretched" },
+          { id: "insp_torn_id", label: "Torn ID" },
+          { id: "insp_unflushed", label: "Unflushed" },
+          { id: "insp_wrinkles", label: "Wrinkles" },
+        ];
+
+        const PULLING_PARETO = [
+            {id: "pull_material_breaking", label: "Material Breaking"},
+            {id: "pull_other", label: "Other (Enter Comments)"},
+            {id: "pull_release_issues", label: "Release Issues"},
+            {id: "pull_wrong_footage", label: "Wrong Footage"},
+        ];
+
+        const PULLING_METHODS = [
+            {id: "pm_sts", label: "Stretch Then Score"},
+            {id: "pm_sst", label: "Score Then Stretch"},
+            {id: "pm_scrape", label: "Scrape"},
+            {id: "pm_so", label: "Straighten Only"},
+            {id: "pm_single", label: "Single"},
+            {id: "pm_double", label: "Double"},
+            {id: "pm_triple", label: "Triple"},
+        ];
+
+
+        // --- Effects ---
+        
+        // Effect for loading and cleaning job history from localStorage on mount
+        useEffect(() => {
+            const storedHistory = localStorage.getItem('jobHistory');
+            if (storedHistory) {
+                try {
+                    const parsedHistory = JSON.parse(storedHistory);
+                    
+                    const now = new Date();
+                    // The workday starts at 3 AM.
+                    const workdayStart = new Date(now);
+
+                    if (now.getHours() < 3) {
+                        // If it's between midnight and 3 AM, we are still in the *previous* day's work shift.
+                        workdayStart.setDate(workdayStart.getDate() - 1);
+                    }
+                    workdayStart.setHours(3, 0, 0, 0);
+                    
+                    const currentWorkdayHistory = parsedHistory.filter(entry => {
+                        const entryDate = new Date(entry.timestamp);
+                        return entryDate >= workdayStart;
+                    });
+                    
+                    setJobHistory(currentWorkdayHistory);
+                    // Also update localStorage with the cleaned history
+                    localStorage.setItem('jobHistory', JSON.stringify(currentWorkdayHistory));
+                } catch (e) {
+                    console.error("Failed to parse job history:", e);
+                    localStorage.removeItem('jobHistory');
+                }
+            }
+        }, []);
+
+        // Effect for Auto-Calculating Start Quantity
+        useEffect(() => {
+            const toInches = (v, u) => u === 'cm' ? v / 2.54 : u === 'mm' ? v / 25.4 : v;
+            const feet = parseFloat(spoolFeet) || 0;
+            const lenRaw = parseFloat(partLength) || 0;
+            const lenIn = toInches(lenRaw, partUnit);
+            setLengthInInches(lenIn);
+            
+            const totalIn = feet * 12;
+            setTotalInches(totalIn);
+
+            const calculatedParts = (totalIn > 0 && lenIn > 0) ? Math.floor(totalIn / lenIn) : 0;
+            setPartsFromSpool(calculatedParts);
+
+            const auto = totalIn > 0 && lenIn > 0;
+            setIsStartQtyAuto(auto);
+            
+            if (auto) {
+                setStartQty(calculatedParts.toString());
+            }
+        }, [spoolFeet, partLength, partUnit]);
+
+        // Effect for Calculating Results
+        useEffect(() => {
+            const currentStartQty = parseInt(startQty) || 0;
+            const currentEndQty = parseInt(endQty) || 0;
+            const timeMins = parseFloat(timeWorked) || 0;
+            
+            const standard = PPH_STANDARDS[itemNumber]?.[productionSequence] ?? 0;
+            setBaseStandardPph(standard);
+            
+            const associateRate = ASSOCIATE_RATES[associateName] || 0;
+
+            setScrapParts(Math.max(0, currentStartQty - currentEndQty));
+
+            const timeHours = timeMins / 60;
+            const actualPph = timeHours > 0 ? (currentEndQty / timeHours) : 0;
+            setPph(actualPph > 0 ? actualPph.toFixed(1) : '—');
+            
+            const yieldNum = currentStartQty > 0 ? (currentEndQty / currentStartQty) * 100 : 0;
+            const scrapNum = currentStartQty > 0 ? ((currentStartQty - currentEndQty) / currentStartQty) * 100 : 0;
+            setYieldPercent(yieldNum);
+            setScrapPercent(scrapNum);
+            
+            const newStandard = (standard > 0 && associateRate > 0) ? standard / associateRate : 0;
+            setAdjustedStandard(newStandard);
+            
+            const oe = (newStandard > 0) ? (actualPph / newStandard) * 100 : 0;
+            setSequenceOe(oe);
+
+            // Conditional UI logic
+            const seq = productionSequence;
+            // Updated logic for new Pull names
+            const isPulling = seq === 'Long Pull' || seq === 'Table Pull';
+            
+            setShowPullingExtras(isPulling);
+            setShowSpoolFields(isPulling);
+            setShowRecuts(seq === 'First Cut' || seq === 'Overall Length' || seq === 'Roll Cut (Both Ends)');
+            
+            const hasStart = startQty.trim() !== '';
+            const hasEnd = endQty.trim() !== '';
+            if (hasStart && hasEnd && yieldNum < 80) {
+                // Updated Inspection logic (removed EV3)
+                setShowInspectionPareto(seq === 'Inspection');
+                setShowPullingPareto(isPulling);
+            } else {
+                setShowInspectionPareto(false);
+                setShowPullingPareto(false);
+            }
+        }, [startQty, endQty, timeWorked, productionSequence, itemNumber, associateName]);
+        
+        // --- Memoized Calculations ---
+        const filteredHistory = useMemo(() => {
+            if (!associateName) return [];
+            return jobHistory
+                .filter(entry => entry.associateName === associateName)
+                .sort((a, b) => b.timestamp - a.timestamp); // Show most recent first
+        }, [jobHistory, associateName]);
+
+        // --- Render Helpers ---
+        const fmt = (n) => (n === null || n === '—' || isNaN(Number(n))) ? '—' : Number(n).toLocaleString();
+
+        // --- Handlers ---
+        const handleNumberInputScroll = (e) => {
+            // When the mouse wheel is used, blur the input to prevent the value from changing.
+            e.target.blur();
+        };
+        
+        const handleEnterNavigation = (e) => {
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.type !== 'checkbox') {
+                // Allow Shift+Enter for newlines in textarea
+                if (e.target.tagName === 'TEXTAREA' && e.shiftKey) {
+                    return; 
+                }
+                
+                e.preventDefault();
+
+                // Get all focusable form fields in document order
+                const focusableFields = Array.from(
+                    document.querySelectorAll('input:not([type=checkbox]), select, textarea')
+                ).filter(el => !el.disabled && !el.readOnly && el.offsetHeight > 0 && el.offsetWidth > 0);
+                
+                const currentIndex = focusableFields.indexOf(e.target);
+
+                if (currentIndex !== -1 && currentIndex < focusableFields.length - 1) {
+                    const nextField = focusableFields[currentIndex + 1];
+                    nextField.focus();
+                    if (nextField.select && typeof nextField.select === 'function') {
+                        nextField.select();
+                    }
+                } else {
+                    // If on the last field, focus one of the submit buttons
+                    const submitButton = document.getElementById('submit-button-bottom') || document.getElementById('submit-button-top');
+                    if (submitButton) {
+                        submitButton.focus();
+                    }
+                }
+            }
+        };
+        
+        const handleReset = useCallback(() => {
+            // Resets all fields for the next associate
+            setAssociateName('');
+            setEventDate('');
+            setEntryType('job');
+            setTimeWorked('');
+            setComments('');
+            setItemNumber('');
+            setLotNumber('');
+            setSpoolFeet('');
+            setPartLength('');
+            setPartUnit('in');
+            setStartQty('');
+            setEndQty('');
+            setProductionSequence('');
+            setRecuts('');
+            setPullingWraps('');
+            setEventDropdown('');
+            setInspectionPareto({});
+            setPullingPareto({});
+            setPullingMethods({});
+            setIsSubmitting(false);
+            setIsErrorModalOpen(false);
+        }, []);
+
+        const handleSubmit = () => {
+            setIsSubmitting(true);
+            const errors = [];
+
+            if (!associateName) errors.push('Associate Name');
+            if (!eventDate) errors.push('Date');
+            if (!timeWorked) errors.push('Time Worked');
+
+            if (entryType === 'job') {
+                if (!itemNumber) errors.push('Item Number');
+                if (!lotNumber) errors.push('Lot Number');
+                if (!startQty) errors.push('Start Quantity');
+                if (!endQty) errors.push('End Quantity');
+                if (!productionSequence) errors.push('Production Sequence');
+
+                if (showInspectionPareto && Object.values(inspectionPareto).every(v => !v)) {
+                    errors.push('Inspection Pareto (at least one reason)');
+                }
+                if (showPullingPareto && Object.values(pullingPareto).every(v => !v)) {
+                    errors.push('Pulling Pareto (at least one reason)');
+                }
+                if (showPullingExtras && !pullingWraps) {
+                    errors.push('Pulling Wraps');
+                }
+                if (showPullingExtras && Object.values(pullingMethods).every(v => !v)) {
+                    errors.push('Pulling Methods (at least one)');
+                }
+
+            } else { // event
+                if (!eventDropdown) errors.push('Event');
+            }
+
+            if (errors.length > 0) {
+                setErrorMessages(errors);
+                setIsErrorModalOpen(true);
+                setIsSubmitting(false);
+                return;
+            }
+            
+            // --- Save to History ---
+            const newEntry = {
+                id: Date.now(),
+                timestamp: Date.now(),
+                associateName,
+                entryType,
+                data: {
+                    itemNumber, lotNumber, startQty, endQty, productionSequence, eventDropdown, timeWorked
+                }
+            };
+            const updatedHistory = [...jobHistory, newEntry];
+            setJobHistory(updatedHistory);
+            localStorage.setItem('jobHistory', JSON.stringify(updatedHistory));
+
+
+            const params = new URLSearchParams();
+            
+            // Common Fields
+            params.append("Entry Type", entryType === 'job' ? 'Job' : 'Event');
+            params.append("Associate Name", associateName);
+            params.append("Date", eventDate);
+            params.append("Time Worked", timeWorked);
+            if (comments) params.append("Comments", comments);
+
+            if (entryType === 'job') {
+                params.append("Item", itemNumber);
+                params.append("Lot #", lotNumber);
+                params.append("Start Quantity", startQty);
+                params.append("End Quantity", endQty);
+                params.append("Sequence", productionSequence);
+                
+                if (spoolFeet) params.append("Footage", spoolFeet);
+                if (partLength) params.append("Processing Length", partLength);
+                
+                const scrapPartsStr = fmt(scrapParts);
+                if (scrapPartsStr !== '—') params.append("Scrap Parts", scrapPartsStr);
+                
+                const scrapRateForSubmission = parseInt(startQty) > 0 ? `${scrapPercent.toFixed(1)}%` : '—';
+                if (scrapRateForSubmission !== '—') params.append("Scrap Rate %", scrapRateForSubmission);
+
+                const sequenceOeForSubmission = `${sequenceOe.toFixed(1)}%`;
+                if (sequenceOe > 0) params.append("Sequence OE", sequenceOeForSubmission);
+                
+                const getCheckedLabels = (paretoItems, state) => {
+                    return paretoItems
+                        .filter(item => state[item.id])
+                        .map(item => item.label);
+                };
+
+                if (showInspectionPareto) {
+                    getCheckedLabels(INSPECTION_PARETO, inspectionPareto).forEach(label => params.append("Inspection Pareto", label));
+                }
+                if (showPullingPareto) {
+                    getCheckedLabels(PULLING_PARETO, pullingPareto).forEach(label => params.append("Pulling Pareto", label));
+                }
+                if (showPullingExtras) {
+                    if (pullingWraps) params.append("Pulling Wraps", pullingWraps);
+                    getCheckedLabels(PULLING_METHODS, pullingMethods).forEach(label => params.append("Pulling Method", label));
+                }
+                if (showRecuts && recuts) {
+                    params.append("Re-Cuts", recuts);
+                }
+            } else { // event
+                params.append("Event", eventDropdown);
+            }
+            
+            const smartsheetUrl = `https://app.smartsheet.com/b/form/8cdbc10deed54f85b6221a7294a88b42?${params.toString()}`;
+
+            window.open(smartsheetUrl, 'smartsheetForm');
+            
+            handleReset();
+        };
+
+        const handleCheckboxChange = (setter, id) => {
+            setter(prev => ({ ...prev, [id]: !prev[id] }));
+        };
+
+        // --- Render Helpers ---
+        
+        const getGaugeColor = (value, type) => {
+            if (type === 'yield') {
+                if (value >= 95) return 'bg-gauge-green';
+                if (value >= 85) return 'bg-gauge-yellow';
+                return 'bg-gauge-red';
+            }
+            // scrap
+            if (value <= 5) return 'bg-gauge-green';
+            if (value <= 15) return 'bg-gauge-yellow';
+            return 'bg-gauge-red';
+        };
+
+        const EntryToggle = () => (
+            <div className="grid grid-cols-2 gap-1.5 bg-gauge-bg p-1 rounded-lg border border-custom-card-border">
+                <button
+                    onClick={() => setEntryType('job')}
+                    className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${entryType === 'job' ? 'bg-custom-accent text-white shadow' : 'text-custom-muted hover:bg-custom-accent/10'}`}>
+                    Job Entry
+                </button>
+                <button
+                    onClick={() => setEntryType('event')}
+                    className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${entryType === 'event' ? 'bg-custom-accent text-white shadow' : 'text-custom-muted hover:bg-custom-accent/10'}`}>
+                    Event Entry
+                </button>
+            </div>
+        );
+        
+        const CheckboxGrid = ({ items, state, setState, title }) => (
+            <div className="space-y-2">
+                <label className="text-sm font-semibold text-custom-accent">{title}</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {items.map(({ id, label }) => (
+                        <div key={id} className="flex items-center bg-input-bg border border-input-border rounded-lg p-2.5 hover:border-custom-accent hover:bg-custom-accent/5 transition-colors">
+                            <input
+                                type="checkbox"
+                                id={id}
+                                checked={!!state[id]}
+                                onChange={() => handleCheckboxChange(setState, id)}
+                                className="h-4 w-4 rounded border-gray-300 text-custom-accent focus:ring-custom-accent"
+                            />
+                            <label htmlFor={id} className="ml-3 block text-sm text-custom-text">{label}</label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+
+        const Modal = ({ isOpen, onClose, title, children }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+                    <div className="bg-custom-card border border-custom-card-border rounded-lg shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold text-custom-text mb-2">{title}</h3>
+                        <div className="text-custom-muted mb-4">{children}</div>
+                        <div className="flex justify-end gap-3">
+                           <button onClick={onClose} className="bg-transparent border border-custom-muted text-custom-muted font-bold py-2 px-4 rounded-lg hover:bg-custom-muted hover:text-white transition-colors">Close</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const MultiplierModal = ({ isOpen, onClose, onApply, baseQty }) => {
+            const [currentMultiplier, setCurrentMultiplier] = useState('1');
+            const calculatedQty = baseQty * (parseFloat(currentMultiplier) || 0);
+
+            if (!isOpen) return null;
+            
+            const handleApply = () => {
+                onApply(parseFloat(currentMultiplier) || 1);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+                    <div className="bg-custom-card border border-custom-card-border rounded-lg shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold text-custom-text mb-4">Apply Multiplier</h3>
+                        
+                        <div className="space-y-4 mb-6 text-center">
+                            <div className="flex items-center justify-center gap-4 text-lg">
+                                <div className="p-3 bg-gauge-bg rounded-lg">
+                                    <div className="text-sm text-custom-muted">Base Qty</div>
+                                    <div className="font-bold text-2xl">{fmt(baseQty)}</div>
+                                </div>
+                                <div className="text-2xl text-custom-muted">&times;</div>
+                                <div className="w-24">
+                                    <label htmlFor="multiplierInput" className="text-sm text-custom-accent">Multiplier</label>
+                                    <input 
+                                        id="multiplierInput"
+                                        type="number" 
+                                        value={currentMultiplier} 
+                                        onChange={e => setCurrentMultiplier(e.target.value)} 
+                                        onWheel={handleNumberInputScroll}
+                                        className="w-full text-center bg-input-bg text-custom-text rounded-lg border border-input-border p-3 text-2xl font-bold focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition" 
+                                    />
+                                </div>
+                                <div className="text-2xl text-custom-muted">=</div>
+                                <div className="p-3 bg-custom-accent/10 rounded-lg">
+                                     <div className="text-sm text-custom-accent">New Qty</div>
+                                    <div className="font-bold text-2xl text-custom-accent">{fmt(Math.floor(calculatedQty))}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="flex justify-end gap-3">
+                           <button onClick={onClose} className="bg-transparent border border-custom-muted text-custom-muted font-bold py-2 px-4 rounded-lg hover:bg-custom-muted hover:text-white transition-colors">Cancel</button>
+                           <button onClick={handleApply} className="bg-custom-accent text-white font-bold py-2 px-4 rounded-lg shadow-md hover:opacity-90 transition-all">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        const HistoryModal = ({ isOpen, onClose, history, associate }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+                    <div className="bg-custom-card border border-custom-card-border rounded-lg shadow-xl w-full max-w-lg p-6 flex flex-col" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold text-custom-text mb-2">Today's History for {associate}</h3>
+                        
+                        <div className="flex-grow overflow-y-auto max-h-[60vh] my-4 pr-2 space-y-3">
+                            {history.length > 0 ? (
+                                history.map(entry => (
+                                    <div key={entry.id} className="p-3 bg-gauge-bg rounded-lg border border-custom-card-border">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${entry.entryType === 'job' ? 'bg-custom-accent/20 text-custom-accent' : 'bg-custom-accent2/20 text-custom-accent2'}`}>
+                                                {entry.entryType === 'job' ? 'Job' : 'Event'}
+                                            </span>
+                                            <span className="text-sm text-custom-muted">{new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
+                                        {entry.entryType === 'job' ? (
+                                            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                                                <span className="font-semibold text-custom-muted">Item:</span>
+                                                <span className="text-custom-text font-mono">{entry.data.itemNumber}</span>
+                                                <span className="font-semibold text-custom-muted">Lot:</span>
+                                                <span className="text-custom-text font-mono">{entry.data.lotNumber}</span>
+                                                <span className="font-semibold text-custom-muted">Seq:</span>
+                                                <span className="text-custom-text">{entry.data.productionSequence}</span>
+                                                <span className="font-semibold text-custom-muted">Time:</span>
+                                                <span className="text-custom-text">{entry.data.timeWorked} min</span>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                                                <span className="font-semibold text-custom-muted">Event:</span>
+                                                <span className="text-custom-text">{entry.data.eventDropdown}</span>
+                                                <span className="font-semibold text-custom-muted">Time:</span>
+                                                <span className="text-custom-text">{entry.data.timeWorked} min</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-custom-muted text-center py-8">No entries for {associate} today.</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end items-center pt-4 border-t border-custom-card-border">
+                           <button onClick={onClose} className="bg-custom-accent text-white font-bold py-2 px-4 rounded-lg shadow-md hover:opacity-90 transition-all">Close</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+
+        return (
+            <div className="max-w-6xl mx-auto font-sans">
+                <Modal isOpen={isErrorModalOpen} onClose={() => setIsErrorModalOpen(false)} title="Missing Required Fields">
+                    <p>Please complete the following fields before submitting:</p>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                        {errorMessages.map((msg, i) => <li key={i}>{msg}</li>)}
+                    </ul>
+                </Modal>
+                
+                <MultiplierModal 
+                    isOpen={isMultiplierModalOpen} 
+                    onClose={() => setIsMultiplierModalOpen(false)}
+                    baseQty={partsFromSpool}
+                    onApply={(appliedMultiplier) => {
+                        const newQty = Math.floor(partsFromSpool * appliedMultiplier);
+                        setStartQty(newQty.toString());
+                        setIsStartQtyAuto(false); // Make field editable
+                        setIsMultiplierModalOpen(false);
+                    }}
+                />
+                
+                <HistoryModal
+                    isOpen={isHistoryModalOpen}
+                    onClose={() => setIsHistoryModalOpen(false)}
+                    history={filteredHistory}
+                    associate={associateName || '...'}
+                />
+                
+                <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-custom-card-border">
+                    <div className="flex items-center gap-4">
+                        <div className="text-3xl font-black text-custom-accent tracking-wider">INTEGER</div>
+                        <div className="border-l border-custom-card-border h-8"></div>
+                        <h1 className="text-2xl font-bold text-custom-text">
+                            Polyimide Metrics Portal
+                        </h1>
+                    </div>
+                    <div className="flex gap-3">
+                        <button id="submit-button-top" onClick={handleSubmit} disabled={isSubmitting} className="bg-custom-accent text-white font-bold py-2.5 px-5 rounded-lg shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none">
+                            {isSubmitting ? 'Submitting...' : 'Submitting to Smartsheet'}
+                        </button>
+                        <button onClick={() => setIsHistoryModalOpen(true)} className="relative bg-transparent border border-custom-muted text-custom-muted font-bold py-2.5 px-5 rounded-lg hover:bg-custom-muted hover:text-white transition-colors">
+                            Today's History
+                            {filteredHistory.length > 0 && (
+                                <span className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-custom-accent2 text-white text-xs font-bold">
+                                    {filteredHistory.length}
+                                </span>
+                            )}
+                        </button>
+                        <button onClick={handleReset} className="bg-transparent border border-custom-muted text-custom-muted font-bold py-2.5 px-5 rounded-lg hover:bg-custom-muted hover:text-white transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                </header>
+
+                <main className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* --- INPUTS CARD --- */}
+                    <section className="bg-custom-card border border-custom-card-border rounded-lg p-5 shadow-lg space-y-4">
+                        <h2 className="text-base font-semibold text-custom-muted mb-2">Inputs</h2>
+                        <div className="space-y-1"><label className="text-sm font-semibold text-custom-accent">Entry Type</label><EntryToggle/></div>
+                        
+                        {/* Common Fields */}
+                        <div className="space-y-1">
+                            <label htmlFor="associateName" className="text-sm font-semibold text-custom-accent">Associate Name</label>
+                            <select id="associateName" value={associateName} onChange={e => setAssociateName(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition">
+                                <option value="" disabled>Select an associate...</option>
+                                {ASSOCIATES.map(name => <option key={name} value={name}>{name}</option>)}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="eventDate" className="text-sm font-semibold text-custom-accent">Date</label>
+                            <input id="eventDate" type="date" value={eventDate} onChange={e => setEventDate(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition"/>
+                        </div>
+
+                        {/* Job/Event Specific Fields */}
+                        {entryType === 'job' && (
+                            <div id="jobSpecificFields" className="space-y-4">
+                                <div className="space-y-1">
+                                    <label htmlFor="itemNumber" className="text-sm font-semibold text-custom-accent">Item Number</label>
+                                    <input id="itemNumber" type="text" placeholder="e.g. 311318" value={itemNumber} onChange={e => setItemNumber(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition"/>
+                                </div>
+                                <div className="space-y-1">
+                                    <label htmlFor="lotNumber" className="text-sm font-semibold text-custom-accent">Lot Number</label>
+                                    <input id="lotNumber" type="text" placeholder="e.g. 10155074-04" value={lotNumber} onChange={e => setLotNumber(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition"/>
+                                </div>
+                                <div className="space-y-1">
+                                    <label htmlFor="productionSequence" className="text-sm font-semibold text-custom-accent">Production Sequence</label>
+                                    <select id="productionSequence" value={productionSequence} onChange={e => setProductionSequence(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition">
+                                        <option value="" disabled>Select a sequence...</option>
+                                        {PRODUCTION_SEQUENCES.map(seq => <option key={seq} value={seq}>{seq}</option>)}
+                                    </select>
+                                </div>
+                                {showSpoolFields && (
+                                    <>
+                                        <div className="space-y-1">
+                                            <label htmlFor="spoolFeet" className="text-sm font-semibold text-custom-accent">Full Spool Footage (feet)</label>
+                                            <input id="spoolFeet" type="number" min="0" step="0.01" placeholder="e.g. 2500" value={spoolFeet} onChange={e => setSpoolFeet(e.target.value)} onKeyDown={handleEnterNavigation} onWheel={handleNumberInputScroll} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition text-right"/>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label htmlFor="partLength" className="text-sm font-semibold text-custom-accent">Processing / Part Length</label>
+                                            <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+                                                <input id="partLength" type="number" min="0" step="0.001" placeholder="e.g. 48" value={partLength} onChange={e => setPartLength(e.target.value)} onKeyDown={handleEnterNavigation} onWheel={handleNumberInputScroll} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition text-right"/>
+                                                <select id="partUnit" value={partUnit} onChange={e => setPartUnit(e.target.value)} onKeyDown={handleEnterNavigation} className="bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition">
+                                                    <option value="in">in</option><option value="cm">cm</option><option value="mm">mm</option>
+                                                </select>
+                                                <div className="bg-gauge-bg border border-custom-card-border rounded-lg px-3 py-2 text-right min-w-[100px]"><div className="text-sm font-semibold text-custom-muted">Inches</div><div className="font-bold text-lg text-custom-text">{fmt(lengthInInches)}</div></div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                <div className="space-y-1">
+                                    <label htmlFor="startQty" className="text-sm font-semibold text-custom-accent">Start Quantity</label>
+                                    <div className="flex items-center gap-2">
+                                        <input 
+                                            id="startQty" 
+                                            type="number" 
+                                            min="0" 
+                                            step="1" 
+                                            placeholder="—" 
+                                            readOnly={isStartQtyAuto} 
+                                            value={startQty} 
+                                            onChange={e => {
+                                                setStartQty(e.target.value);
+                                                setIsStartQtyAuto(false);
+                                            }} 
+                                            onKeyDown={handleEnterNavigation} 
+                                            onWheel={handleNumberInputScroll}
+                                            className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition text-right read-only:bg-gauge-bg read-only:cursor-not-allowed"
+                                        />
+                                        {isStartQtyAuto && (
+                                             <button 
+                                                 onClick={() => setIsMultiplierModalOpen(true)}
+                                                 className="bg-custom-accent2/10 text-custom-accent2 font-bold py-2.5 px-4 rounded-lg hover:bg-custom-accent2/20 transition-colors whitespace-nowrap"
+                                                 title="Apply Multiplier"
+                                             >
+                                                 &times; Apply Multiplier
+                                             </button>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-custom-muted/70 pl-1">{isStartQtyAuto ? 'Auto-calculated. Apply multiplier if needed.' : 'Enter manually.'}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label htmlFor="endQty" className="text-sm font-semibold text-custom-accent">End Quantity</label>
+                                    <input id="endQty" type="number" min="0" step="1" placeholder="—" value={endQty} onChange={e => setEndQty(e.target.value)} onKeyDown={handleEnterNavigation} onWheel={handleNumberInputScroll} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition text-right"/>
+                                </div>
+                                {showRecuts && <div className="space-y-1">
+                                    <label htmlFor="recuts" className="text-sm font-semibold text-custom-accent">Recuts</label>
+                                    <input id="recuts" type="number" min="0" step="1" placeholder="Enter number of recuts" value={recuts} onChange={e => setRecuts(e.target.value)} onKeyDown={handleEnterNavigation} onWheel={handleNumberInputScroll} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition"/>
+                                </div>}
+                            </div>
+                        )}
+
+                        {entryType === 'event' && (
+                            <div id="eventSpecificFields" className="space-y-4">
+                                <div className="space-y-1">
+                                    <label htmlFor="eventDropdown" className="text-sm font-semibold text-custom-accent">Event</label>
+                                    <select id="eventDropdown" value={eventDropdown} onChange={e => setEventDropdown(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition">
+                                        <option value="" disabled>Select an event...</option>
+                                        {EVENTS.map(evt => <option key={evt} value={evt}>{evt}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Common Fields */}
+                        <div className="space-y-1">
+                            <label htmlFor="timeWorked" className="text-sm font-semibold text-custom-accent">Time Worked (Minutes)</label>
+                            <input id="timeWorked" type="number" min="0" step="1" placeholder="e.g. 90" value={timeWorked} onChange={e => setTimeWorked(e.target.value)} onKeyDown={handleEnterNavigation} onWheel={handleNumberInputScroll} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition"/>
+                        </div>
+                        <div className="space-y-1">
+                            <label htmlFor="comments" className="text-sm font-semibold text-custom-accent">Comments</label>
+                            <textarea id="comments" placeholder="Enter comments..." value={comments} onChange={e => setComments(e.target.value)} onKeyDown={handleEnterNavigation} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition min-h-[80px] resize-vertical"/>
+                        </div>
+                    </section>
+                    
+                    {/* --- RESULTS CARD --- */}
+                    <section className={`bg-custom-card border border-custom-card-border rounded-lg p-5 shadow-lg space-y-4 ${entryType === 'event' && 'hidden'}`}>
+                         <h2 className="text-base font-semibold text-custom-muted mb-2">Results</h2>
+                         <div className="flex gap-4 bg-gauge-bg border border-dashed border-input-border rounded-lg p-3">
+                            <div className="flex-1"><div className="text-sm font-semibold text-custom-muted">Total Spool (in)</div><strong className="text-xl font-bold">{fmt(totalInches)}</strong></div>
+                            <div className="flex-1"><div className="text-sm font-semibold text-custom-muted">Parts from Spool</div><strong className="text-xl font-bold">{fmt(partsFromSpool)}</strong></div>
+                         </div>
+                         <div className="flex gap-4 bg-gauge-bg border border-dashed border-input-border rounded-lg p-3">
+                            <div className="flex-1"><div className="text-sm font-semibold text-custom-muted">Scrap Parts</div><strong className="text-xl font-bold">{fmt(scrapParts)}</strong></div>
+                            <div className="flex-1"><div className="text-sm font-semibold text-custom-muted">Parts Per Hour</div><strong className="text-xl font-bold">{pph}</strong></div>
+                         </div>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-gauge-bg border border-custom-card-border rounded-lg p-3">
+                                <div className="text-sm font-semibold text-custom-muted mb-2">Yield %</div>
+                                <div className="text-xl font-bold text-right mb-1">{startQty ? `${yieldPercent.toFixed(1)}%` : '—'}</div>
+                                <div className="w-full h-2 bg-white rounded-full overflow-hidden border border-custom-card-border"><div className={`h-full rounded-full transition-all duration-500 ${getGaugeColor(yieldPercent, 'yield')}`} style={{ width: `${yieldPercent}%` }}/></div>
+                            </div>
+                            <div className="bg-gauge-bg border border-custom-card-border rounded-lg p-3">
+                                <div className="text-sm font-semibold text-custom-muted mb-2">Scrap Rate %</div>
+                                <div className="text-xl font-bold text-right mb-1">{startQty ? `${scrapPercent.toFixed(1)}%` : '—'}</div>
+                                <div className="w-full h-2 bg-white rounded-full overflow-hidden border border-custom-card-border"><div className={`h-full rounded-full transition-all duration-500 ${getGaugeColor(scrapPercent, 'scrap')}`} style={{ width: `${scrapPercent}%` }}/></div>
+                            </div>
+                         </div>
+                         <div className="flex gap-4 bg-gauge-bg border border-dashed border-input-border rounded-lg p-3">
+                            <div className="flex-1">
+                                <div className="text-sm font-semibold text-custom-muted">Base Standard (PPH)</div>
+                                <strong className="text-xl font-bold">{fmt(baseStandardPph)}</strong>
+                            </div>
+                            <div className="flex-1">
+                                <div className="text-sm font-semibold text-custom-muted">Adjusted Standard (PPH)</div>
+                                <strong className="text-xl font-bold">{baseStandardPph ? fmt(adjustedStandard.toFixed(1)) : '—'}</strong>
+                            </div>
+                         </div>
+                         <div className="grid grid-cols-1 gap-4">
+                            <div className="bg-gauge-bg border border-custom-card-border rounded-lg p-3">
+                                <div className="text-sm font-semibold text-custom-muted mb-2">Sequence OE %</div>
+                                <div className="text-xl font-bold text-right mb-1">{baseStandardPph ? `${sequenceOe.toFixed(1)}%` : '—'}</div>
+                                <div className="w-full h-2 bg-white rounded-full overflow-hidden border border-custom-card-border">
+                                    <div className={`h-full rounded-full transition-all duration-500 ${getGaugeColor(sequenceOe, 'yield')}`} style={{ width: `${Math.min(sequenceOe, 100)}%` }}/>
+                                </div>
+                            </div>
+                         </div>
+                         <div className="border-t border-custom-card-border pt-4 space-y-4">
+                            {showInspectionPareto && <CheckboxGrid items={INSPECTION_PARETO} state={inspectionPareto} setState={setInspectionPareto} title="Inspection Pareto"/>}
+                            {showPullingPareto && <CheckboxGrid items={PULLING_PARETO} state={pullingPareto} setState={setPullingPareto} title="Pulling Pareto"/>}
+                            {showPullingExtras && (
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label htmlFor="pullingWraps" className="text-sm font-semibold text-custom-accent">Pulling Wraps</label>
+                                        <input id="pullingWraps" type="number" min="0" step="1" placeholder="Enter number of wraps" value={pullingWraps} onChange={e => setPullingWraps(e.target.value)} onKeyDown={handleEnterNavigation} onWheel={handleNumberInputScroll} className="w-full bg-input-bg text-custom-text rounded-lg border border-input-border p-3 focus:ring-2 focus:ring-custom-accent focus:border-custom-accent transition"/>
+                                    </div>
+                                    <CheckboxGrid items={PULLING_METHODS} state={pullingMethods} setState={setPullingMethods} title="Pulling Methods"/>
+                                </div>
+                            )}
+                         </div>
+                    </section>
+                </main>
+                
+                <div className="flex justify-end gap-3 mt-6">
+                    <button id="submit-button-bottom" onClick={handleSubmit} disabled={isSubmitting} className="bg-custom-accent text-white font-bold py-2.5 px-5 rounded-lg shadow-md hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none">
+                        {isSubmitting ? 'Submitting...' : 'Submit to Smartsheet'}
+                    </button>
+                    <button onClick={handleReset} className="bg-transparent border border-custom-muted text-custom-muted font-bold py-2.5 px-5 rounded-lg hover:bg-custom-muted hover:text-white transition-colors">
+                        Reset
+                    </button>
+                </div>
+
+                <footer className="mt-4 text-center text-xs text-custom-muted">
+                    <p>Logic: If Spool Footage and Part Length are provided, Start Qty is auto-calculated. Otherwise, enter Start/End manually. All numbers update live.</p>
+                </footer>
+            </div>
+        );
+    };
+
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

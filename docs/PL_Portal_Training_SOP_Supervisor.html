@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Precision Liner PCD Portal — Supervisor SOP</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 30px; }
+    h1 { color: #0284c7; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    h2 { color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-top: 30px; }
+    h3 { color: #334155; }
+    img { max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    code { background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+    pre { background-color: #f1f5f9; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #38bdf8; padding-left: 15px; color: #475569; margin-left: 0; background-color: #f8fafc; padding: 10px 15px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+    th { background-color: #f1f5f9; font-weight: 600; }
+    a { color: #0284c7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta-info { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    .meta-info p { margin: 5px 0; }
+</style>
+</head>
+<body>
+
+<h1>Precision Liner PCD Portal — Supervisor/Admin SOP</h1>
+
+<div class="meta-info">
+    <p><strong>Document Version:</strong> 1.0</p>
+    <p><strong>Effective Date:</strong> March 13, 2026</p>
+    <p><strong>Application Version:</strong> V2.5.0</p>
+</div>
+
+<h2>Purpose</h2>
+<p>This SOP covers the Master Configuration Admin panel. As a supervisor, you will use this interface to manage employee access, edit downtime/defect categories, and configure production goals. All changes made in the Admin panel sync directly to the master Smartsheet backend using background API calls.</p>
+
+<h2>Table of Contents</h2>
+<ol>
+    <li><a href="#section-1">Accessing the Admin Panel</a></li>
+    <li><a href="#section-2">Managing Associates & Schedules</a></li>
+    <li><a href="#section-3">Managing Sequences & Goals</a></li>
+    <li><a href="#section-4">Managing Defects & Events</a></li>
+</ol>
+
+<h2 id="section-1">1. Accessing the Admin Panel</h2>
+<p><img src="sop_images/09_admin_dashboard.png" alt="Admin Dashboard Placeholder"><br>
+<em>(Above: The Supervisor Admin Panel)</em></p>
+
+<ol>
+    <li>Log into the Precision Liner portal normally.</li>
+    <li>If your account <code>Role</code> is set to <strong>Supervisor</strong>, you will see an <strong>Admin</strong> button in the top right corner of the dashboard next to your name.</li>
+    <li>Click <strong>Admin</strong> to open the Master Configuration page.</li>
+</ol>
+<p><em>(Note: If you do not see the Admin button, your account does not have Supervisor privileges. Contact a system administrator to update your role in Smartsheet).</em></p>
+
+<h2 id="section-2">2. Managing Associates & Schedules</h2>
+<p><img src="sop_images/10_manage_associates.png" alt="Manage Associates Placeholder"><br>
+<em>(Above: The Associates & Schedules configuration table)</em></p>
+
+<p>This section allows you to onboard new associates, define their scheduled hours, and manage access.</p>
+
+<h3>Adding a New Associate</h3>
+<ol>
+    <li>Click <strong>+ Add Associate</strong>.</li>
+    <li>A new blank row will appear at the bottom of the table.</li>
+    <li>Enter their <strong>Associate Name</strong>.</li>
+    <li>Set their scheduled hours for each day of the week (Mon-Sun).</li>
+    <li>Toggle the <strong>Training</strong> checkbox if they are currently in training.</li>
+    <li>Set their <strong>Role</strong> to <em>Associate</em> or <em>Supervisor</em>.</li>
+    <li>Click the blue <strong>Save Associates</strong> button at the bottom of the table to push the new user to Smartsheet.</li>
+</ol>
+
+<h3>Resetting an Associate's Password</h3>
+<p>If an associate forgets their password:</p>
+<ol>
+    <li>Locate their name in the table.</li>
+    <li>Click the yellow <strong>Reset Pass</strong> button.</li>
+    <li>Confirm the prompt.</li>
+    <li>The associate will be forced to create a new secure password on their next login attempt.</li>
+</ol>
+
+<h3>Deleting an Associate</h3>
+<ol>
+    <li>Click the red trashcan (<strong>🗑️</strong>) next to the associate's name.</li>
+    <li>Confirm the prompt to permanently delete their record from Smartsheet.</li>
+</ol>
+
+<h2 id="section-3">3. Managing Sequences & Goals</h2>
+<p><img src="sop_images/11_manage_sequences.png" alt="Manage Sequences Placeholder"><br>
+<em>(Above: The Sequences configuration table)</em></p>
+
+<p>Sequences dictate the Takt Time (pieces per hour) expected from the operator.</p>
+<ol>
+    <li>Review the list of active sequences (e.g., Inspect, Bundle, Package).</li>
+    <li>To modify a goal, click the number under <strong>Goal (Parts/Hr)</strong> and type the new target.</li>
+    <li>To add a new sequence process, click <strong>+ Add Sequence</strong> and fill out the name and goal.</li>
+    <li>Click <strong>Save Sequences</strong> to apply the changes globally.</li>
+</ol>
+
+<h2 id="section-4">4. Managing Defects & Events</h2>
+<p><img src="sop_images/12_manage_defects_events.png" alt="Manage Defects Events Placeholder"><br>
+<em>(Above: The Defects and Events configuration tables)</em></p>
+
+<p>The portal dynamically generates its dropdowns and defect buttons from these lists.</p>
+
+<h3>Defect Log Items</h3>
+<ol>
+    <li>To track a new type of defect, click <strong>+ Add Defect</strong>.</li>
+    <li>Type the name (e.g., "Core Damage").</li>
+    <li>Click <strong>Save Defects</strong>.</li>
+    <li>This new defect will instantly appear on all active operator dashboards.</li>
+</ol>
+
+<h3>Downtime Events</h3>
+<ol>
+    <li>To add a new downtime reason (e.g., "Material Shortage"), click <strong>+ Add Event</strong>.</li>
+    <li>Type the new event name.</li>
+    <li>Click <strong>Save Events</strong>.</li>
+    <li>The new event will populate in the Event Entry dropdown for all operators.</li>
+</ol>
+
+<hr>
+<p><em>End of Supervisor SOP.</em></p>
+
+</body>
+</html>

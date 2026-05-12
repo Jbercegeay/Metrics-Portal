@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contains API tokens and sheet IDs)
+.env
+
+# Runtime data (written by server at runtime, not source code)
+data/defect_columns.json
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+
+# Claude Code
+.claude/

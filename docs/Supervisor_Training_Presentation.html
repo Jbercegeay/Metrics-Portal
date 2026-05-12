@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PL Portal: Supervisor Training</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── Slide container ── */
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ── Section dividers ── */
+  .slide-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+  }
+
+  /* ── Typography ── */
+  .slide-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .slide-title span { color: var(--accent); }
+
+  .slide-subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    margin-bottom: 36px;
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  /* ── Two-column layout ── */
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .cols-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Bullet lists ── */
+  ul.bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  ul.bullets li {
+    font-size: 15px;
+    color: var(--text);
+    padding-left: 20px;
+    position: relative;
+    line-height: 1.5;
+  }
+  ul.bullets li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  ul.bullets li strong { color: var(--accent); }
+  ul.bullets li .muted { color: var(--muted); font-size: 13px; }
+
+  /* ── Key badges ── */
+  .key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f172a;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: monospace;
+    color: var(--warn);
+    white-space: nowrap;
+  }
+
+  /* ── Pill / tag ── */
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .pill-blue { background: rgba(56,189,248,0.15); color: var(--accent); }
+  .pill-green { background: rgba(34,197,94,0.15); color: var(--green); }
+  .pill-warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+  .pill-red { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+  /* ── Step list ── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .step-num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-body { font-size: 15px; line-height: 1.5; }
+  .step-body strong { color: #fff; }
+  .step-body small { color: var(--muted); font-size: 13px; display: block; margin-top: 2px; }
+
+  /* ── Big callout box ── */
+  .callout {
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin-top: 20px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .callout-blue { background: rgba(56,189,248,0.10); border: 1px solid rgba(56,189,248,0.3); color: var(--text); }
+  .callout-warn { background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.3); color: var(--text); }
+  .callout-red { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.35); color: var(--text); }
+  .callout-green { background: rgba(34,197,94,0.10); border: 1px solid rgba(34,197,94,0.3); color: var(--text); }
+  .callout strong { color: var(--warn); }
+
+  /* ── OEE formula display ── */
+  .oee-formula {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .oee-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+  }
+  .oee-box .val { font-size: 26px; font-weight: 800; }
+  .oee-box .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .oee-op { color: var(--muted); font-size: 28px; }
+  .oee-result { color: var(--green); }
+
+  /* ── Table style ── */
+  table.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.info-table th {
+    background: #0f172a;
+    color: var(--accent);
+    padding: 8px 14px;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.info-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid #1e293b;
+    line-height: 1.4;
+  }
+  table.info-table tr:last-child td { border-bottom: none; }
+
+  /* ── Navigation ── */
+  .nav {
+    position: fixed;
+    bottom: 24px;
+    right: 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 100;
+  }
+  .nav-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  .nav-btn:hover { background: #334155; }
+  .nav-counter {
+    font-size: 13px;
+    color: var(--muted);
+    min-width: 48px;
+    text-align: center;
+  }
+
+  /* ── Progress bar ── */
+  .progress-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--accent);
+    transition: width 0.35s ease;
+    z-index: 200;
+  }
+
+  /* ── Slide-specific backgrounds ── */
+  .slide-title-bg {
+    background: radial-gradient(ellipse 900px 600px at 70% 50%, #1e3a5f 0%, var(--bg) 70%);
+  }
+  .slide-supervisor-bg {
+    background: radial-gradient(ellipse 800px 500px at 80% 20%, #1a2744 0%, var(--bg) 65%);
+  }
+  .slide-associate-bg {
+    background: radial-gradient(ellipse 800px 500px at 20% 80%, #0d2e1a 0%, var(--bg) 65%);
+  }
+
+  /* ── Section break slide ── */
+  .section-break {
+    align-items: center;
+    text-align: center;
+  }
+  .section-break .big-icon {
+    font-size: 72px;
+    margin-bottom: 24px;
+  }
+  .section-break .slide-title {
+    font-size: 48px;
+  }
+
+  /* ── Icon row ── */
+  .icon-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 8px;
+  }
+  .icon-item {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .icon-item .icon { font-size: 32px; margin-bottom: 10px; }
+  .icon-item .title { font-weight: 700; color: #fff; margin-bottom: 6px; font-size: 15px; }
+  .icon-item .desc { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+  /* ── Logo-style title header ── */
+  .logo-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 30px;
+  }
+  .logo-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="deck" id="deck">
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 1 — TITLE
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-title-bg active" data-slide="1">
+    <div class="logo-header">
+      <div class="logo-dot"></div>
+      <span style="font-size:13px;color:var(--muted);letter-spacing:1px;font-weight:600;">PRECISION LINER</span>
+    </div>
+    <div class="slide-section-label">Supervisor Training</div>
+    <div class="slide-title">PL <span>Portal</span><br>Training Guide</div>
+    <div class="slide-subtitle">
+      A complete walkthrough for supervisors — from admin configuration<br>
+      to understanding what your operators see every shift.
+    </div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
+      <span class="pill pill-blue">Version 2.5.0</span>
+      <span class="pill pill-warn">April 2, 2026</span>
+    </div>
+    <div class="callout callout-blue" style="margin-top:36px; max-width:600px;">
+      <strong style="color:var(--accent);">Navigation:</strong> Use <span class="key">←</span> <span class="key">→</span> arrow keys or click the buttons below to advance slides.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 2 — YOUR ROLE AS SUPERVISOR
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="2">
+    <div class="slide-section-label">Overview</div>
+    <div class="slide-title">Your Role as <span>Supervisor</span></div>
+    <div class="slide-subtitle">You have access to two interfaces. Here's how they connect.</div>
+    <div class="icon-row">
+      <div class="icon-item" style="border-color:rgba(56,189,248,0.4);">
+        <div class="icon">⚙️</div>
+        <div class="title" style="color:var(--accent);">Admin Panel</div>
+        <div class="desc">Configure the portal — manage associates, schedules, sequences, defects, and events. This is your control center.</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon">🖥️</div>
+        <div class="title">Main Portal</div>
+        <div class="desc">Monitor live production — see OEE, active operators, and intervene if needed. Also where you trigger a Supervisor Reset.</div>
+      </div>
+      <div class="icon-item">
+        <div class="icon">👷</div>
+        <div class="title">Operator Dashboard</div>
+        <div class="desc">What your associates use every shift — production logging, event timers, PCD hour tracker, job submission.</div>
+      </div>
+    </div>
+    <div class="callout callout-blue" style="margin-top:28px;">
+      Supervisors land directly on the <strong style="color:var(--accent);">Admin Panel</strong> after login. Use the <strong style="color:var(--accent);">"← Back to Portal"</strong> link at the top-right to reach the main production dashboard.
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 3 — LOGGING IN
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="3">
+    <div class="slide-section-label">Getting Started</div>
+    <div class="slide-title"><span>Logging In</span></div>
+    <div class="slide-subtitle">Supervisor login is the same credential screen — but the destination is different.</div>
+    <div class="cols">
+      <div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Open the portal</strong>
+              <small>Navigate to the PL Portal URL on any shop floor PC</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Enter your name and password</strong>
+              <small>Same login screen as associates — role is stored in Smartsheet</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Automatically routed to Admin Panel</strong>
+              <small>Associates land on the production dashboard; supervisors go to the Admin Panel</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>To view the production floor</strong>
+              <small>Click the "← Back to Portal" link at the top-right of the Admin Panel</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <h3>🔐 Password Reset</h3>
+          <ul class="bullets">
+            <li>You can reset any associate's password from the Admin Panel</li>
+            <li>The associate will be prompted to create a new password on their next login</li>
+            <li>You can also set your own password from the same screen</li>
+          </ul>
+        </div>
+        <div class="callout callout-warn">
+          <strong>Logout behavior:</strong> When you log out as a supervisor, the system does NOT submit shift data to Smartsheet. Associate logouts do submit their shift summary automatically.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 4 — ADMIN PANEL OVERVIEW
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="4">
+    <div class="slide-section-label">Admin Panel</div>
+    <div class="slide-title">Admin Panel <span>Overview</span></div>
+    <div class="slide-subtitle">Four sections — each controls a different part of the portal experience.</div>
+    <div class="cols" style="grid-template-columns:1fr 1fr;">
+      <div class="card" style="border-color:rgba(56,189,248,0.3);">
+        <h3>👥 Associates &amp; Schedules</h3>
+        <ul class="bullets">
+          <li>Add, edit, or remove operators</li>
+          <li>Set <strong>weekly schedule</strong> (Mon–Sun hour windows)</li>
+          <li>Toggle <strong>Training mode</strong> per associate</li>
+          <li>Assign <strong>Role</strong> (Associate or Supervisor)</li>
+          <li>Reset or set passwords</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:rgba(56,189,248,0.3);">
+        <h3>🔄 Sequences &amp; Goals</h3>
+        <ul class="bullets">
+          <li>Define all <strong>process types</strong> (e.g., Package, Spool Check, Re-Label)</li>
+          <li>Set the <strong>goal (parts/hr)</strong> / Takt Time for each</li>
+          <li>Used in OEE Performance calculation</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🔴 Defects</h3>
+        <ul class="bullets">
+          <li>Add, rename, or delete defect types</li>
+          <li>Changes appear <strong>instantly</strong> on all operator dashboards</li>
+          <li>Operators log defects with a single tap per type</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📅 Events</h3>
+        <ul class="bullets">
+          <li>Manage downtime event types (Break, Lunch, Meeting, Maintenance, etc.)</li>
+          <li>Events feed directly into the <strong>PCD hour-by-hour tracker</strong></li>
+          <li>Event time is deducted from Availability in OEE</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 5 — MANAGING ASSOCIATES
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="5">
+    <div class="slide-section-label">Admin Panel — Associates</div>
+    <div class="slide-title">Managing <span>Associates</span></div>
+    <div class="cols">
+      <div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Click "+ Add Associate"</strong><small>Creates a new row in the table</small></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Fill in name and schedule</strong>
+              <small>Enter the hours worked each day (Mon–Sun). Leave blank for days off.</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Set Training &amp; Role</strong>
+              <small>Training checkbox = data won't submit to Smartsheet. Role = Associate or Supervisor.</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body"><strong>Click "Save Associates"</strong><small>Writes changes to Smartsheet immediately</small></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <h3>🔑 Password Management</h3>
+          <ul class="bullets">
+            <li>Click <strong>Reset Password</strong> on any row to force a new password on next login</li>
+            <li>New associates have no password until they first log in and create one</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>🗑️ Removing Associates</h3>
+          <ul class="bullets">
+            <li>Use the <strong>Delete</strong> button on the row</li>
+            <li>The associate will no longer appear in the operator login dropdown</li>
+          </ul>
+        </div>
+        <div class="callout callout-warn">
+          <strong>Important:</strong> Always click <strong style="color:var(--warn);">"Save Associates"</strong> after any edits — changes are not saved automatically.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 6 — SEQUENCES & GOALS
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="6">
+    <div class="slide-section-label">Admin Panel — Sequences</div>
+    <div class="slide-title">Sequences <span>&amp; Goals</span></div>
+    <div class="slide-subtitle">Process types and their performance targets — drives OEE Performance metric.</div>
+    <div class="cols">
+      <div class="card">
+        <h3>📋 What is a Sequence?</h3>
+        <ul class="bullets">
+          <li>A <strong>sequence</strong> is a type of work (e.g., Package, Spool Check, Re-Label)</li>
+          <li>Associates select their sequence at the start of each job</li>
+          <li>The selected sequence determines what <strong>goal rate</strong> is used for OEE</li>
+          <li>Spool Check has additional QC fields (sequence #, check #) that appear automatically</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🎯 Goal (Parts/Hr) — Takt Time</h3>
+        <ul class="bullets">
+          <li>Set the expected <strong>parts per hour</strong> for each sequence</li>
+          <li>This is used to calculate <strong>OEE Performance</strong>: Actual Output ÷ Goal Output</li>
+          <li>A higher goal = tougher Performance score</li>
+          <li>Set it to match your engineered cycle time or historical benchmark</li>
+        </ul>
+        <div class="callout callout-blue" style="margin-top:14px;">
+          Click <strong style="color:var(--accent);">"+ Add Sequence"</strong>, fill in the name and goal, then click <strong style="color:var(--accent);">"Save"</strong>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 7 — DEFECTS & EVENTS
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="7">
+    <div class="slide-section-label">Admin Panel — Dropdowns</div>
+    <div class="slide-title">Defects <span>&amp; Events</span></div>
+    <div class="cols">
+      <div>
+        <div class="card" style="margin-bottom:20px; border-color:rgba(239,68,68,0.3);">
+          <h3>🔴 Managing Defect Types</h3>
+          <ul class="bullets">
+            <li>Defects appear as <strong>individual buttons</strong> on the operator dashboard</li>
+            <li>Each tap on a defect button <strong>increments that defect count by 1</strong></li>
+            <li>Defect totals feed into <strong>OEE Quality</strong> calculation</li>
+            <li>Add defect types that match your specific quality codes</li>
+            <li>Changes appear on all operator screens <strong>immediately</strong> (no reload needed)</li>
+          </ul>
+        </div>
+        <div class="callout callout-red">
+          Renaming or deleting a defect type affects all future logs. Historical data in Smartsheet is not modified.
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:20px;">
+          <h3>📅 Managing Event Types</h3>
+          <ul class="bullets">
+            <li>Events = planned and unplanned <strong>downtime categories</strong></li>
+            <li>Examples: Break, Lunch, Meeting, Maintenance, Changeover</li>
+            <li>When an operator logs an event, that time is <strong>deducted from Availability</strong></li>
+            <li>Events automatically split across PCD hour boundaries</li>
+            <li>The PCD tracker shows planned vs. actual minutes per event type</li>
+          </ul>
+        </div>
+        <div class="callout callout-blue">
+          Keep event types clear and specific — operators select from a dropdown during active shifts.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 8 — SUPERVISOR RESET
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-supervisor-bg" data-slide="8">
+    <div class="slide-section-label">Admin Tools</div>
+    <div class="slide-title">Supervisor <span>Reset</span></div>
+    <div class="slide-subtitle">Emergency wipe of all active portal data — used at shift change or to resolve stuck states.</div>
+    <div class="cols">
+      <div>
+        <div class="callout callout-warn" style="margin-bottom:24px;">
+          <strong>How to trigger:</strong> From the <strong style="color:var(--warn);">Main Portal</strong> (not the Admin Panel), press:
+          <div style="margin-top:14px; display:flex; align-items:center; gap:8px; font-size:18px;">
+            <span class="key">Ctrl</span>
+            <span style="color:var(--muted);">+</span>
+            <span class="key">Shift</span>
+            <span style="color:var(--muted);">+</span>
+            <span class="key">X</span>
+          </div>
+          <div style="margin-top:12px;">Then enter PIN: <span class="key" style="font-size:18px;">2026</span></div>
+        </div>
+        <div class="card">
+          <h3>✅ What it does</h3>
+          <ul class="bullets">
+            <li>Wipes <strong>all active shift data</strong> from this workstation</li>
+            <li>Clears operator sessions, active lots, timers, PCD data</li>
+            <li>Reloads the portal to a clean state</li>
+            <li>Does <strong>not</strong> delete anything already submitted to Smartsheet</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="border-color:rgba(239,68,68,0.3);">
+          <h3>🚨 When to use</h3>
+          <ul class="bullets">
+            <li><strong>Shift change:</strong> If the outgoing shift forgot to End Shift Reset, use this to clear and start fresh</li>
+            <li><strong>Stuck state:</strong> App is frozen or showing stale data from a previous shift</li>
+            <li><strong>Testing:</strong> Need to clear test data without going through normal flow</li>
+          </ul>
+        </div>
+        <div class="callout callout-red" style="margin-top:16px;">
+          <strong>Warning:</strong> Any in-progress, un-submitted shift data on this PC will be <strong style="color:var(--danger);">permanently lost</strong>. Only use it if the data is already gone or invalid.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 9 — SECTION BREAK: ASSOCIATE PORTAL
+  ══════════════════════════════════════════════ -->
+  <div class="slide section-break slide-associate-bg" data-slide="9">
+    <div class="big-icon">👷</div>
+    <div class="slide-section-label" style="border-color:var(--green);color:var(--green);">Part 2</div>
+    <div class="slide-title">What Your <span style="color:var(--green);">Operators</span> See</div>
+    <div class="slide-subtitle" style="max-width:580px;">
+      Understanding the associate experience helps you support your team, troubleshoot issues, and make sense of the data coming into Smartsheet.
+    </div>
+    <div style="margin-top:24px; display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+      <span class="pill pill-green">Shift Setup</span>
+      <span class="pill pill-green">Production Logging</span>
+      <span class="pill pill-green">Event Timers</span>
+      <span class="pill pill-green">PCD Tracker</span>
+      <span class="pill pill-green">OEE Dashboard</span>
+      <span class="pill pill-green">Job Submission</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 10 — OPERATOR LOGIN & KIOSK MODE
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-associate-bg" data-slide="10">
+    <div class="slide-section-label">Associate Portal</div>
+    <div class="slide-title">Operator Login <span style="color:var(--green);">&amp; Kiosk Mode</span></div>
+    <div class="cols">
+      <div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">1</div>
+            <div class="step-body"><strong>Select name from dropdown</strong><small>All active associates appear in the list</small></div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">2</div>
+            <div class="step-body">
+              <strong>Enter password</strong>
+              <small>First-time users: enter any password and they'll be prompted to confirm and set it permanently</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">3</div>
+            <div class="step-body">
+              <strong>Land on the production dashboard</strong>
+              <small>Shift setup fields appear immediately — ready to start logging</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="border-color:rgba(34,197,94,0.3); margin-bottom:16px;">
+          <h3 style="color:var(--green);">🖥️ Kiosk / Multi-Operator Mode</h3>
+          <ul class="bullets">
+            <li>Multiple operators can share <strong>one workstation</strong></li>
+            <li>Use <strong>"+ Add Operator"</strong> button to log in additional associates</li>
+            <li>Each operator gets their own independent workspace (job, timers, PCD, OEE)</li>
+            <li>Click an operator's name tab at the top to switch between workspaces</li>
+          </ul>
+        </div>
+        <div class="callout callout-blue">
+          <strong>Training accounts:</strong> <span class="key">test1</span> and <span class="key">test2</span> go through the full portal experience but <strong style="color:var(--accent);">no data is written to Smartsheet</strong>. Safe for new hire training.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 11 — SHIFT SETUP
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-associate-bg" data-slide="11">
+    <div class="slide-section-label">Associate Portal</div>
+    <div class="slide-title">Shift <span style="color:var(--green);">Setup</span></div>
+    <div class="slide-subtitle">Operators fill this out once at the start of each job. All fields drive the PCD tracker and Smartsheet log.</div>
+    <div class="cols">
+      <div>
+        <table class="info-table">
+          <thead>
+            <tr><th>Field</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>Work Date</strong></td><td>Date of the production run (defaults to today)</td></tr>
+            <tr><td><strong>Shift Start / End</strong></td><td>Clock times for the shift window; PCD hours are built from this range</td></tr>
+            <tr><td><strong>Sequence</strong></td><td>Process type — drives the goal rate from Admin config</td></tr>
+            <tr><td><strong>Lot #</strong></td><td>Work order / lot number for this job</td></tr>
+            <tr><td><strong>Item #</strong></td><td>Part number being produced</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="card" style="border-color:rgba(34,197,94,0.3); margin-bottom:14px;">
+          <h3 style="color:var(--green);">🔍 Spool Check — Extra Fields</h3>
+          <ul class="bullets">
+            <li>When <strong>Spool Check</strong> is selected as the sequence, two extra fields appear automatically</li>
+            <li><strong>Spool Check Seq:</strong> 10, 20, or 30 (which sequence in the spool check cycle)</li>
+            <li><strong>Check #:</strong> 1st, 2nd, 3rd, 4th, or 5th inspection of this spool</li>
+            <li>Both fields are logged to Smartsheet alongside production data</li>
+          </ul>
+        </div>
+        <div class="callout callout-warn">
+          Shift Start/End can cross midnight — the portal handles multi-day shift windows correctly.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 12 — LOGGING PRODUCTION
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-associate-bg" data-slide="12">
+    <div class="slide-section-label">Associate Portal</div>
+    <div class="slide-title">Logging <span style="color:var(--green);">Production</span></div>
+    <div class="slide-subtitle">The primary action operators perform throughout their shift — counting good units and defects.</div>
+    <div class="cols">
+      <div>
+        <div class="card" style="border-color:rgba(34,197,94,0.3); margin-bottom:16px;">
+          <h3 style="color:var(--green);">✅ Good Units</h3>
+          <ul class="bullets">
+            <li>
+              <strong>+1 button</strong> — tap once per good unit
+              <br><span class="muted">Keyboard shortcut: <span class="key">H</span></span>
+            </li>
+            <li>
+              <strong>+5 button</strong> — tap for a batch of 5
+              <br><span class="muted">Keyboard shortcut: <span class="key">G</span></span>
+            </li>
+            <li>Running total shown as a <strong>real-time yield badge</strong></li>
+            <li>Counts accumulate for the current lot until Submit Job</li>
+          </ul>
+        </div>
+        <div class="callout callout-blue">
+          The keyboard shortcuts (<span class="key">H</span> and <span class="key">G</span>) are popular on the floor — operators can count without looking at the screen.
+        </div>
+      </div>
+      <div>
+        <div class="card" style="border-color:rgba(239,68,68,0.3);">
+          <h3>🔴 Defects</h3>
+          <ul class="bullets">
+            <li>Each defect type has its own <strong>button</strong> in the defect panel</li>
+            <li>Tapping a defect button <strong>adds 1 to that defect count</strong></li>
+            <li>Defect totals are displayed in real time</li>
+            <li>Defect data feeds <strong>OEE Quality</strong>: Good ÷ (Good + Bad)</li>
+            <li>All defects are submitted per lot to Smartsheet</li>
+          </ul>
+        </div>
+        <div class="callout callout-warn" style="margin-top:14px;">
+          Defect types are configured in the Admin Panel → Defects section. Changes appear instantly on all active dashboards.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 13 — EVENT ENTRY & TIMERS
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-associate-bg" data-slide="13">
+    <div class="slide-section-label">Associate Portal</div>
+    <div class="slide-title">Event Entry <span style="color:var(--green);">&amp; Timers</span></div>
+    <div class="slide-subtitle">How operators log downtime — break, maintenance, changeovers, meetings.</div>
+    <div class="cols">
+      <div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">1</div>
+            <div class="step-body">
+              <strong>Switch to "Event Entry" mode</strong>
+              <small>Toggle at the top of the dashboard switches from production counting to event logging</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">2</div>
+            <div class="step-body">
+              <strong>Select the event type</strong>
+              <small>Dropdown shows all events configured in Admin Panel</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">3</div>
+            <div class="step-body">
+              <strong>Start the timer — or enter time/duration manually</strong>
+              <small>Live timer counts up while the event is active; or enter start time and duration directly</small>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num" style="background:var(--green);">4</div>
+            <div class="step-body">
+              <strong>Stop timer / save event</strong>
+              <small>Event is recorded; automatically split across PCD hour boundaries if it spans hours</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <h3>🕐 How Events Affect OEE</h3>
+          <ul class="bullets">
+            <li>Event time is deducted from <strong>available production minutes</strong></li>
+            <li>This flows directly into the <strong>Availability</strong> component of OEE</li>
+            <li>The PCD tracker shows planned minutes vs. actual minutes per hour, with downtime broken out</li>
+          </ul>
+        </div>
+        <div class="callout callout-blue">
+          Events that span an hour boundary (e.g., a 45-min break starting at 9:50) are automatically <strong style="color:var(--accent);">split</strong> into the correct PCD hour buckets — operators don't need to do anything special.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 14 — PCD HOUR-BY-HOUR TRACKER
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-associate-bg" data-slide="14">
+    <div class="slide-section-label">Associate Portal</div>
+    <div class="slide-title">PCD <span style="color:var(--green);">Hour Tracker</span></div>
+    <div class="slide-subtitle">Production Control Document — the hour-by-hour performance record that goes to Smartsheet.</div>
+    <div class="cols">
+      <div>
+        <div class="card" style="border-color:rgba(34,197,94,0.3);">
+          <h3 style="color:var(--green);">📊 What the PCD Shows</h3>
+          <table class="info-table" style="margin-top:8px;">
+            <thead>
+              <tr><th>Column</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Hour</strong></td><td>Clock hour bucket (e.g., 7:00–8:00)</td></tr>
+              <tr><td><strong>Goal</strong></td><td>Expected parts based on Takt Time and available minutes</td></tr>
+              <tr><td><strong>Good</strong></td><td>Actual good units produced in that hour</td></tr>
+              <tr><td><strong>Bad</strong></td><td>Defects logged in that hour</td></tr>
+              <tr><td><strong>Plan Mins</strong></td><td>Available production minutes (shift time minus planned events)</td></tr>
+              <tr><td><strong>Act Mins</strong></td><td>Actual running minutes (removes unplanned downtime too)</td></tr>
+              <tr><td><strong>Variance</strong></td><td>Good vs. Goal difference — positive is ahead of pace</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:14px;">
+          <h3>📑 Multi-Sequence Tabs</h3>
+          <ul class="bullets">
+            <li>If multiple sequences are run in a shift, each gets its <strong>own PCD tab</strong></li>
+            <li>Click between tabs to see per-sequence performance</li>
+            <li>All tabs are submitted to Smartsheet on End Shift</li>
+          </ul>
+        </div>
+        <div class="callout callout-blue">
+          The PCD automatically updates as operators log production and events throughout the shift — no manual hour-by-hour entry needed.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 15 — OEE DASHBOARD & JOB SUBMISSION
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-associate-bg" data-slide="15">
+    <div class="slide-section-label">Associate Portal</div>
+    <div class="slide-title">OEE <span style="color:var(--green);">&amp; Submission</span></div>
+    <div class="slide-subtitle">Real-time performance score and how completed jobs are sent to Smartsheet.</div>
+    <div style="margin-bottom:24px;">
+      <div class="oee-formula">
+        <div class="oee-box">
+          <div class="val" style="color:var(--accent);">A</div>
+          <div class="lbl">Availability</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Run time ÷ Planned time</div>
+        </div>
+        <div class="oee-op">×</div>
+        <div class="oee-box">
+          <div class="val" style="color:var(--warn);">P</div>
+          <div class="lbl">Performance</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Actual output ÷ Goal output</div>
+        </div>
+        <div class="oee-op">×</div>
+        <div class="oee-box">
+          <div class="val" style="color:var(--danger);">Q</div>
+          <div class="lbl">Quality</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px;">Good ÷ (Good + Bad)</div>
+        </div>
+        <div class="oee-op">=</div>
+        <div class="oee-box oee-result" style="border-color:rgba(34,197,94,0.4);">
+          <div class="val oee-result">OEE %</div>
+          <div class="lbl">Overall</div>
+        </div>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="card" style="border-color:rgba(34,197,94,0.3);">
+        <h3 style="color:var(--green);">📤 Submit Job</h3>
+        <ul class="bullets">
+          <li>Submits the <strong>current lot's data</strong> to Smartsheet (good count, defects, lot #, item #)</li>
+          <li>Resets the lot counter — ready to start a new lot</li>
+          <li>Use when changing to a new work order mid-shift</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color:rgba(239,68,68,0.3);">
+        <h3>🔴 End Shift Reset</h3>
+        <ul class="bullets">
+          <li>Submits the <strong>active lot + full PCD tracker + Shift End event</strong> to Smartsheet</li>
+          <li>Signs out all operators and clears the workstation for the next shift</li>
+          <li>Shows a <strong>5-minute warning</strong> before the shift end time</li>
+          <li>Required at the end of every shift — do not just close the browser</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       SLIDE 16 — TRAINING MODE & Q&A
+  ══════════════════════════════════════════════ -->
+  <div class="slide slide-title-bg" data-slide="16">
+    <div class="slide-section-label">Wrap Up</div>
+    <div class="slide-title">Training Mode <span>&amp; Q&amp;A</span></div>
+    <div class="cols">
+      <div>
+        <div class="card" style="border-color:rgba(56,189,248,0.3); margin-bottom:16px;">
+          <h3>🧪 Training Accounts</h3>
+          <ul class="bullets">
+            <li>Login with <span class="key">test1</span> or <span class="key">test2</span></li>
+            <li>Full portal experience — production logging, events, PCD, OEE, job submission</li>
+            <li><strong>Zero data written to Smartsheet</strong> — completely safe for training</li>
+            <li>Great for hands-on walkthroughs with new associates</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>📋 Key Supervisor Actions — Quick Reference</h3>
+          <table class="info-table">
+            <tbody>
+              <tr><td>Configure operators</td><td><strong>Admin Panel → Associates</strong></td></tr>
+              <tr><td>Set production goals</td><td><strong>Admin Panel → Sequences</strong></td></tr>
+              <tr><td>Update defect types</td><td><strong>Admin Panel → Defects</strong></td></tr>
+              <tr><td>Emergency wipe</td><td><span class="key">Ctrl</span>+<span class="key">Shift</span>+<span class="key">X</span> → PIN <span class="key">2026</span></td></tr>
+              <tr><td>Reset a password</td><td><strong>Admin Panel → Associates → Reset</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="border-color:rgba(34,197,94,0.3); margin-bottom:16px;">
+          <h3 style="color:var(--green);">✅ End of Shift Checklist</h3>
+          <ul class="bullets">
+            <li>Operators click <strong>Submit Job</strong> for last active lot</li>
+            <li>Operators click <strong>End Shift Reset</strong> — signs out and submits PCD</li>
+            <li>If shift change is messy, use <strong>Supervisor Reset</strong> to clear and start fresh</li>
+            <li>Check Smartsheet for submitted rows to confirm data came through</li>
+          </ul>
+        </div>
+        <div class="callout callout-green" style="text-align:center; padding:28px;">
+          <div style="font-size:36px; margin-bottom:12px;">🎓</div>
+          <div style="font-size:18px; font-weight:700; color:var(--green); margin-bottom:6px;">Questions?</div>
+          <div style="font-size:14px; color:var(--muted);">Open the floor for questions, or use <span class="key">test1</span> / <span class="key">test2</span> to walk through the portal live.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- Navigation controls -->
+<nav class="nav">
+  <button class="nav-btn" id="btnPrev" onclick="prevSlide()">&#8592;</button>
+  <span class="nav-counter" id="counter">1 / 16</span>
+  <button class="nav-btn" id="btnNext" onclick="nextSlide()">&#8594;</button>
+</nav>
+
+<script>
+  const TOTAL = 16;
+  let current = 1;
+
+  function showSlide(n) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    const target = document.querySelector(`.slide[data-slide="${n}"]`);
+    if (target) target.classList.add('active');
+    document.getElementById('counter').textContent = `${n} / ${TOTAL}`;
+    document.getElementById('progressBar').style.width = `${(n / TOTAL) * 100}%`;
+    current = n;
+  }
+
+  function nextSlide() { if (current < TOTAL) showSlide(current + 1); }
+  function prevSlide() { if (current > 1) showSlide(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') nextSlide();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') prevSlide();
+  });
+
+  // Initialize
+  showSlide(1);
+</script>
+</body>
+</html>

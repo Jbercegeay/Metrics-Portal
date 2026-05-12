@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Precision Liner PCD Portal — Associate SOP</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 30px; }
+    h1 { color: #0284c7; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+    h2 { color: #0f172a; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; margin-top: 30px; }
+    h3 { color: #334155; }
+    img { max-width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+    code { background-color: #f1f5f9; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+    pre { background-color: #f1f5f9; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #38bdf8; padding-left: 15px; color: #475569; margin-left: 0; background-color: #f8fafc; padding: 10px 15px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+    th { background-color: #f1f5f9; font-weight: 600; }
+    a { color: #0284c7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta-info { background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+    .meta-info p { margin: 5px 0; }
+</style>
+</head>
+<body>
+
+<h1>Precision Liner PCD Portal — Associate Standard Operating Procedure (SOP)</h1>
+
+<div class="meta-info">
+    <p><strong>Document Version:</strong> 2.1</p>
+    <p><strong>Effective Date:</strong> April 15, 2026</p>
+    <p><strong>Application Version:</strong> V2.5.0</p>
+    <p><strong>Prepared For:</strong> Associate Training Class</p>
+    <p><strong>Change Summary (v2.1):</strong> Updated login section to reflect Training Mode banner and corrected button label; clarified dual operator logout methods; corrected shift window default behavior; added Manual New Lot vs. Submit Job guidance; added note about Job field visibility in Event Entry mode.</p>
+</div>
+
+<h2>Purpose</h2>
+<p>This SOP provides step-by-step instructions for using the <strong>Precision Liner PCD Portal</strong> as an Associate. The portal tracks production data, logs downtime events, records defects, and continuously synchronizes with our production tracking system in the background.</p>
+
+<h2>Table of Contents</h2>
+<ol>
+    <li><a href="#section-1">Logging In & Account Setup</a></li>
+    <li><a href="#section-2">Multi-User Kiosk Mode (Shared Stations)</a></li>
+    <li><a href="#section-3">Shift Setup</a></li>
+    <li><a href="#section-4">Job Entry Mode — Logging Production</a></li>
+    <li><a href="#section-5">Spool Check QC Details</a></li>
+    <li><a href="#section-6">Recording Defects & Low Yield RCA</a></li>
+    <li><a href="#section-7">Reading the PCD Tracker & KPIs</a></li>
+    <li><a href="#section-8">Submitting a Job</a></li>
+    <li><a href="#section-9">Event Entry Mode (Downtime)</a></li>
+    <li><a href="#section-10">End of Shift Procedure</a></li>
+    <li><a href="#section-11">Troubleshooting & FAQ</a></li>
+</ol>
+
+<h2 id="section-1">1. Logging In & Account Setup</h2>
+<p><img src="sop_images/01_login_screen.png" alt="Login Screen Placeholder"><br>
+<em>(Above: The portal login and account setup screen)</em></p>
+
+<blockquote><strong>Training Mode Available:</strong> The login screen displays a blue notice box indicating that the <strong>test1</strong> and <strong>test2</strong> accounts are available for practice. Password: <code>trenton1</code>. Submissions made from these accounts are <strong>NOT</strong> sent to Smartsheet — they are safe to use for learning and training purposes.</blockquote>
+
+<p><strong>First Time setup:</strong></p>
+<ol>
+    <li>Open the portal in your browser.</li>
+    <li>If you do not have a password configured, the portal will prompt you to create one.</li>
+    <li>Select your name from the <strong>Associate Name</strong> dropdown.</li>
+    <li>Click <strong>Create Account</strong> (Green button — only appears if no password is set).</li>
+    <li>Enter a new password (minimum 6 characters) and confirm it.</li>
+    <li>Click <strong>Save & Login</strong>.</li>
+</ol>
+
+<p><strong>Daily Login:</strong></p>
+<ol>
+    <li>Select your name from the <strong>Associate Name</strong> dropdown.</li>
+    <li>Enter your password.</li>
+    <li>Click <strong>Login</strong> (Blue button).</li>
+</ol>
+
+<h2 id="section-2">2. Multi-User Kiosk Mode (Shared Stations)</h2>
+<p><img src="sop_images/02_kiosk_bar.png" alt="Kiosk Bar Placeholder"><br>
+<em>(Above: The operator bar showing multiple signed-in associates)</em></p>
+
+<p>The portal supports multiple associates working at the same physical computer or tablet. Each associate's data is tracked independently!</p>
+
+<h3>Adding an Operator to the Station</h3>
+<ol>
+    <li>Click the <strong>+ Add Operator</strong> button in the Operator Bar.</li>
+    <li>Select the associate's name from the dropdown.</li>
+    <li>They must enter their personal password to join the station.</li>
+    <li>Click <strong>Confirm</strong>.</li>
+</ol>
+
+<h3>Switching Between Operators</h3>
+<ul>
+    <li>Click your name in the <strong>Operator Bar</strong> to switch to your workspace.</li>
+    <li>The button will turn green/blue to indicate your workspace is active.</li>
+    <li><strong>CRITICAL:</strong> Always verify your name is highlighted before clicking "+1 Good Unit" or adding defects.</li>
+</ul>
+
+<h3>Removing an Operator (Signing Out)</h3>
+<p>There are two ways to remove an operator from the station — they behave differently:</p>
+<ul>
+    <li><strong>Option A — Kiosk Bar ✕ button:</strong> Click the small <strong>✕</strong> next to your name in the Operator Bar (below the header). This removes you from the station view only. Your work data is preserved in memory but <em>not</em> submitted to Smartsheet.</li>
+    <li><strong>Option B — Header "Logout" button (Recommended):</strong> Click the red <strong>Logout</strong> text next to your name in the top-right header pill. This triggers the full secure sign-out flow — it will auto-submit any active lot, transmit a Shift End record, and require notes if you are signing out early. Use this at the end of your shift or when leaving the station permanently.</li>
+</ul>
+<blockquote><strong>Important:</strong> Always use the <strong>Logout</strong> button in the header to properly finalize your data. The ✕ in the kiosk bar is intended for temporary removal only (e.g., a supervisor removing a name that was added by mistake).</blockquote>
+
+<h2 id="section-3">3. Shift Setup</h2>
+<p><img src="sop_images/03_shift_setup.png" alt="Shift Setup Placeholder"><br>
+<em>(Above: Configuring Shift Window, Sequence, and Lot details)</em></p>
+
+<p>Before logging production, ensure your shift details are accurate:</p>
+<ol>
+    <li><strong>Work Date & Shift Window:</strong> Verify the date and set your shift start/end times.
+        <ul>
+            <li>The Shift Window dropdowns do <strong>not</strong> pre-fill automatically — you must manually select your Start hour (AM/PM) and End hour (AM/PM) every session.</li>
+            <li>Common shifts: <strong>5 AM – 1 PM</strong> (Day), <strong>1 PM – 9 PM</strong> (Afternoon), <strong>9 PM – 5 AM</strong> (Night).</li>
+        </ul>
+    </li>
+    <li><strong>Operator:</strong> Guarantee your name is currently selected in the Kiosk Bar.</li>
+    <li><strong>Sequence:</strong> Select your active process (e.g., Inspect, Bundle, Package, Spool Check, Re-Label).</li>
+    <li><strong>Lot # & Item #:</strong> Accurately type the lot and item numbers you are actively running.</li>
+</ol>
+<p><em>(Note: Failing to set a Shift Window will prevent the Hour-by-Hour tracker from generating properly).</em></p>
+
+<h2 id="section-4">4. Job Entry Mode — Logging Production</h2>
+<p><img src="sop_images/04_job_entry_controls.png" alt="Job Entry Controls Placeholder"><br>
+<em>(Above: The +1 and +5 counting buttons for production)</em></p>
+
+<p>This is your primary screen for counting good production parts.</p>
+<ul>
+    <li>Click <strong>"+1"</strong> to add a single part (Shortcut: Press keyboard letter <strong>H</strong>).</li>
+    <li>Click <strong>"+5 Good Units"</strong> to add multiple parts quickly (Shortcut: Press keyboard letter <strong>G</strong>).</li>
+    <li>Recorded parts are instantly saved to your workspace and assigned to the current hour bucket in the PCD Tracker.</li>
+</ul>
+
+<h2 id="section-5">5. Spool Check QC Details</h2>
+<p><img src="sop_images/05_spool_check.png" alt="Spool Check Placeholder"><br>
+<em>(Above: Options that appear only when "Spool Check" sequence is selected)</em></p>
+
+<p>If your active Sequence is <strong>Spool Check</strong>, a special quality control section will appear.</p>
+<ol>
+    <li><strong>Spool Check Seq:</strong> Select the stage of the spool check (10, 20, or 30).</li>
+    <li><strong>Check #:</strong> Select which check sequence this is (1st, 2nd, 3rd, 4th, or 5th).</li>
+    <li>These selections are passed along with your job submission for Quality Analytics.</li>
+</ol>
+
+<h2 id="section-6">6. Recording Defects & Low Yield RCA</h2>
+<p><img src="sop_images/06_defects_and_rca.png" alt="Defects and RCA Placeholder"><br>
+<em>(Above: The Defect Log list and the Red RCA section that appears on low yield)</em></p>
+
+<h3>Logging Defects</h3>
+<ul>
+    <li>Find the specific defect type in the right-hand <strong>Defect Log</strong> column.</li>
+    <li>Click the <strong>+1</strong> button next to it.</li>
+    <li>Defects lower your Overall Equipment Effectiveness (OEE) and Quality Yield metrics.</li>
+</ul>
+
+<h3>Low Yield Root Cause Analysis (RCA)</h3>
+<ul>
+    <li>If your Quality Yield drops to <strong>50% or below</strong>, a red RCA section will automatically display beneath the Lot Calculator.</li>
+    <li><strong>You are required to complete this section.</strong> It captures equipment heads and previous operators responsible for the underlying defect.</li>
+    <li>Select the equipment tags and operator names from the drop-downs provided before you submit the job.</li>
+</ul>
+
+<h2 id="section-7">7. Reading the PCD Tracker & KPIs</h2>
+<p><img src="sop_images/07_pcd_tracker.png" alt="PCD Tracker Placeholder"><br>
+<em>(Above: The Hour-by-Hour Tracker showing production pacing)</em></p>
+
+<h3>The PCD Tracker</h3>
+<p>The table breaks down your progress against the expected goal (Takt Time) broken out into hourly segments.</p>
+<ul>
+    <li><strong>Green numbers (+):</strong> You are ahead of schedule.</li>
+    <li><strong>Red numbers (-):</strong> You are falling behind schedule.</li>
+    <li>The highlighted row indicates the current, active hour.</li>
+</ul>
+
+<h3>The KPI Display</h3>
+<p>At the top of the portal, 5 metrics track overall health:</p>
+<ul>
+    <li><strong>Availability:</strong> Time producing vs. Time down.</li>
+    <li><strong>Performance:</strong> Speed vs. Goal Target.</li>
+    <li><strong>Quality:</strong> Good vs. Bad parts ratio.</li>
+    <li><strong>Overall OEE:</strong> The multiplicative score of the 3 metrics above.</li>
+    <li><strong>Shift Good Parts:</strong> Total volume for the entire shift.</li>
+</ul>
+
+<h2 id="section-8">8. Submitting a Job</h2>
+<p>When you finish a lot (or sequence step) and need to transition to a new one:</p>
+<ol>
+    <li>Confirm the Kiosk Bar has your name selected.</li>
+    <li>Confirm the <strong>Lot #</strong> and <strong>Item #</strong> are correct.</li>
+    <li>Click the green <strong>Submit Job</strong> button.</li>
+    <li>The system will submit your production cleanly to the backend database via an automated API.</li>
+    <li><strong>Important:</strong> You NO LONGER need to manually click Submit on a Smartsheet web form! The portal handles everything entirely in the background. Once the notification says "Saved," you are done.</li>
+    <li>The app will automatically clear your production counts to begin the next lot.</li>
+</ol>
+<blockquote><strong>Submit Job vs. MANUAL NEW LOT:</strong> The gray <strong>MANUAL NEW LOT</strong> button (top-right of the Lot Calculator) resets your local part counts <em>without</em> sending anything to Smartsheet. Only use it if you need to start a fresh count locally (e.g., you accidentally began counting before entering the correct lot number). Always use <strong>Submit Job</strong> to officially record a completed lot.</blockquote>
+
+<h2 id="section-9">9. Event Entry Mode (Downtime)</h2>
+<p><img src="sop_images/08_event_entry.png" alt="Event Entry Placeholder"><br>
+<em>(Above: Submitting a downtime event with the integrated timer)</em></p>
+
+<p>Use the Event Entry mode to log Breaks, Clean-Up, Meetings, or general machine downtime.</p>
+<ol>
+    <li>Toggle the Top Switch from <strong>Job Entry</strong> to <strong>Event Entry</strong>.</li>
+    <li>Select the specific <strong>Event</strong> type from the dropdown.</li>
+    <li><strong>Using the Timer:</strong> Click <strong>Start Timer</strong> when the delay begins. Click <strong>Stop Timer</strong> when you resume work. The elapsed time will auto-fill the Duration field.</li>
+    <li><strong>Manual Entry:</strong> Alternatively, you can type the total downtime minutes directly into the Duration box.</li>
+    <li>Click <strong>Submit Event & Split PCD</strong>.</li>
+    <li>💸 The time will automatically be subtracted from your productive available capacity (PCD tracker minutes) allowing you to protect your Performance scores when conditions are out of your control.</li>
+</ol>
+<blockquote><strong>Note:</strong> While in Event Entry mode, your Job Entry fields (Shift Window, Sequence, Lot #, Item #) are temporarily hidden. This is normal — they will reappear automatically when you switch back to Job Entry after submitting the event.</blockquote>
+
+<h2 id="section-10">10. End of Shift Procedure</h2>
+<p>The following sequence <strong>must</strong> be completed at the end of every operating shift to finalize your portal tracking and release the physical kiosk:</p>
+<ol>
+    <li><strong>Submit Active Lots:</strong> If you have any current production counted, click <strong>Submit Job</strong> to send that lot.</li>
+    <li><strong>Leave a Note:</strong> Fill out the <em>Leave a note for next associate</em> text box with any machine anomalies, pass-downs, or material status details.</li>
+    <li>Click the red <strong>End Shift Reset</strong> button.</li>
+    <li>A prompt will ask you to confirm. When you hit confirm, the system will execute a background API call that submits your full hour-by-hour tracker to the database.</li>
+    <li>Upon success, you are securely signed out of the kiosk. Your pass-down note is queued for the incoming associate.</li>
+</ol>
+<p><em>(Note: The End Shift button will begin visibly pulsing 15 minutes before your scheduled drop-dead shift end time).</em></p>
+
+<h2 id="section-11">11. Troubleshooting & FAQ</h2>
+<p><strong>Q: "I added extra parts by mistake. Can I remove them?"</strong><br>
+A: Yes. You can manually type over the numerical values in your Good Parts input box to correct misclicks.</p>
+
+<p><strong>Q: "The End Shift Reset button tells me I must Submit Active Lot First."</strong><br>
+A: The portal will prevent you from accidentally abandoning recorded parts. Click "Submit Job" to push that partially finished lot up to the server, and then you can firmly End Shift.</p>
+
+<p><strong>Q: "Where are the Smartsheet forms opening?"</strong><br>
+A: We have upgraded! V2.5.0 features fully integrated server side APIs. You will no longer encounter intrusive popup tabs for Smartsheet. If you see the Green confirmation Toast alert from the portal, the data successfully reached Smartsheet.</p>
+
+<p><strong>Q: "What if I lose internet connection?"</strong><br>
+A: The portal retains your active workspace and calculations locally on the device for your designated kiosk slot. Do not clear your browser history. Restoring connection and hitting submit will synchronize properly.</p>
+
+<hr>
+<p><em>End of Associate SOP.</em></p>
+
+</body>
+</html>
