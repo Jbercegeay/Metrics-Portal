@@ -625,6 +625,47 @@
             color: #fff;
             box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
         }
+
+        .ptfe-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        @media (max-width: 760px) {
+            .ptfe-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ptfe-field label {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .check-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        @media (max-width: 760px) {
+            .check-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .check-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0b1220;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 10px;
+            color: #cbd5e1;
+            font-size: 13px;
+        }
     </style>
 </head>
 
@@ -681,6 +722,7 @@
             </div>
         </header>
 
+        <div id="plPortal">
         <div id="handoverBanner" class="pulse-blue"
             style="display: none; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent); border-radius: 12px; padding: 15px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
             <div>
@@ -1001,6 +1043,124 @@
                 </section>
             </div>
         </div>
+        </div>
+
+        <div id="ptfePortal" style="display:none;">
+            <section class="card">
+                <h2>PTFE Job Entry</h2>
+                <div class="subtitle" id="ptfeCurrentUser">Associate</div>
+                <div class="ptfe-form-grid">
+                    <div class="ptfe-field">
+                        <label class="label">Date</label>
+                        <input id="ptfeDate" class="input" type="date" style="text-align:left;">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Item</label>
+                        <div class="select-wrapper"><select id="ptfeItem" class="custom-select"></select></div>
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Lot #</label>
+                        <input id="ptfeLot" class="input mono" type="text" style="text-align:left;">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Sequence</label>
+                        <div class="select-wrapper"><select id="ptfeSequence" class="custom-select" onchange="updatePtfeConditionalFields()"></select></div>
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Time Worked</label>
+                        <input id="ptfeTimeWorked" class="input mono" type="number" min="0" step="0.01" placeholder="Hours">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Footage</label>
+                        <input id="ptfeFootage" class="input mono" type="number" min="0" step="0.01">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Processing Length</label>
+                        <input id="ptfeProcessingLength" class="input mono" type="number" min="0" step="0.01">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Start Quantity</label>
+                        <input id="ptfeStartQuantity" class="input mono" type="number" min="0" step="1" oninput="updatePtfeScrapRate()">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">End Quantity</label>
+                        <input id="ptfeEndQuantity" class="input mono" type="number" min="0" step="1" oninput="updatePtfeScrapRate()">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Scrap Parts</label>
+                        <input id="ptfeScrapParts" class="input mono" type="number" min="0" step="1" oninput="updatePtfeScrapRate()">
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Scrap Rate %</label>
+                        <input id="ptfeScrapRate" class="input mono input-auto" type="number" min="0" step="0.01" readonly>
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Re-Cuts</label>
+                        <input id="ptfeRecuts" class="input mono" type="number" min="0" step="1">
+                    </div>
+                </div>
+
+                <div id="ptfePullFields" style="display:none; margin-top:18px;">
+                    <h2>Pulling Details</h2>
+                    <div class="ptfe-form-grid">
+                        <div class="ptfe-field">
+                            <label class="label">Pulling Wraps</label>
+                            <input id="ptfePullingWraps" class="input mono" type="number" min="0" step="1">
+                        </div>
+                        <div class="ptfe-field">
+                            <label class="label">Pulling Method</label>
+                            <div id="ptfePullingMethods" class="check-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="ptfeInspectionParetoSection" style="display:none; margin-top:18px;">
+                    <h2>Inspection Pareto</h2>
+                    <div id="ptfeInspectionParetos" class="check-grid"></div>
+                </div>
+
+                <div id="ptfePullingParetoSection" style="display:none; margin-top:18px;">
+                    <h2>Pulling Pareto</h2>
+                    <div id="ptfePullingParetos" class="check-grid"></div>
+                </div>
+
+                <div style="margin-top:18px;">
+                    <label class="label">Comments</label>
+                    <textarea id="ptfeComments" class="input" style="text-align:left; height:100px; font-weight:normal;"></textarea>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;">
+                    <button class="btn btn-green" onclick="submitPtfeJob()">Submit PTFE Job</button>
+                    <button class="btn btn-muted" onclick="resetPtfeForm()">Clear</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>PTFE Event Entry</h2>
+                <div class="ptfe-form-grid">
+                    <div class="ptfe-field">
+                        <label class="label">Event</label>
+                        <div class="select-wrapper"><select id="ptfeEvent" class="custom-select"></select></div>
+                    </div>
+                    <div class="ptfe-field">
+                        <label class="label">Time Worked</label>
+                        <input id="ptfeEventTimeWorked" class="input mono" type="number" min="0" step="0.01" placeholder="Hours">
+                    </div>
+                    <div class="ptfe-field" style="grid-column:1 / -1;">
+                        <label class="label">Comments</label>
+                        <textarea id="ptfeEventComments" class="input" style="text-align:left; height:80px; font-weight:normal;"></textarea>
+                    </div>
+                </div>
+                <div style="margin-top:20px;">
+                    <button class="btn btn-blue" onclick="submitPtfeEvent()">Submit PTFE Event</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Hour by Hour Tracker</h2>
+                <div class="subtitle" style="margin:0;">Hour-by-hour tracker coming soon.</div>
+            </section>
+        </div>
     </div>
 
     <script>
@@ -1018,10 +1178,16 @@
         let ASSOCIATE_SCHEDULES = {}; // maps name to { Mon, Tue ... Training }
 
         const API_BASE_URL = '/api';
+        const TEST_ACCOUNTS = ['test1', 'test2', 'test-ptfe', 'test-pi'];
+        const isTestAccount = (name) => TEST_ACCOUNTS.includes(name);
+        const SESSION_USER = JSON.parse(localStorage.getItem('currentUser')) || {};
+        const SESSION_DEPT = SESSION_USER.departmentKey || 'PL';
 
         let SEQUENCE_GOALS = {};
         let PCD_SEQUENCES = [];
         let NON_PRODUCTIVE_SEQUENCES = [];
+        let PTFE_CONFIG = null;
+        let PTFE_STANDARDS = {};
 
         async function fetchSmartsheetData() {
             try {
@@ -1071,6 +1237,289 @@
             } catch (e) {
                 console.error("Failed to load backend API data:", e);
                 showToast("Failed to connect to Local API Database.");
+            }
+        }
+
+        function setDepartmentShell() {
+            const title = document.querySelector('header h1');
+            const subtitle = document.querySelector('header .subtitle');
+            if (SESSION_DEPT === 'PTFE') {
+                if (title) title.textContent = 'PTFE Production Portal';
+                if (subtitle) subtitle.textContent = 'Job & Event Entry | Phase 1';
+            } else if (SESSION_DEPT === 'PI') {
+                if (title) title.textContent = 'Polyimide Production Portal';
+                if (subtitle) subtitle.textContent = 'Coming Soon';
+            }
+        }
+
+        function populateSelect(selectId, items, placeholder, valueKey = 'name', labelKey = 'name') {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = `<option value="">${placeholder}</option>`;
+            (items || []).forEach((item) => {
+                const value = item[valueKey];
+                if (value === undefined || value === null || value === '') return;
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = item[labelKey] || value;
+                select.appendChild(option);
+            });
+        }
+
+        function populateCheckboxes(containerId, items, name) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            (items || []).forEach((item) => {
+                const label = document.createElement('label');
+                label.className = 'check-pill';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = name;
+                input.value = item.name;
+                label.appendChild(input);
+                label.appendChild(document.createTextNode(item.name));
+                container.appendChild(label);
+            });
+        }
+
+        function getCheckedValues(name) {
+            return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((input) => input.value);
+        }
+
+        function isPtfeLowYield() {
+            const startQty = Number(document.getElementById('ptfeStartQuantity')?.value) || 0;
+            const endQty = Number(document.getElementById('ptfeEndQuantity')?.value) || 0;
+            return startQty > 0 && (endQty / startQty) <= 0.5;
+        }
+
+        function isPtfeInspectionSequence(sequence) {
+            return sequence === 'Inspection' || sequence === 'EV3 Inspection';
+        }
+
+        function updatePtfeScrapRate() {
+            const startQty = Number(document.getElementById('ptfeStartQuantity')?.value) || 0;
+            const scrapParts = Number(document.getElementById('ptfeScrapParts')?.value) || 0;
+            const rate = startQty > 0 ? (scrapParts / startQty) * 100 : 0;
+            const rateInput = document.getElementById('ptfeScrapRate');
+            if (rateInput) rateInput.value = rate ? rate.toFixed(2) : '';
+            updatePtfeConditionalFields();
+        }
+
+        function updatePtfeConditionalFields() {
+            const sequence = document.getElementById('ptfeSequence')?.value || '';
+            const showPull = sequence === 'Pull';
+            const lowYield = isPtfeLowYield();
+            const showInspectionPareto = lowYield && isPtfeInspectionSequence(sequence);
+            const showPullingPareto = lowYield && showPull;
+
+            const pullFields = document.getElementById('ptfePullFields');
+            const inspectionSection = document.getElementById('ptfeInspectionParetoSection');
+            const pullingSection = document.getElementById('ptfePullingParetoSection');
+            if (pullFields) pullFields.style.display = showPull ? 'block' : 'none';
+            if (inspectionSection) inspectionSection.style.display = showInspectionPareto ? 'block' : 'none';
+            if (pullingSection) pullingSection.style.display = showPullingPareto ? 'block' : 'none';
+        }
+
+        function buildPtfeStandardsIndex(standards) {
+            PTFE_STANDARDS = {};
+            (standards || []).forEach((standard) => {
+                if (!standard.item || !standard.sequence) return;
+                PTFE_STANDARDS[`${standard.item}::${standard.sequence}`] = standard;
+            });
+        }
+
+        function validatePtfeJob() {
+            const required = [
+                ['ptfeDate', 'Date'],
+                ['ptfeTimeWorked', 'Time worked'],
+                ['ptfeItem', 'Item'],
+                ['ptfeLot', 'Lot number'],
+                ['ptfeSequence', 'Sequence'],
+                ['ptfeStartQuantity', 'Start quantity'],
+                ['ptfeEndQuantity', 'End quantity']
+            ];
+            for (const [id, label] of required) {
+                const el = document.getElementById(id);
+                if (!el || !String(el.value || '').trim()) {
+                    showToast(`${label} is required.`);
+                    if (el) el.focus();
+                    return false;
+                }
+            }
+
+            const sequence = document.getElementById('ptfeSequence').value;
+            if (sequence === 'Pull') {
+                if (!String(document.getElementById('ptfePullingWraps').value || '').trim()) {
+                    showToast('Pulling Wraps is required.');
+                    return false;
+                }
+                if (getCheckedValues('ptfePullingMethod').length === 0) {
+                    showToast('At least one Pulling Method is required.');
+                    return false;
+                }
+            }
+
+            if (isPtfeLowYield() && isPtfeInspectionSequence(sequence) && getCheckedValues('ptfeInspectionPareto').length === 0) {
+                showToast('At least one Inspection Pareto is required for low-yield inspection jobs.');
+                return false;
+            }
+
+            if (isPtfeLowYield() && sequence === 'Pull' && getCheckedValues('ptfePullingPareto').length === 0) {
+                showToast('At least one Pulling Pareto is required for low-yield pull jobs.');
+                return false;
+            }
+
+            return true;
+        }
+
+        function getPtfeJobPayload() {
+            const item = document.getElementById('ptfeItem').value;
+            const sequence = document.getElementById('ptfeSequence').value;
+            const timeWorked = Number(document.getElementById('ptfeTimeWorked').value) || 0;
+            const endQuantity = Number(document.getElementById('ptfeEndQuantity').value) || 0;
+            const standard = PTFE_STANDARDS[`${item}::${sequence}`] || {};
+            const actualPph = timeWorked > 0 ? endQuantity / timeWorked : 0;
+            const oe = Number(standard.goodPphStd) > 0 ? actualPph / Number(standard.goodPphStd) : null;
+
+            return {
+                department: 'PTFE',
+                'Entry Type': 'Job',
+                'Associate Name': SESSION_USER.name,
+                'Date': document.getElementById('ptfeDate').value,
+                'Time Worked': timeWorked,
+                'Item': item,
+                'Lot #': document.getElementById('ptfeLot').value.trim(),
+                'Start Quantity': Number(document.getElementById('ptfeStartQuantity').value) || 0,
+                'End Quantity': endQuantity,
+                'Sequence': sequence,
+                'Footage': Number(document.getElementById('ptfeFootage').value) || '',
+                'Processing Length': Number(document.getElementById('ptfeProcessingLength').value) || '',
+                'Scrap Parts': Number(document.getElementById('ptfeScrapParts').value) || 0,
+                'Scrap Rate %': Number(document.getElementById('ptfeScrapRate').value) || 0,
+                'Re-Cuts': Number(document.getElementById('ptfeRecuts').value) || 0,
+                'Inspection Pareto': getCheckedValues('ptfeInspectionPareto').join(', '),
+                'Pulling Pareto': getCheckedValues('ptfePullingPareto').join(', '),
+                'Pulling Wraps': document.getElementById('ptfePullingWraps').value || '',
+                'Pulling Method': getCheckedValues('ptfePullingMethod').join(', '),
+                'Comments': document.getElementById('ptfeComments').value.trim(),
+                _actualPph: actualPph,
+                _oe: oe
+            };
+        }
+
+        async function submitPtfeJob() {
+            if (!validatePtfeJob()) return;
+            const payload = getPtfeJobPayload();
+            delete payload._actualPph;
+            delete payload._oe;
+            showSubmittingOverlay('Please Wait', 'Submitting PTFE job...');
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-ptfe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    updateSubmittingOverlay('Submission Failed', result.error || 'PTFE job could not be saved.', true);
+                    return;
+                }
+                updateSubmittingOverlay('Saved!', isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
+                resetPtfeForm(false);
+            } catch (error) {
+                updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+            }
+        }
+
+        async function submitPtfeEvent() {
+            const eventName = document.getElementById('ptfeEvent').value;
+            const timeWorked = document.getElementById('ptfeEventTimeWorked').value;
+            if (!eventName) return showToast('Event is required.');
+            if (!timeWorked) return showToast('Time worked is required.');
+
+            const payload = {
+                department: 'PTFE',
+                'Entry Type': 'Event',
+                'Associate Name': SESSION_USER.name,
+                'Date': document.getElementById('ptfeDate').value || getLocalDate(),
+                'Time Worked': Number(timeWorked) || 0,
+                'Event': eventName,
+                'Comments': document.getElementById('ptfeEventComments').value.trim()
+            };
+
+            showSubmittingOverlay('Please Wait', 'Submitting PTFE event...');
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-ptfe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    updateSubmittingOverlay('Submission Failed', result.error || 'PTFE event could not be saved.', true);
+                    return;
+                }
+                updateSubmittingOverlay('Saved!', isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
+                document.getElementById('ptfeEvent').value = '';
+                document.getElementById('ptfeEventTimeWorked').value = '';
+                document.getElementById('ptfeEventComments').value = '';
+            } catch (error) {
+                updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+            }
+        }
+
+        function resetPtfeForm(clearDate = true) {
+            ['ptfeItem', 'ptfeLot', 'ptfeSequence', 'ptfeTimeWorked', 'ptfeFootage', 'ptfeProcessingLength', 'ptfeStartQuantity', 'ptfeEndQuantity', 'ptfeScrapParts', 'ptfeScrapRate', 'ptfeRecuts', 'ptfePullingWraps', 'ptfeComments'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.querySelectorAll('#ptfePortal input[type="checkbox"]').forEach((input) => { input.checked = false; });
+            if (clearDate) document.getElementById('ptfeDate').value = getLocalDate();
+            updatePtfeConditionalFields();
+        }
+
+        async function initPtfePortal() {
+            setDepartmentShell();
+            document.getElementById('plPortal').style.display = 'none';
+            document.getElementById('ptfePortal').style.display = 'block';
+            const adminBtn = document.getElementById('navAdminBtn');
+            if (adminBtn) adminBtn.style.display = 'none';
+            const userList = document.getElementById('navUserList');
+            if (userList) userList.textContent = `${SESSION_USER.name} | PTFE`;
+            const dateInput = document.getElementById('ptfeDate');
+            if (dateInput) dateInput.value = getLocalDate();
+            const currentUser = document.getElementById('ptfeCurrentUser');
+            if (currentUser) currentUser.textContent = `${SESSION_USER.name} | ${SESSION_USER.department || 'PTFE'}`;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/config?dept=PTFE`);
+                const result = await response.json();
+                if (!result.success) throw new Error(result.error || 'Failed to load PTFE config.');
+                PTFE_CONFIG = result.data;
+                buildPtfeStandardsIndex(PTFE_CONFIG.standards);
+                populateSelect('ptfeItem', PTFE_CONFIG.items || [], 'Select item...', 'item', 'item');
+                populateSelect('ptfeSequence', PTFE_CONFIG.sequences || [], 'Select sequence...');
+                populateSelect('ptfeEvent', PTFE_CONFIG.events || [], 'Select event...');
+                populateCheckboxes('ptfeInspectionParetos', PTFE_CONFIG.inspectionParetos || [], 'ptfeInspectionPareto');
+                populateCheckboxes('ptfePullingParetos', PTFE_CONFIG.pullingParetos || [], 'ptfePullingPareto');
+                populateCheckboxes('ptfePullingMethods', PTFE_CONFIG.pullingMethods || [], 'ptfePullingMethod');
+                showToast('PTFE data loaded from Smartsheet.');
+            } catch (error) {
+                console.error(error);
+                showToast('Failed to load PTFE configuration.');
+            }
+        }
+
+        function initDepartmentPlaceholder() {
+            setDepartmentShell();
+            document.getElementById('plPortal').style.display = 'none';
+            document.getElementById('ptfePortal').style.display = 'block';
+            const userList = document.getElementById('navUserList');
+            if (userList) userList.textContent = `${SESSION_USER.name} | ${SESSION_USER.department || SESSION_DEPT}`;
+            const portal = document.getElementById('ptfePortal');
+            if (portal) {
+                portal.innerHTML = '<section class="card"><h2>Department Coming Soon</h2><div class="subtitle" style="margin:0;">This department workflow is deferred until its rollout phase.</div></section>';
             }
         }
         const ROSTER = ["Adam Yarbrough", "Anthony Meyers", "Anthony Smith", "Branson Lee", "Brayden Wooten", "Candace Smith", "Chris Keith", "Chris Leverett", "Colby Higdon", "Cole Wooten", "Colton Emmett", "Corey Simmons", "Courtney Meadows", "Dakota Jackson", "Dustin Simmons", "Elijah Edgeworth", "Jacob Chambers", "Jacob Evans", "Joe Geddie", "John Kania", "Jordan York", "Josh Boatner", "Joshua Lynn", "Kyler Chambers", "Lisa Ballick", "Logan Coger", "Mason Bishop", "Mitch Crawford", "Page Ratledge", "Paul Gayton", "Phoenix Davis", "Richard Merrit", "RJ Smith", "Scott Smith", "Shane Hall", "Tim Lynch", "Trent Anderson", "Zac Counts", "Zach Casey", "Zach Sewell"];
@@ -2588,7 +3037,7 @@
             const operatorCount = (state.activeUsers || []).length;
             const extraInfo = ""; // Removed multi-row warning
             const op = state.selectedOperator;
-            const promptMsg = (op === 'test1' || op === 'test2') 
+            const promptMsg = isTestAccount(op)
                 ? warning + "Simulate Job submission (Training Mode)?" 
                 : warning + "Send Job to Smartsheet?";
                 
@@ -2763,7 +3212,7 @@
                     showToast(`⚠️ Partial save: ${submittedCount}/${totalExpected} sequences saved. Please contact your supervisor.`);
                     return false;
                 }
-                showToast(op === 'test1' || op === 'test2'
+                showToast(isTestAccount(op)
                     ? `✅ (Training Mode) Simulated submission successful!`
                     : `✅ Data for ${op} saved to Smartsheet!`);
                 return true;
@@ -2800,7 +3249,7 @@
                     return false;
                 }
 
-                if (op === 'test1' || op === 'test2') {
+                if (isTestAccount(op)) {
                     showToast(`✅ (Training Mode) Simulated submission successful!`);
                 } else {
                     showToast(`✅ Data for ${op} saved to Smartsheet!`);
@@ -2880,7 +3329,7 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    if (op === 'test1' || op === 'test2') {
+                    if (isTestAccount(op)) {
                         showToast("✅ (Training Mode) Simulated hour-by-hour tracker saved.");
                     } else {
                         showToast("✅ Hour-by-hour tracker saved.");
@@ -2928,7 +3377,7 @@
 
             const performUserLogout = () => {
                 (async () => {
-                    const isTest = (op === 'test1' || op === 'test2');
+                    const isTest = isTestAccount(op);
                     showSubmittingOverlay('Please Wait', `Submitting ${op}'s data to Smartsheet...`);
                     if (hasUnsaved) {
                         const lotSaved = await submitToSmartsheet("Job", "", 0, op);
@@ -3121,6 +3570,16 @@
 
         /** 6. BOOTSTRAP **/
         window.onload = function () {
+            if (SESSION_DEPT === 'PTFE') {
+                initPtfePortal();
+                setInterval(updateClock, 1000);
+                return;
+            }
+            if (SESSION_DEPT !== 'PL') {
+                initDepartmentPlaceholder();
+                setInterval(updateClock, 1000);
+                return;
+            }
             load();
             const sInp = document.getElementById('sequenceInput'); if (sInp) sInp.onchange = (e) => {
                 const oldSeq = state.sequence;

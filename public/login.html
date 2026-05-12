@@ -117,10 +117,19 @@
         <p style="color: #94a3b8; margin-bottom: 15px;">Please select your name and enter your password.</p>
 
         <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid var(--accent); padding: 12px; margin-bottom: 25px; text-align: left; font-size: 13px; color: #cbd5e1; border-radius: 4px;">
-            <strong>Training Mode Available:</strong> You can sign into the <strong>test1</strong> or <strong>test2</strong> accounts to play and learn (password: <strong>trenton1</strong>). Submissions from these accounts will NOT be sent to Smartsheet.
+            <strong>Training Mode Available:</strong> You can sign into the <strong>test1</strong>, <strong>test2</strong>, <strong>test-ptfe</strong>, or <strong>test-pi</strong> accounts to play and learn (password: <strong>trenton1</strong>). Submissions from these accounts will NOT be sent to Smartsheet.
         </div>
 
         <div id="errorMsg"></div>
+
+        <div class="input-group">
+            <label>Department</label>
+            <select id="department" onchange="handleDepartmentChange()">
+                <option value="PL">PrecisionLiner</option>
+                <option value="PTFE">PTFE</option>
+                <option value="PI">Polyimide</option>
+            </select>
+        </div>
 
         <div class="input-group">
             <label>Associate Name</label>
@@ -163,15 +172,20 @@
         }
 
         let pendingSetupUsername = '';
+        let pendingSetupDepartment = 'PL';
         let associatesData = [];
 
         // Catch setup redirect from kiosk
         const urlParams = new URLSearchParams(window.location.search);
         const autoSetupUser = urlParams.get('setup');
 
-        async function init() {
+        function getSelectedDepartment() {
+            return document.getElementById('department').value || 'PL';
+        }
+
+        async function loadAssociatesForDepartment(department) {
             try {
-                const res = await fetch('/api/config');
+                const res = await fetch(`/api/config?dept=${encodeURIComponent(department)}`);
                 const json = await res.json();
                 if (json.success) {
                     associatesData = json.data.associates;
@@ -185,7 +199,7 @@
                         sel.appendChild(opt);
                     });
 
-                    sel.addEventListener('change', (e) => {
+                    sel.onchange = (e) => {
                         const name = e.target.value;
                         const userRec = associatesData.find(a => a.name === name);
                         const btn = document.getElementById('loginBtn');
@@ -194,6 +208,7 @@
                         if (userRec && !userRec.hasPassword) {
                             // If they pick a user requiring setup, immediately swap to setup card
                             pendingSetupUsername = name;
+                            pendingSetupDepartment = getSelectedDepartment();
                             document.getElementById('loginForm').style.display = 'none';
                             const sf = document.getElementById('setupForm');
                             sf.style.display = 'block';
@@ -203,13 +218,14 @@
                             btn.style.background = "var(--accent)";
                             if (passGroup) passGroup.style.display = "block";
                         }
-                    });
+                    };
 
                     // Trigger direct setup mode if redirected
                     if (autoSetupUser) {
                         const userRec = associatesData.find(a => a.name === autoSetupUser);
                         if (userRec && !userRec.hasPassword) {
                             pendingSetupUsername = autoSetupUser;
+                            pendingSetupDepartment = getSelectedDepartment();
                             document.getElementById('loginForm').style.display = 'none';
                             const sf = document.getElementById('setupForm');
                             sf.style.display = 'block';
@@ -218,6 +234,28 @@
                     }
                 }
             } catch (e) { console.error("Could not load config", e); }
+        }
+
+        function addTrainingOptionForDepartment(department) {
+            const sel = document.getElementById('username');
+            const trainingName = department === 'PTFE' ? 'test-ptfe' : department === 'PI' ? 'test-pi' : '';
+            if (!trainingName || associatesData.some(a => a.name === trainingName)) return;
+            associatesData.push({ name: trainingName, Role: 'Associate', hasPassword: true, Training: true });
+            const opt = document.createElement('option');
+            opt.value = trainingName;
+            opt.textContent = trainingName;
+            sel.appendChild(opt);
+        }
+
+        async function handleDepartmentChange() {
+            const department = getSelectedDepartment();
+            document.getElementById('password').value = '';
+            await loadAssociatesForDepartment(department);
+            addTrainingOptionForDepartment(department);
+        }
+
+        async function init() {
+            await handleDepartmentChange();
         }
 
         function showError(msg, isSetup = false) {
@@ -230,6 +268,7 @@
         async function handleLogin() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+            const department = getSelectedDepartment();
 
             if (!username) return showError("Please select your name.");
 
@@ -250,7 +289,7 @@
                     res = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password: password || "setup_init" }),
+                        body: JSON.stringify({ username, password: password || "setup_init", department }),
                         signal: controller.signal
                     });
                 } finally {
@@ -260,6 +299,7 @@
 
                 if (data.success && data.requireSetup) {
                     pendingSetupUsername = username;
+                    pendingSetupDepartment = department;
                     document.getElementById('loginForm').style.display = 'none';
                     document.getElementById('setupForm').style.display = 'block';
                 } else if (data.success) {
@@ -298,7 +338,7 @@
                 const res = await fetch('/api/setup-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: pendingSetupUsername, newPassword: p1 })
+                    body: JSON.stringify({ username: pendingSetupUsername, newPassword: p1, department: pendingSetupDepartment })
                 });
                 const data = await res.json();
 

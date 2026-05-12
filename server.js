@@ -6,8 +6,17 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { fetchConfigData, CONFIG_COLUMN_MAP, MASTER_CONFIG_SHEET_ID: CONFIG_SHEET_ID } = require('./lib/config');
-const { smartsheetApi } = require('./lib/smartsheet');
+const {
+    fetchConfigData,
+    CONFIG_COLUMN_MAP,
+    MASTER_CONFIG_SHEET_ID: CONFIG_SHEET_ID,
+    buildColumnMap,
+    getCellByTitle,
+    getConfigSheetId,
+    getDepartmentConfig,
+    normalizeDept
+} = require('./lib/config');
+const { getClientForDept, getRequiredEnv, smartsheetApi } = require('./lib/smartsheet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,10 +31,10 @@ app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Sheet IDs (from .env)
-const EMPLOYEE_SCHEDULE_SHEET_ID = process.env.EMPLOYEE_SCHEDULE_SHEET_ID;
-const DEFECT_SEEDS_SHEET_ID = process.env.DEFECT_SEEDS_SHEET_ID;
-const MASTER_LOG_SHEET_ID = process.env.MASTER_LOG_SHEET_ID;
-const HOUR_BY_HOUR_SHEET_ID = process.env.HOUR_BY_HOUR_SHEET_ID;
+const EMPLOYEE_SCHEDULE_SHEET_ID = getRequiredEnv('DEPT_PL_CONFIG_SHEET_ID');
+const DEFECT_SEEDS_SHEET_ID = getRequiredEnv('DEPT_PL_DEFECT_SEEDS_SHEET_ID');
+const MASTER_LOG_SHEET_ID = getRequiredEnv('DEPT_PL_MASTER_LOG_SHEET_ID');
+const HOUR_BY_HOUR_SHEET_ID = getRequiredEnv('DEPT_PL_HOUR_BY_HOUR_SHEET_ID');
 
 // ==========================================
 // MASTER LOG COLUMN MAP
@@ -145,16 +154,26 @@ const adminSessions = new Map();
 let _configCache = null;
 let _configCacheTime = 0;
 const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const TEST_ACCOUNTS = ['test1', 'test2', 'test-ptfe', 'test-pi'];
+const TEST_ACCOUNT_DETAILS = {
+    test1: { departmentKey: 'PL', department: 'PrecisionLiner', role: 'Associate' },
+    test2: { departmentKey: 'PL', department: 'PrecisionLiner', role: 'Associate' },
+    'test-ptfe': { departmentKey: 'PTFE', department: 'PTFE', role: 'Associate' },
+    'test-pi': { departmentKey: 'PI', department: 'Polyimide', role: 'Associate' }
+};
 
-async function getCachedConfigSheet() {
+async function getCachedConfigSheet(dept = 'PL') {
+    const key = normalizeDept(dept);
     const now = Date.now();
-    if (_configCache && (now - _configCacheTime) < CONFIG_CACHE_TTL) {
-        return _configCache;
+    if (!_configCache) _configCache = {};
+    if (!_configCacheTime) _configCacheTime = {};
+    if (_configCache[key] && (now - _configCacheTime[key]) < CONFIG_CACHE_TTL) {
+        return _configCache[key];
     }
-    const response = await smartsheetApi.get(`sheets/${MASTER_CONFIG_SHEET_ID}`);
-    _configCache = response.data;
-    _configCacheTime = now;
-    return _configCache;
+    const response = await getClientForDept(key).get(`sheets/${getConfigSheetId(key)}`);
+    _configCache[key] = response.data;
+    _configCacheTime[key] = now;
+    return _configCache[key];
 }
 
 function requireAdmin(req, res, next) {
@@ -171,7 +190,8 @@ app.use('/api/admin', requireAdmin);
 // 1. Fetch Unified Config for Dropdowns and Admin Portal
 app.get('/api/config', async (req, res) => {
     try {
-        const data = await fetchConfigData();
+        const dept = normalizeDept(req.query.dept || 'PL');
+        const data = await fetchConfigData(null, dept);
         res.json({ success: true, data });
     } catch (error) {
         console.error("Error fetching master config:", error.response?.data || error.message);
@@ -310,21 +330,43 @@ app.post('/api/admin/config/delete', async (req, res) => {
 // 4. Authentication Endpoints
 app.post('/api/login', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { username, password, department } = req.body;
         if (!username) return res.status(400).json({ success: false, error: 'Username required' });
 
-        const sheetData = await getCachedConfigSheet();
+        const requestedDept = normalizeDept(department || TEST_ACCOUNT_DETAILS[username]?.departmentKey || 'PL');
+        if (TEST_ACCOUNT_DETAILS[username]) {
+            const testAccount = TEST_ACCOUNT_DETAILS[username];
+            if (testAccount.departmentKey !== requestedDept) {
+                return res.json({ success: false, error: 'Training account belongs to another department' });
+            }
+            if (password !== 'trenton1') {
+                return res.json({ success: false, error: 'Incorrect password' });
+            }
+            return res.json({
+                success: true,
+                user: {
+                    name: username,
+                    role: testAccount.role,
+                    departmentKey: testAccount.departmentKey,
+                    department: testAccount.department
+                }
+            });
+        }
+
+        const sheetData = await getCachedConfigSheet(requestedDept);
+        const columnMap = buildColumnMap(sheetData);
+        const departmentConfig = getDepartmentConfig(requestedDept);
 
         let targetRow = null;
         let pHash = '';
         let role = 'Associate';
 
         for (let row of sheetData.rows) {
-            const name = row.cells.find(c => c.columnId === CONFIG_COLUMN_MAP['Associate Name'])?.value;
+            const name = getCellByTitle(row, columnMap, 'Associate Name');
             if (name === username) {
                 targetRow = row;
-                pHash = row.cells.find(c => c.columnId === CONFIG_COLUMN_MAP['Password Hash'])?.value || '';
-                role = row.cells.find(c => c.columnId === CONFIG_COLUMN_MAP['Role'])?.value || 'Associate';
+                pHash = getCellByTitle(row, columnMap, 'Password Hash') || '';
+                role = getCellByTitle(row, columnMap, 'Role') || 'Associate';
                 break;
             }
         }
@@ -339,7 +381,15 @@ app.post('/api/login', async (req, res) => {
         // Compare hash
         const isMatch = await bcrypt.compare(password, pHash);
         if (isMatch) {
-            const response = { success: true, user: { name: username, role } };
+            const response = {
+                success: true,
+                user: {
+                    name: username,
+                    role,
+                    departmentKey: departmentConfig.key,
+                    department: departmentConfig.displayName
+                }
+            };
             if (role === 'Supervisor') {
                 const token = crypto.randomUUID();
                 adminSessions.set(token, { name: username, expires: Date.now() + 8 * 60 * 60 * 1000 });
@@ -357,13 +407,17 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/setup-password', async (req, res) => {
     try {
-        const { username, newPassword } = req.body;
+        const { username, newPassword, department } = req.body;
         if (!username || !newPassword) return res.status(400).json({ success: false, error: 'Missing parameters' });
+        const requestedDept = normalizeDept(department || 'PL');
+        const client = getClientForDept(requestedDept);
+        const configSheetId = getConfigSheetId(requestedDept);
 
         // Retrieve row to get ID
-        const response = await smartsheetApi.get(`sheets/${MASTER_CONFIG_SHEET_ID}`);
+        const response = await client.get(`sheets/${configSheetId}`);
+        const columnMap = buildColumnMap(response.data);
         const targetRow = response.data.rows.find(row => {
-            const name = row.cells.find(c => c.columnId === CONFIG_COLUMN_MAP['Associate Name'])?.value;
+            const name = getCellByTitle(row, columnMap, 'Associate Name');
             return name === username;
         });
 
@@ -374,16 +428,26 @@ app.post('/api/setup-password', async (req, res) => {
         const hashed = await bcrypt.hash(newPassword, salt);
 
         // Update Smartsheet
-        await smartsheetApi.put(`sheets/${MASTER_CONFIG_SHEET_ID}/rows`, [{
+        await client.put(`sheets/${configSheetId}/rows`, [{
             id: targetRow.id,
-            cells: [{ columnId: CONFIG_COLUMN_MAP['Password Hash'], value: hashed }]
+            cells: [{ columnId: columnMap['Password Hash'], value: hashed }]
         }]);
 
         // Invalidate config cache so the new password hash is picked up on next login
-        _configCache = null;
+        if (_configCache) _configCache[requestedDept] = null;
 
-        const role = targetRow.cells.find(c => c.columnId === CONFIG_COLUMN_MAP['Role'])?.value || 'Associate';
-        const setupResponse = { success: true, message: 'Password saved', user: { name: username, role } };
+        const role = getCellByTitle(targetRow, columnMap, 'Role') || 'Associate';
+        const deptConfig = getDepartmentConfig(requestedDept);
+        const setupResponse = {
+            success: true,
+            message: 'Password saved',
+            user: {
+                name: username,
+                role,
+                departmentKey: deptConfig.key,
+                department: deptConfig.displayName
+            }
+        };
         if (role === 'Supervisor') {
             const token = crypto.randomUUID();
             adminSessions.set(token, { name: username, expires: Date.now() + 8 * 60 * 60 * 1000 });
@@ -418,10 +482,13 @@ app.post('/api/admin/reset-password', async (req, res) => {
 app.post('/api/submit', async (req, res) => {
     try {
         const data = req.body;
+        const dept = normalizeDept(data.department || data.departmentKey || 'PL');
+        if (dept === 'PTFE') {
+            return submitPtfe(req, res);
+        }
 
         // --- TEST ACCOUNT INTERCEPTION ---
-        const testAccounts = ['test1', 'test2'];
-        if (testAccounts.includes(data['Associate Name'])) {
+        if (TEST_ACCOUNTS.includes(data['Associate Name'])) {
             console.log(`[TEST MODE] Intercepted Master Log submission for ${data['Associate Name']}. Bypassing Smartsheet.`);
             return res.json({ success: true, message: "[TEST MODE] Successfully simulated logging data to Smartsheet.", data: [] });
         }
@@ -468,14 +535,92 @@ app.post('/api/submit', async (req, res) => {
     }
 });
 
+const PTFE_MASTER_LOG_WRITE_TITLES = [
+    'Entry Type',
+    'Associate Name',
+    'Date',
+    'Time Worked',
+    'Item',
+    'Lot #',
+    'Start Quantity',
+    'End Quantity',
+    'Sequence',
+    'Footage',
+    'Processing Length',
+    'Scrap Parts',
+    'Scrap Rate %',
+    'Re-Cuts',
+    'Inspection Pareto',
+    'Pulling Pareto',
+    'Pulling Wraps',
+    'Pulling Method',
+    'Event',
+    'Comments'
+];
+
+let _ptfeMasterLogColumnMap = null;
+
+async function getPtfeMasterLogColumnMap() {
+    if (_ptfeMasterLogColumnMap) return _ptfeMasterLogColumnMap;
+    const client = getClientForDept('PTFE');
+    const sheetId = getRequiredEnv('DEPT_PTFE_MASTER_LOG_SHEET_ID');
+    const response = await client.get(`sheets/${sheetId}?include=columns`);
+    const allColumns = buildColumnMap(response.data);
+    _ptfeMasterLogColumnMap = PTFE_MASTER_LOG_WRITE_TITLES.reduce((map, title) => {
+        if (allColumns[title]) {
+            map[title] = allColumns[title];
+        }
+        return map;
+    }, {});
+    return _ptfeMasterLogColumnMap;
+}
+
+async function submitPtfe(req, res) {
+    try {
+        const data = req.body;
+
+        if (TEST_ACCOUNTS.includes(data['Associate Name'])) {
+            console.log(`[TEST MODE] Intercepted PTFE Master Log submission for ${data['Associate Name']}. Bypassing Smartsheet.`);
+            return res.json({ success: true, message: "[TEST MODE] Successfully simulated PTFE logging to Smartsheet.", data: [] });
+        }
+
+        const columnMap = await getPtfeMasterLogColumnMap();
+        const newRow = { toTop: true, cells: [] };
+
+        for (const title of PTFE_MASTER_LOG_WRITE_TITLES) {
+            const value = data[title];
+            if (columnMap[title] && value !== undefined && value !== null && value !== '') {
+                newRow.cells.push({ columnId: columnMap[title], value });
+            }
+        }
+
+        if (newRow.cells.length === 0) {
+            return res.status(400).json({ success: false, error: 'No PTFE fields to submit.' });
+        }
+
+        const response = await getClientForDept('PTFE').post(`sheets/${getRequiredEnv('DEPT_PTFE_MASTER_LOG_SHEET_ID')}/rows`, [newRow]);
+        return res.json({ success: true, message: "Successfully logged PTFE data to Smartsheet.", data: response.data });
+    } catch (error) {
+        console.error("Error submitting PTFE to Smartsheet:", error.response?.data || error.message);
+        if (error.code === 'ECONNABORTED') {
+            return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });
+        }
+        if (error.response?.status === 429) {
+            return res.status(429).json({ success: false, error: 'Smartsheet is rate limited. Please wait a moment and try again.' });
+        }
+        return res.status(500).json({ success: false, error: 'Failed to submit PTFE data.' });
+    }
+}
+
+app.post('/api/submit-ptfe', submitPtfe);
+
 // 4. Handle Hour by Hour PCD Submissions (separate sheet)
 app.post('/api/submit-pcd', async (req, res) => {
     try {
         const rows = req.body; // Array of { sequence, workDate, associate, H1_Good, H1_Bad, H1_Mins, ... }
 
         // --- TEST ACCOUNT INTERCEPTION ---
-        const testAccounts = ['test1', 'test2'];
-        if (rows.length > 0 && testAccounts.includes(rows[0]['Associate Name'])) {
+        if (rows.length > 0 && TEST_ACCOUNTS.includes(rows[0]['Associate Name'])) {
             console.log(`[TEST MODE] Intercepted PCD submission for ${rows[0]['Associate Name']}. Bypassing Smartsheet.`);
             return res.json({ success: true, message: `[TEST MODE] Successfully simulated logging ${rows.length} PCD row(s).`, data: [] });
         }
