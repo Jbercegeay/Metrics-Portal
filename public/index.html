@@ -1381,6 +1381,7 @@
                                         <input id="ptfeMultiplierInput" class="input mono" type="text" inputmode="decimal" value="1" aria-label="Start quantity multiplier" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
                                     </div>
                                     <button id="ptfeMultiplierBtn" class="btn btn-blue" style="padding:10px 12px; white-space:nowrap;" onclick="openPtfeMultiplier()">Apply Multiplier</button>
+                                    <button id="ptfeMultiplierResetBtn" class="btn btn-muted" style="padding:10px 12px; white-space:nowrap; display:none; font-size:13px; letter-spacing:0.02em;" onclick="resetPtfeMultiplier()">↺ Reset to Auto</button>
                                 </div>
                                 <div id="ptfeStartHint" class="ptfe-muted-note">Enter manually.</div>
                             </div>
@@ -1726,8 +1727,10 @@
             if (startInput) startInput.readOnly = false;
         }
 
+        let PTFE_MULTIPLIER_APPLIED = false;
+
         function openPtfeMultiplier() {
-            if (!PTFE_START_AUTO || PTFE_RESULTS.partsFromSpool <= 0) return;
+            if ((!PTFE_START_AUTO && !PTFE_MULTIPLIER_APPLIED) || PTFE_RESULTS.partsFromSpool <= 0) return;
             const multiplierInput = document.getElementById('ptfeMultiplierInput');
             const raw = multiplierInput ? multiplierInput.value : '1';
             const multiplier = Number(raw);
@@ -1740,9 +1743,22 @@
                 startInput.value = String(Math.floor(PTFE_RESULTS.partsFromSpool * multiplier));
                 startInput.readOnly = false;
             }
-            if (multiplierInput) multiplierInput.value = '1';
             PTFE_START_AUTO = false;
             PTFE_START_MANUAL_OVERRIDE = true;
+            PTFE_MULTIPLIER_APPLIED = true;
+            const resetBtn = document.getElementById('ptfeMultiplierResetBtn');
+            if (resetBtn) resetBtn.style.display = 'inline-flex';
+            updatePtfeCalculations();
+        }
+
+        function resetPtfeMultiplier() {
+            PTFE_START_AUTO = true;
+            PTFE_START_MANUAL_OVERRIDE = false;
+            PTFE_MULTIPLIER_APPLIED = false;
+            const multiplierInput = document.getElementById('ptfeMultiplierInput');
+            if (multiplierInput) multiplierInput.value = '1';
+            const resetBtn = document.getElementById('ptfeMultiplierResetBtn');
+            if (resetBtn) resetBtn.style.display = 'none';
             updatePtfeCalculations();
         }
 
@@ -1841,7 +1857,7 @@
             const startHint = document.getElementById('ptfeStartHint');
             if (startHint) startHint.textContent = PTFE_START_AUTO ? 'Auto-calculated from spool footage and part length.' : 'Enter manually.';
             const multiplierGroup = document.getElementById('ptfeMultiplierGroup');
-            if (multiplierGroup) multiplierGroup.style.display = PTFE_START_AUTO && partsFromSpool > 0 ? 'flex' : 'none';
+            if (multiplierGroup) multiplierGroup.style.display = (PTFE_START_AUTO || PTFE_MULTIPLIER_APPLIED) && partsFromSpool > 0 ? 'flex' : 'none';
 
             const alert = document.getElementById('ptfeAlert');
             if (alert) {
@@ -2023,8 +2039,11 @@
             });
             PTFE_START_AUTO = false;
             PTFE_START_MANUAL_OVERRIDE = false;
+            PTFE_MULTIPLIER_APPLIED = false;
             const multiplierInput = document.getElementById('ptfeMultiplierInput');
             if (multiplierInput) multiplierInput.value = '1';
+            const resetBtn = document.getElementById('ptfeMultiplierResetBtn');
+            if (resetBtn) resetBtn.style.display = 'none';
             const startInput = document.getElementById('ptfeStartQuantity');
             if (startInput) startInput.readOnly = false;
             document.querySelectorAll('#ptfePortal input[type="checkbox"]').forEach((input) => { input.checked = false; });
