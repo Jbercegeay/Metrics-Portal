@@ -1702,6 +1702,52 @@
             }
         }
 
+        const PTFE_NAV_SEQUENCE = [
+            'ptfeDate',
+            'ptfeItem', 'ptfeLot', 'ptfeSequence',
+            'ptfeFootage', 'ptfeProcessingLength',
+            'ptfeStartQuantity', 'ptfeEndQuantity',
+            'ptfeRecuts', 'ptfePullingWraps',
+            'ptfeTimeWorked',
+            'ptfeEvent', 'ptfeEventStartTime', 'ptfeEventEndTime'
+        ];
+
+        function ptfeIsVisible(el) {
+            let node = el;
+            while (node && node !== document.body) {
+                if (window.getComputedStyle(node).display === 'none') return false;
+                node = node.parentElement;
+            }
+            return true;
+        }
+
+        function ptfeFocusNext(currentId) {
+            const idx = PTFE_NAV_SEQUENCE.indexOf(currentId);
+            if (idx === -1) return;
+            for (let i = idx + 1; i < PTFE_NAV_SEQUENCE.length; i++) {
+                const el = document.getElementById(PTFE_NAV_SEQUENCE[i]);
+                if (el && ptfeIsVisible(el) && !el.disabled) {
+                    el.focus();
+                    if (typeof el.select === 'function' && el.tagName !== 'SELECT') el.select();
+                    return;
+                }
+            }
+            document.getElementById('ptfeSubmitBtn')?.focus();
+        }
+
+        function initPtfeEnterNav() {
+            PTFE_NAV_SEQUENCE.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        ptfeFocusNext(id);
+                    }
+                });
+            });
+        }
+
         function updatePtfeEventDuration() {
             const evS = document.getElementById('ptfeEventStartTime')?.value;
             const evE = document.getElementById('ptfeEventEndTime')?.value;
@@ -2144,6 +2190,7 @@
                 populateCheckboxes('ptfePullingMethods', PTFE_CONFIG.pullingMethods || [], 'ptfePullingMethod');
                 setPtfeEntryMode('job');
                 updatePtfeCalculations();
+                initPtfeEnterNav();
                 showToast('PTFE data loaded from Smartsheet.');
             } catch (error) {
                 console.error(error);
