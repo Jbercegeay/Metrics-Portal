@@ -881,6 +881,23 @@
             min-width: 82px;
         }
 
+        .ptfe-multiplier-row {
+            display: none;
+            align-items: end;
+            gap: 8px;
+            margin-top: 8px;
+            max-width: 330px;
+        }
+
+        .ptfe-multiplier-row .ptfe-field {
+            flex: 1;
+        }
+
+        .ptfe-multiplier-row .label {
+            font-size: 12px;
+            font-weight: 800;
+        }
+
         .ptfe-muted-note {
             color: var(--subtext);
             font-size: 12px;
@@ -1357,12 +1374,13 @@
                         <div class="ptfe-form-grid" style="margin-top:14px;">
                             <div class="ptfe-field">
                                 <label class="label">Start Quantity</label>
-                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                                    <input id="ptfeStartQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" style="min-width:140px; flex:1;" oninput="this.value=this.value.replace(/[^0-9]/g,''); markPtfeStartManual(); updatePtfeCalculations()">
-                                    <div id="ptfeMultiplierGroup" style="display:none; gap:6px; align-items:center;">
-                                        <input id="ptfeMultiplierInput" class="input mono" type="text" inputmode="decimal" value="1" aria-label="Pull quantity multiplier" style="width:74px;" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
-                                        <button id="ptfeMultiplierBtn" class="btn btn-blue" style="padding:10px 12px; white-space:nowrap;" onclick="openPtfeMultiplier()">Apply</button>
+                                <input id="ptfeStartQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markPtfeStartManual(); updatePtfeCalculations()">
+                                <div id="ptfeMultiplierGroup" class="ptfe-multiplier-row">
+                                    <div class="ptfe-field">
+                                        <label class="label" for="ptfeMultiplierInput">Start Qty Multiplier</label>
+                                        <input id="ptfeMultiplierInput" class="input mono" type="text" inputmode="decimal" value="1" aria-label="Start quantity multiplier" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
                                     </div>
+                                    <button id="ptfeMultiplierBtn" class="btn btn-blue" style="padding:10px 12px; white-space:nowrap;" onclick="openPtfeMultiplier()">Apply Multiplier</button>
                                 </div>
                                 <div id="ptfeStartHint" class="ptfe-muted-note">Enter manually.</div>
                             </div>
