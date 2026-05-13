@@ -458,7 +458,7 @@
 
         .mode-toggle {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            grid-template-columns: 1fr 1fr;
             background: #0b1220;
             border-radius: 12px;
             padding: 5px;
@@ -508,6 +508,7 @@
         body.theme-light .yield-badge,
         body.theme-light .mode-toggle,
         body.theme-light .pcd-tabs,
+        body.theme-light .ptfe-jxj-tabs,
         body.theme-light .hour-input-card,
         body.theme-light .ptfe-panel,
         body.theme-dark .card,
@@ -516,6 +517,7 @@
         body.theme-dark .yield-badge,
         body.theme-dark .mode-toggle,
         body.theme-dark .pcd-tabs,
+        body.theme-dark .ptfe-jxj-tabs,
         body.theme-dark .hour-input-card,
         body.theme-dark .ptfe-panel,
         body.theme-high-contrast .card,
@@ -524,6 +526,7 @@
         body.theme-high-contrast .yield-badge,
         body.theme-high-contrast .mode-toggle,
         body.theme-high-contrast .pcd-tabs,
+        body.theme-high-contrast .ptfe-jxj-tabs,
         body.theme-high-contrast .hour-input-card,
         body.theme-high-contrast .ptfe-panel {
             background: var(--panel-soft) !important;
@@ -533,22 +536,28 @@
 
         body.theme-light .mode-btn,
         body.theme-light .pcd-tab,
+        body.theme-light .ptfe-jxj-tab,
         body.theme-light .kiosk-btn,
         body.theme-dark .mode-btn,
         body.theme-dark .pcd-tab,
+        body.theme-dark .ptfe-jxj-tab,
         body.theme-dark .kiosk-btn,
         body.theme-high-contrast .mode-btn,
         body.theme-high-contrast .pcd-tab,
+        body.theme-high-contrast .ptfe-jxj-tab,
         body.theme-high-contrast .kiosk-btn {
             color: var(--subtext);
         }
 
         body.theme-light .mode-btn.active,
         body.theme-light .pcd-tab.active,
+        body.theme-light .ptfe-jxj-tab.active,
         body.theme-dark .mode-btn.active,
         body.theme-dark .pcd-tab.active,
+        body.theme-dark .ptfe-jxj-tab.active,
         body.theme-high-contrast .mode-btn.active,
-        body.theme-high-contrast .pcd-tab.active {
+        body.theme-high-contrast .pcd-tab.active,
+        body.theme-high-contrast .ptfe-jxj-tab.active {
             color: var(--active-text);
         }
 
@@ -904,46 +913,20 @@
             margin-top: 6px;
         }
 
-        .ptfe-history-entry {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            background: var(--soft-fill);
-            border: 1px solid var(--border);
-            margin-bottom: 6px;
-            font-size: 13px;
-            flex-wrap: wrap;
-        }
-
-        .ptfe-history-badge {
-            font-size: 10px;
-            font-weight: 800;
-            padding: 3px 8px;
-            border-radius: 6px;
-            white-space: nowrap;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .ptfe-history-badge.job { background: var(--accent); color: var(--active-text); }
-        .ptfe-history-badge.event { background: var(--warn); color: #fff; }
-
-        .ptfe-history-summary {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            padding: 10px 14px;
-            background: var(--soft-fill);
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 12px;
-        }
-
-        .ptfe-history-stat { display: flex; flex-direction: column; gap: 2px; }
-        .ptfe-history-stat-label { font-size: 10px; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-        .ptfe-history-stat-value { font-size: 18px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+        .ptfe-jxj-tabs { display:flex; gap:0; background:#0b1220; border-radius:12px 12px 0 0; border:1px solid var(--border); border-bottom:none; overflow:hidden; }
+        .ptfe-jxj-tab { flex:1; border:none; padding:10px 6px; background:transparent; color:var(--subtext); font-size:12px; font-weight:600; cursor:pointer; transition:background 0.15s; text-align:center; }
+        .ptfe-jxj-tab.active { background:var(--accent); color:#000; }
+        .ptfe-jxj-tab:hover:not(.active) { background:rgba(255,255,255,0.04); color:var(--text); }
+        .ptfe-jxj-table { width:100%; border-collapse:collapse; font-size:13px; }
+        .ptfe-jxj-table th { padding:8px 10px; text-align:left; color:var(--subtext); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); }
+        .ptfe-jxj-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top; }
+        .ptfe-jxj-summary-row td { background:rgba(255,255,255,0.04); font-weight:700; border-top:2px solid var(--border); }
+        .ptfe-jxj-oe-good { color:var(--accent); }
+        .ptfe-jxj-oe-warn { color:var(--warn); }
+        .ptfe-jxj-oe-bad  { color:var(--danger); }
+        .ptfe-jxj-loss-input { background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); font-size:12px; width:100%; min-width:120px; padding:2px 4px; outline:none; }
+        .ptfe-jxj-loss-input:focus { border-bottom-color:var(--accent); }
+        .ptfe-jxj-empty { text-align:center; color:var(--subtext); font-size:13px; padding:24px; }
 
         .ptfe-alert {
             display: none;
@@ -1345,7 +1328,6 @@
             <div class="mode-toggle">
                 <button id="ptfeJobModeBtn" class="mode-btn active" onclick="setPtfeEntryMode('job')">Job Entry</button>
                 <button id="ptfeEventModeBtn" class="mode-btn" onclick="setPtfeEntryMode('event')">Event Entry</button>
-                <button id="ptfeHistoryModeBtn" class="mode-btn" onclick="togglePtfeHistory()">History</button>
             </div>
 
             <div class="ptfe-layout">
@@ -1549,18 +1531,21 @@
                 <button class="btn btn-muted" onclick="resetPtfeForm()">Reset</button>
             </div>
 
-            <section id="ptfeHistorySection" class="card" style="display:none;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h2 style="margin:0;">Today's Submissions</h2>
-                    <button class="btn btn-muted" style="padding:6px 12px; font-size:12px;" onclick="loadPtfeHistory()">↻ Refresh</button>
+            <section id="ptfeJxjSection" class="card" style="padding-bottom:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                    <h2 style="margin:0;">Job x Job Tracker</h2>
+                    <button class="btn btn-red" style="padding:8px 16px; font-size:13px;" onclick="confirmPtfeEndShift()">End Shift</button>
                 </div>
-                <div id="ptfeHistorySummary"></div>
-                <div id="ptfeHistoryList"></div>
-            </section>
-
-            <section class="card">
-                <h2>Hour by Hour Tracker</h2>
-                <div class="subtitle" style="margin:0;">Hour-by-hour tracker coming soon.</div>
+                <div class="ptfe-jxj-tabs" id="ptfeJxjTabs">
+                    <button class="ptfe-jxj-tab active" data-cell="Table Pull" onclick="switchPtfeJxjTab('Table Pull')">Table Pull</button>
+                    <button class="ptfe-jxj-tab" data-cell="Cut to Length" onclick="switchPtfeJxjTab('Cut to Length')">CTL</button>
+                    <button class="ptfe-jxj-tab" data-cell="Inspection" onclick="switchPtfeJxjTab('Inspection')">Inspection</button>
+                    <button class="ptfe-jxj-tab" data-cell="Roll Cut" onclick="switchPtfeJxjTab('Roll Cut')">Roll Cut</button>
+                    <button class="ptfe-jxj-tab" data-cell="Packaging" onclick="switchPtfeJxjTab('Packaging')">Packaging</button>
+                </div>
+                <div style="overflow-x:auto; border:1px solid var(--border); border-top:none; border-radius:0 0 12px 12px;">
+                    <div id="ptfeJxjTableWrap"></div>
+                </div>
             </section>
         </div>
     </div>
@@ -1786,130 +1771,277 @@
             document.getElementById('ptfeSubmitBtn')?.focus();
         }
 
-        const PTFE_HISTORY_KEY = 'ptfe_daily_history';
+        /** PTFE JxJ Tracker **/
+        const PTFE_JXJ_KEY = 'ptfe_jxj_state';
+        const PTFE_JXJ_CELL_MAP = {
+            'Table Pull':     { cell: 'Table Pull',    prefix: 'Job' },
+            'Cut to Length':  { cell: 'Cut to Length', prefix: 'Job' },
+            'Inspection':     { cell: 'Inspection',    prefix: 'Job' },
+            'EV3 Inspection': { cell: 'Inspection',    prefix: 'Job' },
+            'Roll Cut':       { cell: 'Roll Cut',       prefix: 'HR'  },
+            'Packaging':      { cell: 'Packaging',      prefix: 'Job' }
+        };
+        const PTFE_JXJ_TABS = ['Table Pull', 'Cut to Length', 'Inspection', 'Roll Cut', 'Packaging'];
+        let PTFE_JXJ_ACTIVE_TAB = 'Table Pull';
 
-        function savePtfeEntryToHistory(entry) {
-            const today = document.getElementById('ptfeDate')?.value || getLocalDate();
-            let stored = null;
-            try { stored = JSON.parse(localStorage.getItem(PTFE_HISTORY_KEY)); } catch(e) {}
-            if (!stored || stored.date !== today || stored.associate !== SESSION_USER.name) {
-                stored = { date: today, associate: SESSION_USER.name, entries: [] };
+        function initPtfeJxJ() {
+            const today = getLocalDate();
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            if (!jxj || jxj.date !== today || jxj.associate !== SESSION_USER.name) {
+                jxj = {
+                    date: today,
+                    associate: SESSION_USER.name,
+                    tabs: {
+                        'Table Pull': [],
+                        'Cut to Length': [],
+                        'Inspection': [],
+                        'Roll Cut': [],
+                        'Packaging': []
+                    }
+                };
+                localStorage.setItem(PTFE_JXJ_KEY, JSON.stringify(jxj));
             }
-            stored.entries.unshift(entry); // most recent first
-            localStorage.setItem(PTFE_HISTORY_KEY, JSON.stringify(stored));
-            // Auto-show history after first submit, or refresh if already open
-            const section = document.getElementById('ptfeHistorySection');
-            const btn = document.getElementById('ptfeHistoryModeBtn');
-            loadPtfeHistory();
-            if (section && section.style.display === 'none') {
-                section.style.display = 'block';
-                btn?.classList.add('active');
-            }
+            renderPtfeJxJ(PTFE_JXJ_ACTIVE_TAB);
         }
 
-        function loadPtfeHistory() {
-            const today = document.getElementById('ptfeDate')?.value || getLocalDate();
-            let stored = null;
-            try { stored = JSON.parse(localStorage.getItem(PTFE_HISTORY_KEY)); } catch(e) {}
-            if (!stored || stored.date !== today || stored.associate !== SESSION_USER.name) {
-                renderPtfeHistory([]);
-                return;
-            }
-            renderPtfeHistory(stored.entries);
+        function appendPtfeJxJEntry(entry) {
+            const mapping = PTFE_JXJ_CELL_MAP[entry.sequence];
+            if (!mapping) return; // sequence not tracked in JxJ
+            const { cell, prefix } = mapping;
+
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs) return;
+
+            const timeMins = Number(entry.timeWorked) || 0;
+            const endQty = Number(entry.endQty) || 0;
+            const startQty = Number(entry.startQty) || 0;
+            const stdPph = Number(entry.stdPph) || 0;
+            const actualPph = timeMins > 0 ? Math.round((endQty / timeMins) * 60 * 10) / 10 : 0;
+            const oe = stdPph > 0 ? Math.round((actualPph / stdPph) * 1000) / 10 : 0;
+
+            const slotNum = (jxj.tabs[cell] || []).length + 1;
+            const slot = `${prefix} ${slotNum}`;
+
+            const record = {
+                slot,
+                item: entry.item || '',
+                lot: entry.lot || '',
+                stdPph,
+                actualPph,
+                oe,
+                timeMins,
+                startQty,
+                endQty,
+                lossReason: '',
+                submittedAt: entry.submittedAt || ''
+            };
+
+            if (!jxj.tabs[cell]) jxj.tabs[cell] = [];
+            jxj.tabs[cell].push(record);
+            localStorage.setItem(PTFE_JXJ_KEY, JSON.stringify(jxj));
+            renderPtfeJxJ(PTFE_JXJ_ACTIVE_TAB);
         }
 
-        function renderPtfeHistory(history) {
-            const section = document.getElementById('ptfeHistorySection');
-            const summaryEl = document.getElementById('ptfeHistorySummary');
-            const listEl = document.getElementById('ptfeHistoryList');
-            if (!section || !summaryEl || !listEl) return;
+        function renderPtfeJxJ(cellName) {
+            PTFE_JXJ_ACTIVE_TAB = cellName;
+            // Update tab active state
+            document.querySelectorAll('.ptfe-jxj-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.cell === cellName);
+            });
 
-            if (!history || history.length === 0) {
-                section.style.display = 'none';
+            const wrap = document.getElementById('ptfeJxjTableWrap');
+            if (!wrap) return;
+
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            const jobs = (jxj && jxj.tabs && jxj.tabs[cellName]) ? jxj.tabs[cellName] : [];
+
+            if (jobs.length === 0) {
+                wrap.innerHTML = `<div class="ptfe-jxj-empty">No jobs logged for ${cellName} yet.</div>`;
                 return;
             }
-            section.style.display = 'block';
 
-            const jobs = history.filter(h => (h.entryType || '').toLowerCase() !== 'event');
-            const events = history.filter(h => (h.entryType || '').toLowerCase() === 'event');
-            const totalTimeMins = history.reduce((s, h) => s + (Number(h.timeWorked) || 0), 0);
-            const totalEndQty = jobs.reduce((s, h) => s + (Number(h.endQty) || 0), 0);
-            const yieldVals = jobs.filter(h => h.startQty > 0).map(h => (h.endQty / h.startQty) * 100);
-            const avgYield = yieldVals.length > 0 ? yieldVals.reduce((a, b) => a + b, 0) / yieldVals.length : null;
-            const totalH = Math.floor(totalTimeMins / 60);
-            const totalM = totalTimeMins % 60;
+            // Shift summary calculations
+            const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
+            const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
+            const totalStartQty = jobs.reduce((s, j) => s + (j.startQty || 0), 0);
+            const shiftActualPph = totalMins > 0 ? Math.round(((totalEndQty) / totalMins) * 60 * 10) / 10 : 0;
+            const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
+            const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
+            const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
 
-            summaryEl.innerHTML = `
-                <div class="ptfe-history-summary">
-                    <div class="ptfe-history-stat">
-                        <span class="ptfe-history-stat-label">Jobs</span>
-                        <span class="ptfe-history-stat-value">${jobs.length}</span>
-                    </div>
-                    <div class="ptfe-history-stat">
-                        <span class="ptfe-history-stat-label">Events</span>
-                        <span class="ptfe-history-stat-value">${events.length}</span>
-                    </div>
-                    <div class="ptfe-history-stat">
-                        <span class="ptfe-history-stat-label">Total Time</span>
-                        <span class="ptfe-history-stat-value">${totalH > 0 ? totalH + 'h ' : ''}${totalM}m</span>
-                    </div>
-                    <div class="ptfe-history-stat">
-                        <span class="ptfe-history-stat-label">Total Qty</span>
-                        <span class="ptfe-history-stat-value">${totalEndQty}</span>
-                    </div>
-                    ${avgYield !== null ? `
-                    <div class="ptfe-history-stat">
-                        <span class="ptfe-history-stat-label">Avg Yield</span>
-                        <span class="ptfe-history-stat-value" style="color:${avgYield >= 95 ? 'var(--accent-2)' : avgYield >= 85 ? 'var(--warn)' : 'var(--danger)'}">${avgYield.toFixed(1)}%</span>
-                    </div>` : ''}
+            function oeHtml(oe) {
+                if (oe >= 85) return `<span class="ptfe-jxj-oe-good">${oe.toFixed(1)}% ✓</span>`;
+                if (oe >= 70) return `<span class="ptfe-jxj-oe-warn">${oe.toFixed(1)}% ⚠</span>`;
+                return `<span class="ptfe-jxj-oe-bad">${oe.toFixed(1)}% ✕</span>`;
+            }
+
+            const rows = jobs.map((j, idx) => `
+                <tr>
+                    <td style="white-space:nowrap; font-weight:600;">${j.slot}</td>
+                    <td style="font-family:monospace;">${j.item || '—'}</td>
+                    <td>${j.stdPph || '—'}</td>
+                    <td>${j.actualPph || '—'}</td>
+                    <td>${oeHtml(j.oe)}</td>
+                    <td style="white-space:nowrap;">${j.timeMins}m</td>
+                    <td><input class="ptfe-jxj-loss-input" type="text" placeholder="Loss reason..." value="${(j.lossReason || '').replace(/"/g, '&quot;')}"
+                        onblur="savePtfeJxJLossReason('${cellName}', ${idx}, this.value)"></td>
+                </tr>`).join('');
+
+            wrap.innerHTML = `
+                <table class="ptfe-jxj-table">
+                    <thead>
+                        <tr>
+                            <th>Slot</th>
+                            <th>Item</th>
+                            <th>Std PPH</th>
+                            <th>Act PPH</th>
+                            <th>OE %</th>
+                            <th>Time</th>
+                            <th>Loss Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot>
+                        <tr class="ptfe-jxj-summary-row">
+                            <td colspan="2">SHIFT SUMMARY</td>
+                            <td>${shiftStdPph}</td>
+                            <td>${shiftActualPph}</td>
+                            <td>${oeHtml(shiftOe)}</td>
+                            <td>${totalMins}m</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>`;
+        }
+
+        function switchPtfeJxjTab(cellName) {
+            renderPtfeJxJ(cellName);
+        }
+
+        function savePtfeJxJLossReason(cellName, idx, value) {
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs || !jxj.tabs[cellName] || !jxj.tabs[cellName][idx]) return;
+            jxj.tabs[cellName][idx].lossReason = value;
+            localStorage.setItem(PTFE_JXJ_KEY, JSON.stringify(jxj));
+        }
+
+        function confirmPtfeEndShift() {
+            const overlay = document.getElementById('modalOverlay');
+            if (!overlay) return;
+            document.getElementById('modalTitle').textContent = 'End Shift';
+            document.getElementById('modalText').textContent = 'Submit this shift\'s job log to Smartsheet and sign out?';
+            const bodyEl = document.getElementById('modalBody');
+            if (bodyEl) {
+                bodyEl.innerHTML = `<div style="margin-top:10px;">
+                    <label style="font-size:12px; color:var(--subtext); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Countermeasures taken this shift (optional)</label>
+                    <textarea id="ptfeJxjCountermeasures" class="input" style="margin-top:6px; text-align:left; height:80px; font-weight:normal; font-size:13px;" placeholder="Describe any countermeasures taken..."></textarea>
                 </div>`;
+            }
+            const btnCancel = document.getElementById('modalCancel');
+            if (btnCancel) btnCancel.style.display = 'inline-block';
+            overlay.style.display = 'flex';
+            document.getElementById('modalConfirm').onclick = () => {
+                overlay.style.display = 'none';
+                const cm = document.getElementById('ptfeJxjCountermeasures')?.value?.trim() || '';
+                if (bodyEl) bodyEl.innerHTML = '';
+                performPtfeEndShift(cm);
+            };
+            if (btnCancel) btnCancel.onclick = () => {
+                overlay.style.display = 'none';
+                if (bodyEl) bodyEl.innerHTML = '';
+            };
+        }
 
-            listEl.innerHTML = history.map(h => {
-                const isEvent = (h.entryType || '').toLowerCase() === 'event';
-                const timeStr = h.submittedAt ? `<span style="color:var(--subtext); font-size:12px; margin-left:auto;">${h.submittedAt}</span>` : '';
+        async function performPtfeEndShift(countermeasures) {
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs) {
+                performLogout();
+                return;
+            }
 
-                if (isEvent) {
-                    return `<div class="ptfe-history-entry">
-                        <span class="ptfe-history-badge event">Event</span>
-                        <span style="font-weight:700; color:var(--text);">${h.event || '—'}</span>
-                        <span style="color:var(--subtext);">${h.timeWorked}m</span>
-                        ${timeStr}
-                    </div>`;
+            const rows = [];
+            const workDate = jxj.date || getLocalDate();
+            const associate = jxj.associate || SESSION_USER.name;
+
+            for (const cell of PTFE_JXJ_TABS) {
+                const jobs = jxj.tabs[cell] || [];
+                if (jobs.length === 0) continue;
+
+                // Job rows
+                jobs.forEach(j => {
+                    rows.push({
+                        'Row ID': `${associate}-${cell}-${workDate}-${j.slot}`,
+                        'Work Date': workDate,
+                        'Associate Name': associate,
+                        'Cell': cell,
+                        'Job Slot': j.slot,
+                        'Row Type': 'Job',
+                        'Item Number': j.item || '',
+                        'Lot Number': j.lot || '',
+                        'Std PPH': j.stdPph || '',
+                        'Actual PPH': j.actualPph || '',
+                        'OE %': j.oe || '',
+                        'Time (Min)': j.timeMins || '',
+                        'Start Qty': j.startQty ?? '',
+                        'End Qty': j.endQty ?? '',
+                        'Loss Reason': j.lossReason || '',
+                        'Countermeasures': '',
+                        'Submitted At': j.submittedAt || ''
+                    });
+                });
+
+                // Summary row
+                const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
+                const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
+                const shiftActualPph = totalMins > 0 ? Math.round(((totalEndQty) / totalMins) * 60 * 10) / 10 : 0;
+                const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
+                const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
+                const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
+
+                rows.push({
+                    'Row ID': `${associate}-${cell}-${workDate}-Summary`,
+                    'Work Date': workDate,
+                    'Associate Name': associate,
+                    'Cell': cell,
+                    'Job Slot': 'Summary',
+                    'Row Type': 'Summary',
+                    'Std PPH': shiftStdPph || '',
+                    'Actual PPH': shiftActualPph || '',
+                    'OE %': shiftOe || '',
+                    'Time (Min)': totalMins || '',
+                    'Countermeasures': countermeasures || '',
+                    'Submitted At': new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+            }
+
+            if (rows.length === 0) {
+                performLogout();
+                return;
+            }
+
+            showSubmittingOverlay('Please Wait', 'Submitting shift data to Smartsheet...');
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-ptfe-jxj`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rows)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    updateSubmittingOverlay('Submission Failed', result.error || 'JxJ shift could not be saved.', true);
+                    return;
                 }
-
-                // Standard time comparison
-                const std = PTFE_STANDARDS[`${h.item}::${h.sequence}`];
-                const basePPH = Number(std?.goodPphStd) || 0;
-                const assocRate = Number(PTFE_ASSOCIATE_RATES[SESSION_USER.name]) || 1;
-                const adjPPH = basePPH > 0 && assocRate > 0 ? basePPH / assocRate : 0;
-                const stdMins = adjPPH > 0 && h.endQty > 0 ? Math.round((h.endQty / adjPPH) * 60) : null;
-                const delta = stdMins !== null ? h.timeWorked - stdMins : null;
-                const stdHtml = stdMins !== null ? `
-                    <span style="color:var(--subtext); font-size:12px;">std: ~${stdMins}m</span>
-                    <span style="font-weight:700; font-size:12px; color:${delta <= 0 ? 'var(--accent-2)' : 'var(--danger)'};">
-                        ${delta > 0 ? '+' : ''}${delta}m
-                    </span>` : '';
-
-                const yPct = h.startQty > 0 ? ((h.endQty / h.startQty) * 100).toFixed(1) : null;
-                const yColor = yPct ? (yPct >= 95 ? 'var(--accent-2)' : yPct >= 85 ? 'var(--warn)' : 'var(--danger)') : 'var(--subtext)';
-
-                return `<div class="ptfe-history-entry" style="flex-wrap:wrap; gap:8px;">
-                    <span class="ptfe-history-badge job">${h.sequence || 'Job'}</span>
-                    <div style="display:flex; flex-direction:column; gap:2px; flex:1; min-width:160px;">
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <span style="font-weight:700; color:var(--text); font-family:monospace;">Item: ${h.item}</span>
-                            <span style="color:var(--subtext); font-size:12px;">Lot: ${h.lot}</span>
-                        </div>
-                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                            <span style="color:var(--subtext); font-size:12px;">${h.startQty} → ${h.endQty}</span>
-                            ${yPct ? `<span style="font-weight:700; font-size:12px; color:${yColor};">Yield: ${yPct}%</span>` : ''}
-                            <span style="color:var(--subtext); font-size:12px;">Time: <strong style="color:var(--text);">${h.timeWorked}m</strong></span>
-                            ${stdHtml}
-                        </div>
-                    </div>
-                    ${timeStr}
-                </div>`;
-            }).join('');
+                localStorage.removeItem(PTFE_JXJ_KEY);
+                updateSubmittingOverlay('Shift Submitted!', result.message || 'Shift data saved. Signing out...');
+                setTimeout(() => performLogout(), 1500);
+            } catch (error) {
+                updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+            }
         }
 
         function initPtfeEnterNav() {
@@ -1942,7 +2074,6 @@
             PTFE_ENTRY_MODE = mode === 'event' ? 'event' : 'job';
             document.getElementById('ptfeJobModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'job');
             document.getElementById('ptfeEventModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'event');
-            document.getElementById('ptfeHistoryModeBtn')?.classList.remove('active');
             const jobFields = document.getElementById('ptfeJobFields');
             const eventFields = document.getElementById('ptfeEventFields');
             const resultsCard = document.getElementById('ptfeResultsCard');
@@ -1959,27 +2090,6 @@
             updatePtfeCalculations();
         }
 
-        function togglePtfeHistory() {
-            const section = document.getElementById('ptfeHistorySection');
-            const btn = document.getElementById('ptfeHistoryModeBtn');
-            if (!section) return;
-            const isVisible = section.style.display !== 'none';
-            if (isVisible) {
-                section.style.display = 'none';
-                btn?.classList.remove('active');
-            } else {
-                const history = JSON.parse(localStorage.getItem(PTFE_HISTORY_KEY) || 'null');
-                const today = new Date().toLocaleDateString();
-                if (!history || history.date !== today || !history.entries || history.entries.length === 0) {
-                    showToast('No entries yet today.');
-                    return;
-                }
-                loadPtfeHistory();
-                section.style.display = 'block';
-                btn?.classList.add('active');
-                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }
 
         function isPtfeLowYield() {
             return PTFE_RESULTS.yieldPercent > 0 && PTFE_RESULTS.yieldPercent < 75;
@@ -2281,21 +2391,18 @@
                 const jobSavedMsg = result.simulated
                     ? 'PTFE job simulated (writes disabled).'
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
-                savePtfeEntryToHistory({
+                appendPtfeJxJEntry({
                     submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    entryType: 'Job',
                     item: payload['Item'],
                     lot: payload['Lot #'],
                     sequence: payload['Sequence'],
                     startQty: Number(payload['Start Quantity']) || 0,
                     endQty: Number(payload['End Quantity']) || 0,
                     timeWorked: Number(payload['Time Worked']) || 0,
-                    scrapParts: PTFE_RESULTS.scrapParts,
-                    scrapRate: PTFE_RESULTS.scrapPercent
+                    stdPph: PTFE_RESULTS.adjustedStandard || 0
                 });
                 updateSubmittingOverlay('Saved!', jobSavedMsg);
                 resetPtfeForm(false);
-                loadPtfeHistory();
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
             }
@@ -2335,14 +2442,7 @@
                 const eventSavedMsg = result.simulated
                     ? 'PTFE event simulated (writes disabled).'
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
-                savePtfeEntryToHistory({
-                    submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    entryType: 'Event',
-                    event: eventName,
-                    timeWorked: duration
-                });
                 updateSubmittingOverlay('Saved!', eventSavedMsg);
-                loadPtfeHistory();
                 document.getElementById('ptfeEvent').value = '';
                 document.getElementById('ptfeEventStartTime').value = '';
                 document.getElementById('ptfeEventEndTime').value = '';
@@ -2390,6 +2490,22 @@
             const currentUser = document.getElementById('ptfeCurrentUser');
             if (currentUser) currentUser.textContent = `${SESSION_USER.name} | ${SESSION_USER.department || 'PTFE'}`;
 
+            // Stale JxJ state detection
+            const today = getLocalDate();
+            let existingJxj = null;
+            try { existingJxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            if (existingJxj && (existingJxj.date !== today || existingJxj.associate !== SESSION_USER.name)) {
+                setTimeout(() => {
+                    customConfirm(
+                        'Stale Shift Data',
+                        `Data from ${existingJxj.date} was found. Discard and start fresh?`,
+                        () => { localStorage.removeItem(PTFE_JXJ_KEY); initPtfeJxJ(); }
+                    );
+                }, 300);
+            } else {
+                initPtfeJxJ();
+            }
+
             try {
                 const response = await fetch(`${API_BASE_URL}/config?dept=PTFE`);
                 const result = await response.json();
@@ -2411,7 +2527,6 @@
                 setPtfeEntryMode('job');
                 updatePtfeCalculations();
                 initPtfeEnterNav();
-                loadPtfeHistory();
                 showToast('PTFE data loaded from Smartsheet.');
             } catch (error) {
                 console.error(error);

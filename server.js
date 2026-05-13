@@ -656,6 +656,68 @@ async function submitPtfe(req, res) {
 
 app.post('/api/submit-ptfe', submitPtfe);
 
+// 4a. Handle PTFE Job x Job shift tracker submissions
+const PTFE_JOB_LOG_SHEET_ID = getRequiredEnv('DEPT_PTFE_JOB_LOG_SHEET_ID');
+
+const PTFE_JOB_LOG_COLUMN_MAP = {
+    'Row ID':          3775244732239748,
+    'Work Date':       8278844359610244,
+    'Associate Name':  960494965133188,
+    'Cell':            5464094592503684,
+    'Job Slot':        3212294778818436,
+    'Row Type':        7715894406188932,
+    'Item Number':     2086394871975812,
+    'Lot Number':      6589994499346308,
+    'Std PPH':         4338194685661060,
+    'Actual PPH':      8841794313031556,
+    'OE %':            256807523356548,
+    'Time (Min)':      4760407150727044,
+    'Start Qty':       2508607337041796,
+    'End Qty':         7012206964412292,
+    'Loss Reason':     1382707430199172,
+    'Countermeasures': 5886307057569668,
+    'Submitted At':    3634507243884420
+};
+
+app.post('/api/submit-ptfe-jxj', async (req, res) => {
+    try {
+        const rows = req.body; // array of row objects
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ success: false, error: 'No rows provided.' });
+        }
+        // Test account interception
+        if (TEST_ACCOUNTS.includes(rows[0]['Associate Name'])) {
+            return res.json({ success: true, message: '[TEST MODE] PTFE JxJ simulated.', data: [] });
+        }
+        // Safe mode gate — reuse same flag as master log
+        if (!isEnvTrue('ALLOW_PTFE_MASTER_LOG_WRITES')) {
+            return res.json({ success: true, simulated: true, message: '[SAFE MODE] PTFE JxJ simulated.' });
+        }
+        const numericCols = new Set(['Std PPH', 'Actual PPH', 'OE %', 'Time (Min)', 'Start Qty', 'End Qty']);
+        const smartsheetRows = rows.map(row => {
+            const newRow = { toTop: true, cells: [] };
+            for (const [key, colId] of Object.entries(PTFE_JOB_LOG_COLUMN_MAP)) {
+                let value = row[key];
+                if (value === undefined || value === null || value === '') continue;
+                if (numericCols.has(key) && typeof value === 'string') {
+                    const parsed = Number(value);
+                    if (!isNaN(parsed)) value = parsed;
+                }
+                newRow.cells.push({ columnId: colId, value });
+            }
+            return newRow;
+        }).filter(r => r.cells.length > 0);
+
+        const response = await getClientForDept('PTFE').post(`sheets/${PTFE_JOB_LOG_SHEET_ID}/rows`, smartsheetRows);
+        res.json({ success: true, message: `Logged ${smartsheetRows.length} JxJ row(s).`, data: response.data });
+    } catch (error) {
+        console.error('Error submitting PTFE JxJ:', error.response?.data || error.message);
+        if (error.code === 'ECONNABORTED') return res.status(504).json({ success: false, error: 'Smartsheet timed out.' });
+        if (error.response?.status === 429) return res.status(429).json({ success: false, error: 'Rate limited.' });
+        res.status(500).json({ success: false, error: 'Failed to submit PTFE JxJ data.' });
+    }
+});
+
 // 4. Handle Hour by Hour PCD Submissions (separate sheet)
 app.post('/api/submit-pcd', async (req, res) => {
     try {
