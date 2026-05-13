@@ -2455,10 +2455,10 @@
                 navUserList.innerHTML = '';
                 state.activeUsers.forEach(op => {
                     const pill = document.createElement('div');
-                    pill.style.cssText = "display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.08); padding:5px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2);";
-                    
+                    pill.style.cssText = "display:flex; align-items:center; gap:8px; background:var(--soft-fill); padding:5px 12px; border-radius:12px; border:1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.15);";
+
                     const span = document.createElement('span');
-                    span.style.cssText = "color:#fff; font-size:13px;";
+                    span.style.cssText = "color:var(--text); font-size:13px;";
                     span.textContent = op;
                     if (op === user.name && user.role) {
                         span.textContent += ` (${user.role})`;
