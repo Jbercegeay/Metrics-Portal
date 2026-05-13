@@ -1328,10 +1328,6 @@
                                 <label class="label">Production Sequence</label>
                                 <div class="select-wrapper"><select id="ptfeSequence" class="custom-select" onchange="updatePtfeCalculations()"></select></div>
                             </div>
-                            <div id="ptfeRecutsField" class="ptfe-field" style="display:none;">
-                                <label class="label">Re-Cuts</label>
-                                <input id="ptfeRecuts" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                            </div>
                         </div>
 
                         <div id="ptfeSpoolFields" style="display:none; margin-top:14px;">
@@ -1376,29 +1372,6 @@
                             </div>
                         </div>
 
-                        <div id="ptfeInspectionParetoSection" style="display:none; margin-top:18px;">
-                            <p class="ptfe-panel-title">Inspection Pareto</p>
-                            <div id="ptfeInspectionParetos" class="check-grid"></div>
-                        </div>
-
-                        <div id="ptfePullingParetoSection" style="display:none; margin-top:18px;">
-                            <p class="ptfe-panel-title">Pulling Pareto</p>
-                            <div id="ptfePullingParetos" class="check-grid"></div>
-                        </div>
-
-                        <div id="ptfePullFields" style="display:none; margin-top:18px;">
-                            <p class="ptfe-panel-title">Pulling Details</p>
-                            <div class="ptfe-form-grid">
-                                <div class="ptfe-field">
-                                    <label class="label">Pulling Wraps</label>
-                                    <input id="ptfePullingWraps" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-                                </div>
-                                <div class="ptfe-field">
-                                    <label class="label">Pulling Method</label>
-                                    <div id="ptfePullingMethods" class="check-grid"></div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
 
                     <div id="ptfeEventFields" style="display:none; margin-top:14px;">
@@ -1470,6 +1443,38 @@
                             <div class="ptfe-result-label">Sequence OE %</div>
                             <div id="ptfeSequenceOe" class="ptfe-result-value">-</div>
                             <div class="ptfe-gauge"><div id="ptfeOeGauge" class="ptfe-gauge-fill"></div></div>
+                        </div>
+                    </div>
+
+                    <div id="ptfeLogicPanels" style="margin-top:18px;">
+                        <div id="ptfeRecutsField" class="ptfe-field" style="display:none;">
+                            <p class="ptfe-panel-title">Sequence Details</p>
+                            <label class="label">Re-Cuts</label>
+                            <input id="ptfeRecuts" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                        </div>
+
+                        <div id="ptfeInspectionParetoSection" style="display:none; margin-top:18px;">
+                            <p class="ptfe-panel-title">Inspection Pareto</p>
+                            <div id="ptfeInspectionParetos" class="check-grid"></div>
+                        </div>
+
+                        <div id="ptfePullingParetoSection" style="display:none; margin-top:18px;">
+                            <p class="ptfe-panel-title">Pulling Pareto</p>
+                            <div id="ptfePullingParetos" class="check-grid"></div>
+                        </div>
+
+                        <div id="ptfePullFields" style="display:none; margin-top:18px;">
+                            <p class="ptfe-panel-title">Pulling Details</p>
+                            <div class="ptfe-form-grid">
+                                <div class="ptfe-field">
+                                    <label class="label">Pulling Wraps</label>
+                                    <input id="ptfePullingWraps" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">Pulling Method</label>
+                                    <div id="ptfePullingMethods" class="check-grid"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
