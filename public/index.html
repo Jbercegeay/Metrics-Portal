@@ -458,7 +458,7 @@
 
         .mode-toggle {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
             background: #0b1220;
             border-radius: 12px;
             padding: 5px;
@@ -1345,6 +1345,7 @@
             <div class="mode-toggle">
                 <button id="ptfeJobModeBtn" class="mode-btn active" onclick="setPtfeEntryMode('job')">Job Entry</button>
                 <button id="ptfeEventModeBtn" class="mode-btn" onclick="setPtfeEntryMode('event')">Event Entry</button>
+                <button id="ptfeHistoryModeBtn" class="mode-btn" onclick="togglePtfeHistory()">History</button>
             </div>
 
             <div class="ptfe-layout">
@@ -1796,6 +1797,14 @@
             }
             stored.entries.unshift(entry); // most recent first
             localStorage.setItem(PTFE_HISTORY_KEY, JSON.stringify(stored));
+            // Auto-show history after first submit, or refresh if already open
+            const section = document.getElementById('ptfeHistorySection');
+            const btn = document.getElementById('ptfeHistoryModeBtn');
+            loadPtfeHistory();
+            if (section && section.style.display === 'none') {
+                section.style.display = 'block';
+                btn?.classList.add('active');
+            }
         }
 
         function loadPtfeHistory() {
@@ -1933,6 +1942,7 @@
             PTFE_ENTRY_MODE = mode === 'event' ? 'event' : 'job';
             document.getElementById('ptfeJobModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'job');
             document.getElementById('ptfeEventModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'event');
+            document.getElementById('ptfeHistoryModeBtn')?.classList.remove('active');
             const jobFields = document.getElementById('ptfeJobFields');
             const eventFields = document.getElementById('ptfeEventFields');
             const resultsCard = document.getElementById('ptfeResultsCard');
@@ -1947,6 +1957,28 @@
                 }
             }
             updatePtfeCalculations();
+        }
+
+        function togglePtfeHistory() {
+            const section = document.getElementById('ptfeHistorySection');
+            const btn = document.getElementById('ptfeHistoryModeBtn');
+            if (!section) return;
+            const isVisible = section.style.display !== 'none';
+            if (isVisible) {
+                section.style.display = 'none';
+                btn?.classList.remove('active');
+            } else {
+                const history = JSON.parse(localStorage.getItem(PTFE_HISTORY_KEY) || 'null');
+                const today = new Date().toLocaleDateString();
+                if (!history || history.date !== today || !history.entries || history.entries.length === 0) {
+                    showToast('No entries yet today.');
+                    return;
+                }
+                loadPtfeHistory();
+                section.style.display = 'block';
+                btn?.classList.add('active');
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
 
         function isPtfeLowYield() {
