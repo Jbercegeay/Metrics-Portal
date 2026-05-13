@@ -1139,21 +1139,12 @@
                                 style="text-align: center; padding: 12px;">
                         </div>
                         <div class="row" style="grid-template-columns: 100px 1fr;">
-                            <label class="label">Duration</label>
-                            <div style="display: flex; gap: 8px; width: 100%;">
-                                <input id="eventMinutesInput" class="input mono" type="number"
-                                    style="text-align: left; font-size: 22px; padding: 15px; color: var(--accent); flex-grow: 1;"
-                                    placeholder="0">
-                                <button id="btnEventTimer" class="btn btn-blue" style="width: 120px;"
-                                    onclick="toggleEventTimer()">Start Timer</button>
-                            </div>
+                            <label class="label">End Time</label>
+                            <input id="eventEndTimeRef" class="input mono" type="time"
+                                style="text-align: center; padding: 12px;" onchange="updateEventDuration()">
                         </div>
-                        <div id="eventTimerDisplay"
-                            style="text-align: right; color: var(--accent); font-size: 12px; margin-top: 5px; font-weight: 700; display: none;">
-                            TIMER RUNNING: 0m 0s</div>
-                        <div id="eventProjectedEnd"
-                            style="text-align: right; color: var(--accent-2); font-size: 12px; margin-top: 2px; font-weight: 700;">
-                            PROJECTED END: --:--</div>
+                        <div id="eventDurationDisplay"
+                            style="text-align: right; color: var(--accent); font-size: 12px; margin-top: 5px; font-weight: 700;"></div>
                         <div style="margin-top: 20px;">
                             <button class="btn btn-green" style="width:100%; height: 60px; font-size: 18px;"
                                 onclick="handleEventSubmit()">Submit Event & Split PCD</button>
@@ -1391,6 +1382,11 @@
                             </div>
                         </div>
 
+                        <div style="margin-top:18px;">
+                            <label class="label">Time Worked (Minutes)</label>
+                            <input id="ptfeTimeWorked" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 90" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
+                        </div>
+
                     </div>
 
                     <div id="ptfeEventFields" style="display:none; margin-top:14px;">
@@ -1398,11 +1394,17 @@
                             <label class="label">Event</label>
                             <div class="select-wrapper"><select id="ptfeEvent" class="custom-select"></select></div>
                         </div>
-                    </div>
-
-                    <div style="margin-top:18px;">
-                        <label class="label">Time Worked (Minutes)</label>
-                        <input id="ptfeTimeWorked" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 90" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
+                        <div class="ptfe-form-grid" style="margin-top:14px;">
+                            <div class="ptfe-field">
+                                <label class="label">Start Time</label>
+                                <input id="ptfeEventStartTime" class="input mono" type="time" style="text-align:center;" onchange="updatePtfeEventDuration()">
+                            </div>
+                            <div class="ptfe-field">
+                                <label class="label">End Time</label>
+                                <input id="ptfeEventEndTime" class="input mono" type="time" style="text-align:center;" onchange="updatePtfeEventDuration()">
+                            </div>
+                        </div>
+                        <div id="ptfeEventDurationDisplay" class="ptfe-muted-note" style="margin-top:6px; text-align:right;"></div>
                     </div>
 
                     <div style="margin-top:18px;">
@@ -1700,6 +1702,19 @@
             }
         }
 
+        function updatePtfeEventDuration() {
+            const evS = document.getElementById('ptfeEventStartTime')?.value;
+            const evE = document.getElementById('ptfeEventEndTime')?.value;
+            const durEl = document.getElementById('ptfeEventDurationDisplay');
+            if (!durEl) return;
+            if (evS && evE) {
+                const mins = calcEventMinutes(evS, evE);
+                durEl.textContent = mins > 0 ? `Duration: ${mins} min` : '';
+            } else {
+                durEl.textContent = '';
+            }
+        }
+
         function setPtfeEntryMode(mode) {
             PTFE_ENTRY_MODE = mode === 'event' ? 'event' : 'job';
             document.getElementById('ptfeJobModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'job');
@@ -1710,6 +1725,13 @@
             if (jobFields) jobFields.style.display = PTFE_ENTRY_MODE === 'job' ? 'block' : 'none';
             if (eventFields) eventFields.style.display = PTFE_ENTRY_MODE === 'event' ? 'block' : 'none';
             if (resultsCard) resultsCard.style.display = PTFE_ENTRY_MODE === 'job' ? 'block' : 'none';
+            if (PTFE_ENTRY_MODE === 'event') {
+                const startInput = document.getElementById('ptfeEventStartTime');
+                if (startInput && !startInput.value) {
+                    const now = new Date();
+                    startInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                }
+            }
             updatePtfeCalculations();
         }
 
@@ -2022,16 +2044,19 @@
 
         async function submitPtfeEvent() {
             const eventName = document.getElementById('ptfeEvent').value;
-            const timeWorked = document.getElementById('ptfeTimeWorked').value;
+            const startTime = document.getElementById('ptfeEventStartTime').value;
+            const endTime = document.getElementById('ptfeEventEndTime').value;
             if (!eventName) return showToast('Event is required.');
-            if (!timeWorked) return showToast('Time worked is required.');
+            if (!startTime || !endTime) return showToast('Start and end time are required.');
+            const duration = calcEventMinutes(startTime, endTime);
+            if (duration <= 0) return showToast('End time must be after start time.');
 
             const payload = {
                 department: 'PTFE',
                 'Entry Type': 'Event',
                 'Associate Name': SESSION_USER.name,
                 'Date': document.getElementById('ptfeDate').value || getLocalDate(),
-                'Time Worked': Number(timeWorked) || 0,
+                'Time Worked': duration,
                 'Event': eventName,
                 'Comments': document.getElementById('ptfeComments').value.trim()
             };
@@ -2053,7 +2078,9 @@
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
                 updateSubmittingOverlay('Saved!', eventSavedMsg);
                 document.getElementById('ptfeEvent').value = '';
-                document.getElementById('ptfeTimeWorked').value = '';
+                document.getElementById('ptfeEventStartTime').value = '';
+                document.getElementById('ptfeEventEndTime').value = '';
+                const ptfeDurEl = document.getElementById('ptfeEventDurationDisplay'); if (ptfeDurEl) ptfeDurEl.textContent = '';
                 document.getElementById('ptfeComments').value = '';
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
@@ -2061,7 +2088,7 @@
         }
 
         function resetPtfeForm(clearDate = true) {
-            ['ptfeItem', 'ptfeLot', 'ptfeSequence', 'ptfeTimeWorked', 'ptfeFootage', 'ptfeProcessingLength', 'ptfeStartQuantity', 'ptfeEndQuantity', 'ptfeRecuts', 'ptfePullingWraps', 'ptfeComments', 'ptfeEvent'].forEach((id) => {
+            ['ptfeItem', 'ptfeLot', 'ptfeSequence', 'ptfeTimeWorked', 'ptfeFootage', 'ptfeProcessingLength', 'ptfeStartQuantity', 'ptfeEndQuantity', 'ptfeRecuts', 'ptfePullingWraps', 'ptfeComments', 'ptfeEvent', 'ptfeEventStartTime', 'ptfeEventEndTime'].forEach((id) => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
@@ -2072,6 +2099,8 @@
             if (multiplierInput) multiplierInput.value = '1';
             const resetBtn = document.getElementById('ptfeMultiplierResetBtn');
             if (resetBtn) resetBtn.style.display = 'none';
+            const ptfeEventDur = document.getElementById('ptfeEventDurationDisplay');
+            if (ptfeEventDur) ptfeEventDur.textContent = '';
             const startInput = document.getElementById('ptfeStartQuantity');
             if (startInput) startInput.readOnly = false;
             document.querySelectorAll('#ptfePortal input[type="checkbox"]').forEach((input) => { input.checked = false; });
@@ -2178,8 +2207,7 @@
                 spoolCheckNumber: "",    // '1st', '2nd', '3rd', '4th', '5th'
                 workspaces: {},          // Kiosk: { 'Operator Name': workspaceObject }
                 rca: { ptfeHead: "", ptfeOps: "", etchOps: "", tecoHead: "", tecoOps: "", pebaxHead: "", pebaxOps: "", commentStatus: "No" },
-                eventData: { type: "", minutes: 0, startTimeRef: "", exactStartMs: null },
-                eventTimer: { running: false, startTime: null },
+                eventData: { type: "", startTimeRef: "", endTimeRef: "", exactStartMs: null },
                 shiftEndModalShown: false
             };
         }
@@ -3043,13 +3071,11 @@
             }
             setEntryMode(state.entryType);
 
-            // Restore event timer UI if it was running when page was reloaded
-            if (state.eventTimer && state.eventTimer.running) {
-                const btn = document.getElementById('btnEventTimer');
-                const display = document.getElementById('eventTimerDisplay');
-                if (btn) { btn.textContent = "Stop Timer"; btn.classList.remove('btn-blue'); btn.classList.add('btn-red'); }
-                if (display) display.style.display = 'block';
-            }
+            // Restore event fields from saved state
+            const evSelEl = document.getElementById('eventSelect'); if (evSelEl && state.eventData.type) evSelEl.value = state.eventData.type;
+            const evStEl = document.getElementById('eventStartTimeRef'); if (evStEl && state.eventData.startTimeRef) evStEl.value = state.eventData.startTimeRef;
+            const evEndEl = document.getElementById('eventEndTimeRef'); if (evEndEl && state.eventData.endTimeRef) evEndEl.value = state.eventData.endTimeRef;
+            updateEventDuration();
         }
 
         function updateTimeFromUI() {
@@ -3159,16 +3185,7 @@
                 };
                 toggleLockout(isLockedOut);
             }
-            if (state.eventTimer?.running) {
-                const elapsedMs = nowTs - state.eventTimer.startTime;
-                const mins = Math.floor(elapsedMs / 60000); const secs = Math.floor((elapsedMs % 60000) / 1000);
-                const etDisp = document.getElementById('eventTimerDisplay'); if (etDisp) etDisp.textContent = `TIMER RUNNING: ${mins}m ${secs}s`;
-            }
-            const evS = document.getElementById('eventStartTimeRef')?.value; const evM = parseInt(document.getElementById('eventMinutesInput')?.value) || 0;
-            if (evS && evM > 0) {
-                const [h, m] = evS.split(':').map(Number); const projDate = new Date(); projDate.setHours(h, m + evM, 0, 0);
-                const projEl = document.getElementById('eventProjectedEnd'); if (projEl) projEl.textContent = `PROJECTED END: ${projDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
-            }
+            updateEventDuration();
             calculateOEE(); render();
         }
 
@@ -3480,10 +3497,12 @@
 
         function handleEventSubmit() {
             if (!validateShiftSetup()) return;
-            const evT = document.getElementById('eventSelect').value; const evM = parseInt(document.getElementById('eventMinutesInput').value) || 0;
+            const evT = document.getElementById('eventSelect').value;
             const evS = document.getElementById('eventStartTimeRef').value;
-            if (!evT || evM <= 0 || !evS) return showToast("⚠️ Missing Data.");
-            if (state.eventTimer.running) return showToast("⚠️ Stop timer first.");
+            const evE = document.getElementById('eventEndTimeRef').value;
+            if (!evT || !evS || !evE) return showToast("⚠️ Missing Data.");
+            const evM = calcEventMinutes(evS, evE);
+            if (evM <= 0) return showToast("⚠️ End time must be after start time.");
             customConfirm("Log Event", `Bill ${evM}m to ${evT}?`, () => {
                 (async () => {
                     showSubmittingOverlay('Please Wait', 'Submitting event to Smartsheet...');
@@ -3526,11 +3545,11 @@
                     // includes the event data (billedMins and __events__)
                     if (!state.workspaces) state.workspaces = {};
                     state.workspaces[state.selectedOperator] = getActiveWorkspaceSnapshot();
-                    state.eventData = { type: "", minutes: 0, startTimeRef: "", exactStartMs: null };
+                    state.eventData = { type: "", startTimeRef: "", endTimeRef: "", exactStartMs: null };
                     const uiEvS = document.getElementById('eventSelect'); if (uiEvS) uiEvS.value = "";
-                    const uiEvM = document.getElementById('eventMinutesInput'); if (uiEvM) uiEvM.value = "";
                     const uiEvR = document.getElementById('eventStartTimeRef'); if (uiEvR) uiEvR.value = "";
-                    const uiEvP = document.getElementById('eventProjectedEnd'); if (uiEvP) uiEvP.textContent = "PROJECTED END: --:--";
+                    const uiEvE = document.getElementById('eventEndTimeRef'); if (uiEvE) uiEvE.value = "";
+                    const uiEvD = document.getElementById('eventDurationDisplay'); if (uiEvD) uiEvD.textContent = "";
                     setEntryMode('Job');
                     updateSubmittingOverlay('Saved!', 'Event submitted successfully.');
                     showToast("Event Logged.");
@@ -3538,25 +3557,27 @@
             });
         }
 
-        function toggleEventTimer() {
-            if (!validateShiftSetup()) return;
-            const btn = document.getElementById('btnEventTimer'); const display = document.getElementById('eventTimerDisplay');
-            if (!state.eventTimer.running) {
-                state.eventTimer.running = true; state.eventTimer.startTime = Date.now();
-                state.eventData.exactStartMs = Date.now(); // exact ms — used by flush to avoid HH:MM truncation gap
-                const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-                const refInp = document.getElementById('eventStartTimeRef'); if (refInp) refInp.value = nowStr;
-                state.eventData.startTimeRef = nowStr;
-                if (btn) { btn.textContent = "Stop Timer"; btn.classList.replace('btn-blue', 'btn-red'); }
-                if (display) display.style.display = 'block';
+        function calcEventMinutes(startStr, endStr) {
+            const [sh, sm] = startStr.split(':').map(Number);
+            const [eh, em] = endStr.split(':').map(Number);
+            let diff = (eh * 60 + em) - (sh * 60 + sm);
+            if (diff < 0) diff += 24 * 60; // handle midnight crossing
+            return diff;
+        }
+
+        function updateEventDuration() {
+            const evS = document.getElementById('eventStartTimeRef')?.value;
+            const evE = document.getElementById('eventEndTimeRef')?.value;
+            const durEl = document.getElementById('eventDurationDisplay');
+            if (!durEl) return;
+            if (evS && evE) {
+                const mins = calcEventMinutes(evS, evE);
+                durEl.textContent = mins > 0 ? `DURATION: ${mins}m` : '';
             } else {
-                const elapsed = Math.floor((Date.now() - state.eventTimer.startTime) / 60000);
-                const minsInp = document.getElementById('eventMinutesInput'); if (minsInp) minsInp.value = elapsed || 1;
-                state.eventData.minutes = elapsed || 1; state.eventTimer.running = false; state.eventTimer.startTime = null;
-                if (btn) { btn.textContent = "Start Timer"; btn.classList.replace('btn-red', 'btn-blue'); }
-                if (display) display.style.display = 'none';
+                durEl.textContent = '';
             }
-            save();
+            const endTimeRef = document.getElementById('eventEndTimeRef');
+            if (endTimeRef) { state.eventData.endTimeRef = endTimeRef.value; save(); }
         }
 
         function handleShiftResetTrigger() {
@@ -4113,7 +4134,6 @@
                     state.shiftTotalBad = saved.shiftTotalBad || 0;
                     state.rca = { ...fresh.rca, ...(saved.rca || {}) };
                     state.eventData = { ...fresh.eventData, ...(saved.eventData || {}) };
-                    state.eventTimer = { ...fresh.eventTimer, ...(saved.eventTimer || {}) };
                     // We don't restore defects immediately because the DOM elements haven't been built by the async fetch yet.
                     // Instead, syncUIToState handles it once renderDefectLog runs.
                     state.defects = { ...fresh.defects, ...(saved.defects || {}) };
@@ -4219,8 +4239,8 @@
             const lInp = document.getElementById('lotNumber'); if (lInp) lInp.oninput = (e) => { state.lotNumber = e.target.value; save(); };
             const iInp = document.getElementById('itemNumber'); if (iInp) iInp.oninput = (e) => { state.itemNumber = e.target.value; save(); };
             const eS = document.getElementById('eventSelect'); if (eS) eS.onchange = (e) => { state.eventData.type = e.target.value; save(); };
-            const eM = document.getElementById('eventMinutesInput'); if (eM) eM.oninput = (e) => { state.eventData.minutes = parseInt(e.target.value) || 0; save(); };
-            const eT = document.getElementById('eventStartTimeRef'); if (eT) eT.onchange = (e) => { state.eventData.startTimeRef = e.target.value; state.eventData.exactStartMs = null; save(); };
+            const eT = document.getElementById('eventStartTimeRef'); if (eT) eT.onchange = (e) => { state.eventData.startTimeRef = e.target.value; state.eventData.exactStartMs = null; updateEventDuration(); save(); };
+            const eE = document.getElementById('eventEndTimeRef'); if (eE) eE.onchange = (e) => { state.eventData.endTimeRef = e.target.value; updateEventDuration(); save(); };
             const rcPH = document.getElementById('rca_ptfe_head'); if (rcPH) rcPH.oninput = (e) => { state.rca.ptfeHead = e.target.value; save(); };
             const rcPO = document.getElementById('rca_ptfe_ops'); if (rcPO) rcPO.onchange = (e) => { state.rca.ptfeOps = e.target.value; save(); };
             const rcEO = document.getElementById('rca_etch_ops'); if (rcEO) rcEO.onchange = (e) => { state.rca.etchOps = e.target.value; save(); };
