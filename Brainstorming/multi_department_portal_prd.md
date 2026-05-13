@@ -1,6 +1,6 @@
 # Multi-Department Portal PRD
 
-Last updated: 2026-05-12
+Last updated: 2026-05-13
 
 ## Purpose
 
@@ -17,18 +17,19 @@ Expand the current PrecisionLiner portal into a multi-department production port
 ## Non-Goals For Initial Rollout
 
 - Do not rebuild the admin panel for PTFE/Polyimide yet.
-- Do not implement PTFE/Polyimide hour-by-hour tracking until the format is decided.
 - Do not migrate away from Smartsheet.
 - Do not rewrite the PrecisionLiner UI unless required to support department routing.
+
+> **Note (2026-05-13):** PTFE Job x Job tracker is built and live. The tracker is job-by-job (not hour-by-hour) for 4 of 5 cells; Roll Cut uses HR slots. PI tracker format will follow the same pattern when PI is built.
 
 ## Rollout Strategy
 
 Use phased delivery, not a one-shot build.
 
-1. **Foundation:** department-aware config, login, Smartsheet clients, and routing. PrecisionLiner must continue working.
-2. **PTFE:** first new department view and submit flow.
-3. **Polyimide:** mirror the PTFE pattern with PI-specific calculation differences.
-4. **Later:** department-aware admin panel, hour-by-hour design, training/docs updates.
+1. **Foundation:** department-aware config, login, Smartsheet clients, and routing. PrecisionLiner must continue working. ✅ **COMPLETE**
+2. **PTFE:** first new department view and submit flow. ✅ **COMPLETE** (Phase 1 + 1.5)
+3. **Polyimide:** mirror the PTFE pattern with PI-specific calculation differences. ⏳ **NOT STARTED**
+4. **Later:** department-aware admin panel, training/docs updates.
 
 ## Department Model
 
@@ -78,6 +79,6 @@ Until the frontend selector is built, existing PrecisionLiner login behavior mus
 
 ## Open Decisions
 
-- Final PTFE/PI hour-by-hour data model.
-- Whether the first PTFE view is built inside `public/index.html` or split into department-specific frontend modules.
+- Whether the first PI view is built inside `public/index.html` (same pattern as PTFE) or split into a separate frontend module.
 - Timing for a department-aware admin panel.
+- PI Job x Job tracker cell names and sequence-to-tab mapping (confirm before building).

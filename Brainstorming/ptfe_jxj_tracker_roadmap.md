@@ -268,26 +268,31 @@ also call `appendPtfeJxJEntry(entryData)` which:
 - [x] Record all column IDs (see PTFE_JOB_LOG_COLUMN_MAP above)
 - [x] Add `DEPT_PTFE_JOB_LOG_SHEET_ID=2513150724231044` to `.env`
 
-### Server (Agent 2 — portal agent)
-- [ ] Add `PTFE_JOB_LOG_SHEET_ID` constant loading from env
-- [ ] Add `PTFE_JOB_LOG_COLUMN_MAP` with real column IDs
-- [ ] Add `POST /api/submit-ptfe-jxj` handler (after existing `/api/submit-ptfe`)
-- [ ] Test-account interception + `ALLOW_PTFE_MASTER_LOG_WRITES` gate
+### Server — COMPLETE
+- [x] `PTFE_JOB_LOG_SHEET_ID` constant loading from env
+- [x] `PTFE_JOB_LOG_COLUMN_MAP` with all 17 real column IDs
+- [x] `POST /api/submit-ptfe-jxj` handler (after existing `/api/submit-ptfe`)
+- [x] Test-account interception + `ALLOW_PTFE_MASTER_LOG_WRITES` gate
 
-### Frontend (Agent 2 — portal agent)
-- [ ] Remove History section, button, and related JS/CSS
-- [ ] Add `ptfe_jxj_state` localStorage management functions
-- [ ] Add `appendPtfeJxJEntry()` — called from existing submit flow
-- [ ] Add `renderPtfeJxJ(cellName)` — builds the table for active tab
-- [ ] Add `PTFE_JXJ_TABS` config array + tab switching
-- [ ] Add stale-state detection on portal init
-- [ ] Add End Shift button + `confirmPtfeEndShift()` dialog
-- [ ] Add `submitPtfeJxJToSmartsheet()` — POST to `/api/submit-ptfe-jxj`
-- [ ] Wire End Shift into `performLogout()` / sign-out flow
-- [ ] Replace "Hour by Hour Tracker coming soon" stub with JxJ tracker section HTML
-- [ ] Add OE color-coding CSS
-- [ ] Add Loss Reason inline input per row
-- [ ] Verify all 4 themes render correctly
+### Frontend — COMPLETE
+- [x] Removed History section, button, and related JS/CSS
+- [x] `ptfe_jxj_state` localStorage management functions
+- [x] `appendPtfeJxJEntry()` — called from existing submit flow
+- [x] `renderPtfeJxJ(cellName)` — builds the table for active tab
+- [x] `PTFE_JXJ_TABS` config array + tab switching
+- [x] Stale-state detection on portal init
+- [x] End Shift button + `confirmPtfeEndShift()` dialog with Countermeasures field
+- [x] `performPtfeEndShift()` — POST to `/api/submit-ptfe-jxj`
+- [x] End Shift signs out via `performLogout()`
+- [x] JxJ tracker section HTML with id="ptfeJxjSection"
+- [x] OE color-coding CSS (green/warn/red)
+- [x] Loss Reason inline input per row
+- [x] All 4 themes: light/dark/high-contrast overrides added
+
+### Post-build corrections — COMPLETE
+- [x] Renamed "Table Pull" tab to "Pull" throughout (HTML, JS, Smartsheet picklist)
+- [x] Expanded sequence map from 6 to all 16 PTFE sequences
+- [x] Fixed Ctrl+Shift+X supervisor reset — was only registered in PL scope; moved to global listener
 
 ---
 

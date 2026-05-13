@@ -1,7 +1,10 @@
 # PTFE & PI Department Integration Roadmap
 
-Last updated: 2026-05-12  
+Last updated: 2026-05-13  
 Context: Brainstorming doc for agents and developers building PTFE and Polyamide (PI) departments into the PL Portal. Research complete — Smartsheet column IDs captured, Reference Sheets audited, architecture decisions confirmed.
+
+**PTFE Phase 1 & 1.5: COMPLETE.** See `ptfe_phase1_implementation_spec.md` for full status.  
+**PI: Not yet started.**
 
 > **Config sheet pattern decision (2026-05-12):** Every workspace will have one **Master Configuration sheet** per department, modeled exactly on PL's `EMPLOYEE_SCHEDULE_SHEET_ID`. Associate rows, Sequence rows, and Event rows coexist in the same sheet (columns that don't apply to a row type are left empty). This is the single source of truth the server reads to build the `/api/config` response. The existing Associates reference sheet remains in the workspace for Smartsheet-native reporting (schedule attainment, etc.) but is NOT the portal's auth/config source. The Standards sheet remains strictly a PPH lookup table — sequences are NOT sourced from there.
 
@@ -28,7 +31,7 @@ Context: Brainstorming doc for agents and developers building PTFE and Polyamide
 | Sequence source | Master Configuration sheet (`Sequences` column rows) | Standards sheet is a PPH lookup table — sequences repeat per item number and must not be managed there |
 | Event source | Master Configuration sheet (`Events` column rows) | Same sheet, same pattern as PL |
 | Defect section | Not included for PTFE/PI | These depts use Pareto multi-selects instead |
-| Hour-by-Hour tracker format | TBD — see Open Questions | Output is in footage, not parts count; format must be decided before building H×H |
+| Job x Job tracker format | **DECIDED & BUILT** — see `ptfe_jxj_tracker_roadmap.md` | Job-by-job (not hour-by-hour) for 4 of 5 cells; Roll Cut uses HR slots. One Smartsheet row per job, submitted at End Shift. |
 | Pareto fields (Inspection, Pulling, Pulling Method) | Multi-select checkboxes | Selected values join as comma-separated string → MULTI_PICKLIST column in Smartsheet |
 | PPH Standards source | Load from Smartsheet Standards sheet | Already exists and populated in Reference Sheets; replaces the large hardcoded lookup table in the standalone portals |
 
@@ -40,7 +43,7 @@ Context: Brainstorming doc for agents and developers building PTFE and Polyamide
 - Login flow (bcrypt auth, session stored in `localStorage`)
 - Server architecture (same Express server, same `lib/smartsheet.js` client factory)
 - Fetch timeout / retry resilience (`fetchWithTimeout`, retry interceptor)
-- Hour-by-hour tracker concept (format TBD)
+- Job x Job tracker (built — see `ptfe_jxj_tracker_roadmap.md`)
 - Event tracking (non-productive time entries)
 
 ### What's different
@@ -257,48 +260,30 @@ Create a new sheet in each dept's workspace (top level or inside the Reference S
 
 ---
 
-## Phase 1: PTFE Integration — Step-by-Step
+## Phase 1: PTFE Integration — COMPLETE
 
-### Smartsheet setup (do first)
-- [ ] Create PTFE Master Configuration sheet (see "What Needs to Be Created" section above)
-- [ ] Populate all PTFE associates, sequences, and events as rows in the new sheet
-- [ ] Add `DEPT_PTFE_API_TOKEN`, `DEPT_PTFE_CONFIG_SHEET_ID`, `DEPT_PTFE_MASTER_LOG_SHEET_ID`, `DEPT_PTFE_STANDARDS_SHEET_ID`, `DEPT_PTFE_ITEMS_SHEET_ID` to `.env`
+### Smartsheet setup
+- [x] PTFE Master Configuration sheet exists (`DEPT_PTFE_CONFIG_SHEET_ID` = `1516154787942276`)
+- [x] All PTFE associates, sequences, and events populated
+- [x] All env vars in `.env`: `DEPT_PTFE_API_TOKEN`, `DEPT_PTFE_CONFIG_SHEET_ID`, `DEPT_PTFE_MASTER_LOG_SHEET_ID`, `DEPT_PTFE_STANDARDS_SHEET_ID`, `DEPT_PTFE_ITEMS_SHEET_ID`
+- [x] Job x Job Log sheet created (`DEPT_PTFE_JOB_LOG_SHEET_ID` = `2513150724231044`)
 
-### Server changes (`server.js`, `lib/smartsheet.js`)
-- [ ] Implement `getClientForDept(dept)` factory — per Improvement 7 in `portal_scaling_and_future_proofing.md`
-- [ ] Refactor `_configCache` to be dept-keyed: `{ PL: {...}, PTFE: {...} }`
-- [ ] Update `/api/login`: after reading associate row, return `department` field in response
-- [ ] Add `/api/config/ptfe` endpoint — reads PTFE Master Config sheet (reuses `buildConfigPayload` from `lib/config.js`), also fetches items from Items sheet and PPH standards from Standards sheet; returns all combined
-- [ ] Add `/api/submit-ptfe` endpoint — builds row from `PTFE_COLUMN_MAP`, posts to PTFE Master Log
-- [ ] Cache PPH standards server-side (separate from config cache — PPH data rarely changes)
+### Server changes
+- [x] `getClientForDept(dept)` factory in `lib/smartsheet.js`
+- [x] `_configCache` is dept-keyed
+- [x] `/api/login` returns `department` in response
+- [x] `/api/config?dept=PTFE` fetches config + items + standards
+- [x] `POST /api/submit-ptfe` — PTFE Master Log writes
+- [x] `POST /api/submit-ptfe-jxj` — Job x Job Log writes (End Shift)
 
-### Frontend changes (`public/index.html` or new dept view)
-- [ ] After login, branch on `localStorage.department`:
-  - `"PL"` → existing PL view (no change)
-  - `"PTFE"` → render PTFE view
-  - `"PI"` → render PI view (Phase 2)
-- [ ] PTFE view includes:
-  - Item dropdown (populated from Items sheet)
-  - Lot # input
-  - Sequence dropdown (populated from Master Config sheet — same `sequences` array as PL)
-  - Footage, Processing Length, Start Qty, End Qty inputs
-  - Scrap Parts, Scrap Rate %, Re-Cuts inputs
-  - Pulling Wraps input
-  - Inspection Pareto checkbox group (options from Master Log column definitions)
-  - Pulling Pareto checkbox group
-  - Pulling Method checkbox group
-  - Sequence OE display (calculated: endQty / timeWorked ÷ PPH_STANDARD)
-  - Event section (non-productive time — events from Master Config sheet)
-  - Hour-by-Hour tracker section (format TBD)
-  - **No defect section**
-- [ ] `fetchWithTimeout` already in place — use it for all PTFE submit calls
-
-### End-to-end test
-- [ ] Log in as a PTFE associate → routed to PTFE view, PL UI not shown
-- [ ] Submit a job row → row appears in PTFE Master Log with correct column values
-- [ ] MULTI_PICKLIST columns accept comma-separated values correctly
-- [ ] OE calculation matches output from the standalone HTML portal for the same inputs
-- [ ] PL associates unaffected — no change in their flow
+### Frontend changes
+- [x] Dept routing: PL → PL portal, PTFE → PTFE portal, PI → placeholder
+- [x] Item Number: text input with 6-digit validation (NOT a dropdown — changed from original spec)
+- [x] Lot #, Sequence, Footage, Processing Length, Start/End Qty, Scrap, Re-Cuts, Paretos, Pulling fields
+- [x] OE display with gauge and color coding
+- [x] Event entry with Start Time + End Time (duration auto-calculated)
+- [x] Job x Job Tracker — 5 tabs, all 16 sequences mapped, End Shift flow
+- [x] Ctrl+Shift+X supervisor reset (PIN 2026)
 
 ---
 
@@ -429,10 +414,19 @@ PL uses `Sequence Goals` to show a parts target per sequence. PTFE/PI do not use
 
 ---
 
-## Open Questions (resolve before building)
+## Resolved Questions
+
+| Question | Resolution |
+|----------|------------|
+| Tracker format for PTFE | **Job x Job** (not hour-by-hour). 4 cells track job-by-job; Roll Cut uses HR slots. Built and live. See `ptfe_jxj_tracker_roadmap.md`. |
+| Events for PTFE | **Confirmed:** Baking, Clean-Up, Meeting, Misc, No Pay No Penalty, PTO, Toolbox, Training + Lunch, Break, Bathroom (always injected). |
+| Pareto options source | **Implemented:** Loaded from PTFE config sheet alongside sequences/events. Rendered as checkbox groups in the portal. |
+| Item input format | **Changed to text input** — 6-digit numeric, typed by associate. Faster than a dropdown on a kiosk. |
+
+## Open Questions (PI — not yet started)
 
 | Question | Impact |
 |----------|--------|
-| Hour-by-Hour tracker format for PTFE/PI | Must decide before creating the H×H Smartsheet sheets for PTFE/PI. PL uses Good Parts / Bad Parts / Minutes. PTFE/PI output is footage — should H×H track good footage / scrap footage / minutes, or something else? |
-| Events for PTFE | Confirm event list from the existing standalone PTFE portal. Enter as `Events` column rows in the PTFE Master Config sheet at build time. |
-| Pareto options source | Read options from Master Log column definitions via API (no extra sheet, no setup) — this is the recommended approach since those column definitions already exist. |
+| Tracker format for PI | PI follows the same job-by-job pattern as PTFE — confirm cell names and sequence list before building. |
+| PI sequences | Confirmed list: Long Pull, Table Pull, CTL, Inspection, Packaging, Flush, Wrapping, Check Flush, Pressure Test, 10X, Length Check, First Cut, Overall Length, Roll Cut (Both Ends), Spark Test, Crush Test — verify against live config sheet at build time. |
+| PI events | Confirmed: Baking, Clean-Up, Meeting, Misc, No Pay No Penalty, PTO, Toolbox, Training. |
