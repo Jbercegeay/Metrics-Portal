@@ -1156,10 +1156,6 @@
                             <label class="label">Date</label>
                             <input id="ptfeDate" class="input" type="date" style="text-align:left;">
                         </div>
-                        <div class="ptfe-field">
-                            <label class="label">Time Worked (Minutes)</label>
-                            <input id="ptfeTimeWorked" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 90" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
-                        </div>
                     </div>
 
                     <div id="ptfeJobFields" style="margin-top:14px;">
@@ -1211,7 +1207,13 @@
                         <div class="ptfe-form-grid" style="margin-top:14px;">
                             <div class="ptfe-field">
                                 <label class="label">Start Quantity</label>
-                                <input id="ptfeStartQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markPtfeStartManual(); updatePtfeCalculations()">
+                                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                    <input id="ptfeStartQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" style="min-width:140px; flex:1;" oninput="this.value=this.value.replace(/[^0-9]/g,''); markPtfeStartManual(); updatePtfeCalculations()">
+                                    <div id="ptfeMultiplierGroup" style="display:none; gap:6px; align-items:center;">
+                                        <input id="ptfeMultiplierInput" class="input mono" type="text" inputmode="decimal" value="1" aria-label="Pull quantity multiplier" style="width:74px;" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+                                        <button id="ptfeMultiplierBtn" class="btn btn-blue" style="padding:10px 12px; white-space:nowrap;" onclick="openPtfeMultiplier()">Apply</button>
+                                    </div>
+                                </div>
                                 <div id="ptfeStartHint" class="ptfe-muted-note">Enter manually.</div>
                             </div>
                             <div class="ptfe-field">
@@ -1250,6 +1252,11 @@
                             <label class="label">Event</label>
                             <div class="select-wrapper"><select id="ptfeEvent" class="custom-select"></select></div>
                         </div>
+                    </div>
+
+                    <div style="margin-top:18px;">
+                        <label class="label">Time Worked (Minutes)</label>
+                        <input id="ptfeTimeWorked" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 90" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
                     </div>
 
                     <div style="margin-top:18px;">
@@ -1354,6 +1361,7 @@
         let PTFE_ASSOCIATE_RATES = {};
         let PTFE_ENTRY_MODE = 'job';
         let PTFE_START_AUTO = false;
+        let PTFE_START_MANUAL_OVERRIDE = false;
         let PTFE_RESULTS = {
             totalInches: 0,
             lengthInches: 0,
@@ -1524,8 +1532,29 @@
 
         function markPtfeStartManual() {
             PTFE_START_AUTO = false;
+            PTFE_START_MANUAL_OVERRIDE = true;
             const startInput = document.getElementById('ptfeStartQuantity');
             if (startInput) startInput.readOnly = false;
+        }
+
+        function openPtfeMultiplier() {
+            if (!PTFE_START_AUTO || PTFE_RESULTS.partsFromSpool <= 0) return;
+            const multiplierInput = document.getElementById('ptfeMultiplierInput');
+            const raw = multiplierInput ? multiplierInput.value : '1';
+            const multiplier = Number(raw);
+            if (!Number.isFinite(multiplier) || multiplier <= 0) {
+                showToast('Enter a valid multiplier greater than 0.');
+                return;
+            }
+            const startInput = document.getElementById('ptfeStartQuantity');
+            if (startInput) {
+                startInput.value = String(Math.floor(PTFE_RESULTS.partsFromSpool * multiplier));
+                startInput.readOnly = false;
+            }
+            if (multiplierInput) multiplierInput.value = '1';
+            PTFE_START_AUTO = false;
+            PTFE_START_MANUAL_OVERRIDE = true;
+            updatePtfeCalculations();
         }
 
         function getPtfeStandard(item, sequence) {
@@ -1544,11 +1573,12 @@
             const partsFromSpool = totalInches > 0 && lengthInches > 0 ? Math.floor(totalInches / lengthInches) : 0;
             const startInput = document.getElementById('ptfeStartQuantity');
 
-            if (showPull && partsFromSpool > 0 && !PTFE_START_AUTO) {
+            if (showPull && partsFromSpool > 0 && !PTFE_START_AUTO && !PTFE_START_MANUAL_OVERRIDE) {
                 PTFE_START_AUTO = true;
             }
-            if ((!showPull || partsFromSpool === 0) && PTFE_START_AUTO) {
+            if (!showPull || partsFromSpool === 0) {
                 PTFE_START_AUTO = false;
+                PTFE_START_MANUAL_OVERRIDE = false;
             }
             if (startInput) {
                 startInput.readOnly = PTFE_START_AUTO;
@@ -1621,6 +1651,8 @@
             if (lotError) lotError.textContent = lot && /^\d{6}$/.test(lot) ? 'This looks like an item number. Please double-check.' : '';
             const startHint = document.getElementById('ptfeStartHint');
             if (startHint) startHint.textContent = PTFE_START_AUTO ? 'Auto-calculated from spool footage and part length.' : 'Enter manually.';
+            const multiplierGroup = document.getElementById('ptfeMultiplierGroup');
+            if (multiplierGroup) multiplierGroup.style.display = PTFE_START_AUTO && partsFromSpool > 0 ? 'flex' : 'none';
 
             const alert = document.getElementById('ptfeAlert');
             if (alert) {
@@ -1801,6 +1833,9 @@
                 if (el) el.value = '';
             });
             PTFE_START_AUTO = false;
+            PTFE_START_MANUAL_OVERRIDE = false;
+            const multiplierInput = document.getElementById('ptfeMultiplierInput');
+            if (multiplierInput) multiplierInput.value = '1';
             const startInput = document.getElementById('ptfeStartQuantity');
             if (startInput) startInput.readOnly = false;
             document.querySelectorAll('#ptfePortal input[type="checkbox"]').forEach((input) => { input.checked = false; });
