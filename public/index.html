@@ -1333,7 +1333,7 @@
                         <div class="ptfe-form-grid">
                             <div class="ptfe-field">
                                 <label class="label">Item Number</label>
-                                <div class="select-wrapper"><select id="ptfeItem" class="custom-select" onchange="updatePtfeCalculations()"></select></div>
+                                <input id="ptfeItem" class="input mono" type="text" inputmode="numeric" style="text-align:left;" placeholder="e.g. 311318" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
                                 <div id="ptfeItemError" class="ptfe-muted-note"></div>
                             </div>
                             <div class="ptfe-field">
@@ -1850,10 +1850,22 @@
             setPtfeGauge('ptfeOeGauge', sequenceOe, 'yield');
 
             const itemError = document.getElementById('ptfeItemError');
-            if (itemError) itemError.textContent = item && !/^\d{6}$/.test(item) ? 'Item number should be 6 digits.' : '';
+            const itemInvalid = item && !/^\d{6}$/.test(item);
+            if (itemError) {
+                itemError.textContent = itemInvalid ? 'Item number must be 6 digits.' : '';
+                itemError.style.color = itemInvalid ? '#ef4444' : '';
+            }
+            const itemInput = document.getElementById('ptfeItem');
+            if (itemInput) itemInput.style.borderColor = itemInvalid ? '#ef4444' : '';
             const lotError = document.getElementById('ptfeLotError');
             const lot = getPtfeValue('ptfeLot');
-            if (lotError) lotError.textContent = lot && /^\d{6}$/.test(lot) ? 'This looks like an item number. Please double-check.' : '';
+            const lotLooksLikeItem = lot && /^\d{6}$/.test(lot);
+            if (lotError) {
+                lotError.textContent = lotLooksLikeItem ? 'This looks like an item number. Please double-check.' : '';
+                lotError.style.color = lotLooksLikeItem ? '#d97706' : '';
+            }
+            const lotInput = document.getElementById('ptfeLot');
+            if (lotInput) lotInput.style.borderColor = lotLooksLikeItem ? '#d97706' : '';
             const startHint = document.getElementById('ptfeStartHint');
             if (startHint) startHint.textContent = PTFE_START_AUTO ? 'Auto-calculated from spool footage and part length.' : 'Enter manually.';
             const multiplierGroup = document.getElementById('ptfeMultiplierGroup');
@@ -1904,6 +1916,13 @@
                     if (el) el.focus();
                     return false;
                 }
+            }
+
+            const itemVal = String(document.getElementById('ptfeItem').value || '').trim();
+            if (!/^\d{6}$/.test(itemVal)) {
+                showToast('Item number must be exactly 6 digits.');
+                document.getElementById('ptfeItem').focus();
+                return false;
             }
 
             const sequence = document.getElementById('ptfeSequence').value;
@@ -2080,7 +2099,6 @@
                 if (isTestAccount(SESSION_USER.name) && !PTFE_ASSOCIATE_RATES[SESSION_USER.name]) {
                     PTFE_ASSOCIATE_RATES[SESSION_USER.name] = 1;
                 }
-                populateSelect('ptfeItem', PTFE_CONFIG.items || [], 'Select item...', 'item', 'item');
                 populateSelect('ptfeSequence', PTFE_CONFIG.sequences || [], 'Select sequence...');
                 populateSelect('ptfeEvent', PTFE_CONFIG.events || [], 'Select event...');
                 populateCheckboxes('ptfeInspectionParetos', PTFE_CONFIG.inspectionParetos || [], 'ptfeInspectionPareto');
