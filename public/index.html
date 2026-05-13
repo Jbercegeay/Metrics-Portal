@@ -904,6 +904,47 @@
             margin-top: 6px;
         }
 
+        .ptfe-history-entry {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: var(--soft-fill);
+            border: 1px solid var(--border);
+            margin-bottom: 6px;
+            font-size: 13px;
+            flex-wrap: wrap;
+        }
+
+        .ptfe-history-badge {
+            font-size: 10px;
+            font-weight: 800;
+            padding: 3px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .ptfe-history-badge.job { background: var(--accent); color: var(--active-text); }
+        .ptfe-history-badge.event { background: var(--warn); color: #fff; }
+
+        .ptfe-history-summary {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 10px 14px;
+            background: var(--soft-fill);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .ptfe-history-stat { display: flex; flex-direction: column; gap: 2px; }
+        .ptfe-history-stat-label { font-size: 10px; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .ptfe-history-stat-value { font-size: 18px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+
         .ptfe-alert {
             display: none;
             background: rgba(245, 158, 11, 0.12);
@@ -1507,6 +1548,15 @@
                 <button class="btn btn-muted" onclick="resetPtfeForm()">Reset</button>
             </div>
 
+            <section id="ptfeHistorySection" class="card" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h2 style="margin:0;">Today's Submissions</h2>
+                    <button class="btn btn-muted" style="padding:6px 12px; font-size:12px;" onclick="loadPtfeHistory()">↻ Refresh</button>
+                </div>
+                <div id="ptfeHistorySummary"></div>
+                <div id="ptfeHistoryList"></div>
+            </section>
+
             <section class="card">
                 <h2>Hour by Hour Tracker</h2>
                 <div class="subtitle" style="margin:0;">Hour-by-hour tracker coming soon.</div>
@@ -1733,6 +1783,85 @@
                 }
             }
             document.getElementById('ptfeSubmitBtn')?.focus();
+        }
+
+        async function loadPtfeHistory() {
+            const date = document.getElementById('ptfeDate')?.value || getLocalDate();
+            try {
+                const res = await fetch(`${API_BASE_URL}/ptfe/history?associate=${encodeURIComponent(SESSION_USER.name)}&date=${encodeURIComponent(date)}`);
+                const result = await res.json();
+                if (result.success) renderPtfeHistory(result.history);
+            } catch (e) {
+                console.warn('Could not load PTFE history:', e.message);
+            }
+        }
+
+        function renderPtfeHistory(history) {
+            const section = document.getElementById('ptfeHistorySection');
+            const summaryEl = document.getElementById('ptfeHistorySummary');
+            const listEl = document.getElementById('ptfeHistoryList');
+            if (!section || !summaryEl || !listEl) return;
+
+            if (!history || history.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+
+            const jobs = history.filter(h => (h.entryType || '').toLowerCase() !== 'event');
+            const events = history.filter(h => (h.entryType || '').toLowerCase() === 'event');
+            const totalTimeMins = history.reduce((s, h) => s + (Number(h.timeWorked) || 0), 0);
+            const totalEndQty = jobs.reduce((s, h) => s + (Number(h.endQty) || 0), 0);
+            const yieldVals = jobs.filter(h => h.startQty > 0).map(h => (h.endQty / h.startQty) * 100);
+            const avgYield = yieldVals.length > 0 ? yieldVals.reduce((a, b) => a + b, 0) / yieldVals.length : null;
+            const totalH = Math.floor(totalTimeMins / 60);
+            const totalM = totalTimeMins % 60;
+
+            summaryEl.innerHTML = `
+                <div class="ptfe-history-summary">
+                    <div class="ptfe-history-stat">
+                        <span class="ptfe-history-stat-label">Jobs</span>
+                        <span class="ptfe-history-stat-value">${jobs.length}</span>
+                    </div>
+                    <div class="ptfe-history-stat">
+                        <span class="ptfe-history-stat-label">Events</span>
+                        <span class="ptfe-history-stat-value">${events.length}</span>
+                    </div>
+                    <div class="ptfe-history-stat">
+                        <span class="ptfe-history-stat-label">Total Time</span>
+                        <span class="ptfe-history-stat-value">${totalH > 0 ? totalH + 'h ' : ''}${totalM}m</span>
+                    </div>
+                    <div class="ptfe-history-stat">
+                        <span class="ptfe-history-stat-label">Total Qty</span>
+                        <span class="ptfe-history-stat-value">${totalEndQty}</span>
+                    </div>
+                    ${avgYield !== null ? `
+                    <div class="ptfe-history-stat">
+                        <span class="ptfe-history-stat-label">Avg Yield</span>
+                        <span class="ptfe-history-stat-value" style="color:${avgYield >= 95 ? 'var(--accent-2)' : avgYield >= 85 ? 'var(--warn)' : 'var(--danger)'}">${avgYield.toFixed(1)}%</span>
+                    </div>` : ''}
+                </div>`;
+
+            listEl.innerHTML = history.map(h => {
+                const isEvent = (h.entryType || '').toLowerCase() === 'event';
+                if (isEvent) {
+                    return `<div class="ptfe-history-entry">
+                        <span class="ptfe-history-badge event">Event</span>
+                        <span style="font-weight:700; color:var(--text);">${h.event || '—'}</span>
+                        <span style="margin-left:auto; color:var(--subtext);">${h.timeWorked}m</span>
+                    </div>`;
+                }
+                const yPct = h.startQty > 0 ? ((h.endQty / h.startQty) * 100).toFixed(1) : null;
+                const yColor = yPct ? (yPct >= 95 ? 'var(--accent-2)' : yPct >= 85 ? 'var(--warn)' : 'var(--danger)') : 'var(--subtext)';
+                return `<div class="ptfe-history-entry">
+                    <span class="ptfe-history-badge job">${h.sequence || 'Job'}</span>
+                    <span style="font-weight:700; color:var(--text); font-family:monospace;">${h.item}</span>
+                    <span style="color:var(--subtext); font-size:12px;">${h.lot}</span>
+                    <span style="margin-left:auto; color:var(--subtext); white-space:nowrap;">${h.startQty} → ${h.endQty}</span>
+                    ${yPct ? `<span style="font-weight:700; color:${yColor}; white-space:nowrap;">${yPct}%</span>` : ''}
+                    <span style="color:var(--subtext); white-space:nowrap;">${h.timeWorked}m</span>
+                </div>`;
+            }).join('');
         }
 
         function initPtfeEnterNav() {
@@ -2083,6 +2212,7 @@
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
                 updateSubmittingOverlay('Saved!', jobSavedMsg);
                 resetPtfeForm(false);
+                loadPtfeHistory();
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
             }
@@ -2123,6 +2253,7 @@
                     ? 'PTFE event simulated (writes disabled).'
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
                 updateSubmittingOverlay('Saved!', eventSavedMsg);
+                loadPtfeHistory();
                 document.getElementById('ptfeEvent').value = '';
                 document.getElementById('ptfeEventStartTime').value = '';
                 document.getElementById('ptfeEventEndTime').value = '';
@@ -2191,6 +2322,7 @@
                 setPtfeEntryMode('job');
                 updatePtfeCalculations();
                 initPtfeEnterNav();
+                loadPtfeHistory();
                 showToast('PTFE data loaded from Smartsheet.');
             } catch (error) {
                 console.error(error);
