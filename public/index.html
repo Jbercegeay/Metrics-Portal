@@ -9,14 +9,81 @@
         :root {
             --bg: #0f172a;
             --panel: #111827;
+            --panel-soft: #0b1220c7;
+            --field-bg: #0b1220;
             --muted: #374151;
             --text: #e5e7eb;
+            --heading: #ffffff;
+            --subtext: #94a3b8;
             --accent: #38bdf8;
             --accent-2: #22c55e;
             --warn: #f59e0b;
             --danger: #ef4444;
             --border: #1f2937;
             --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+            --page-bg: radial-gradient(1200px 800px at 10% -10%, #1e293b 10%, var(--bg) 60%);
+            --active-text: #000000;
+            --soft-fill: rgba(255, 255, 255, 0.05);
+        }
+
+        body.theme-light {
+            --bg: #f4f7fb;
+            --panel: #ffffff;
+            --panel-soft: #ffffff;
+            --field-bg: #f8fafc;
+            --muted: #94a3b8;
+            --text: #0f172a;
+            --heading: #0f172a;
+            --subtext: #475569;
+            --accent: #0369a1;
+            --accent-2: #15803d;
+            --warn: #b45309;
+            --danger: #b91c1c;
+            --border: #cbd5e1;
+            --shadow: 0 8px 24px rgba(15, 23, 42, .12);
+            --page-bg: #f4f7fb;
+            --active-text: #ffffff;
+            --soft-fill: rgba(15, 23, 42, 0.04);
+        }
+
+        body.theme-dark {
+            --bg: #050816;
+            --panel: #0b1020;
+            --panel-soft: #0b1020;
+            --field-bg: #050816;
+            --muted: #334155;
+            --text: #f8fafc;
+            --heading: #ffffff;
+            --subtext: #cbd5e1;
+            --accent: #60a5fa;
+            --accent-2: #34d399;
+            --warn: #fbbf24;
+            --danger: #f87171;
+            --border: #334155;
+            --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+            --page-bg: #050816;
+            --active-text: #020617;
+            --soft-fill: rgba(255, 255, 255, 0.06);
+        }
+
+        body.theme-high-contrast {
+            --bg: #000000;
+            --panel: #000000;
+            --panel-soft: #000000;
+            --field-bg: #000000;
+            --muted: #ffffff;
+            --text: #ffffff;
+            --heading: #ffffff;
+            --subtext: #ffffff;
+            --accent: #facc15;
+            --accent-2: #22c55e;
+            --warn: #facc15;
+            --danger: #ff4d4d;
+            --border: #ffffff;
+            --shadow: none;
+            --page-bg: #000000;
+            --active-text: #000000;
+            --soft-fill: rgba(255, 255, 255, 0.12);
         }
 
         * {
@@ -26,7 +93,7 @@
         body {
             margin: 0;
             font-family: system-ui, -apple-system, sans-serif;
-            background: radial-gradient(1200px 800px at 10% -10%, #1e293b 10%, var(--bg) 60%);
+            background: var(--page-bg);
             color: var(--text);
             line-height: 1.35;
             padding-bottom: 40px;
@@ -39,7 +106,7 @@
         }
 
         .card {
-            background: #0b1220c7;
+            background: var(--panel-soft);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 20px;
@@ -63,32 +130,32 @@
             margin: 0 0 4px 0;
             font-size: 24px;
             font-weight: 700;
-            color: #fff;
+            color: var(--heading);
         }
 
         h2 {
             margin: 0 0 14px 0;
             font-size: 18px;
             font-weight: 700;
-            color: #cbd5e1;
+            color: var(--subtext);
             border-left: 3px solid var(--accent);
             padding-left: 10px;
         }
 
         .subtitle {
-            color: #94a3b8;
+            color: var(--subtext);
             margin: 0 0 20px 0;
             font-size: 14px;
         }
 
         .label {
-            color: #cbd5e1;
+            color: var(--subtext);
             font-weight: 500;
             font-size: 14px;
         }
 
         .input {
-            background: #0b1220;
+            background: var(--field-bg);
             border: 1px solid var(--muted);
             color: var(--text);
             padding: 12px 14px;
@@ -136,7 +203,7 @@
         .custom-select {
             appearance: none;
             -webkit-appearance: none;
-            background: #0b1220;
+            background: var(--field-bg);
             border: 1px solid var(--muted);
             color: var(--text);
             padding: 8px 30px 8px 12px;
@@ -161,6 +228,27 @@
             font-size: 10px;
             color: var(--accent);
             pointer-events: none;
+        }
+
+        .theme-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--subtext);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .theme-select {
+            width: auto;
+            min-width: 150px;
+            padding: 7px 28px 7px 10px;
+            font-size: 12px;
+        }
+
+        body.theme-light input[type="date"]::-webkit-calendar-picker-indicator,
+        body.theme-light input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: none;
         }
 
         .row {
@@ -414,6 +502,56 @@
             filter: grayscale(1);
         }
 
+        body.theme-light .card,
+        body.theme-light .kpi-card,
+        body.theme-light .modal,
+        body.theme-light .yield-badge,
+        body.theme-light .mode-toggle,
+        body.theme-light .pcd-tabs,
+        body.theme-light .hour-input-card,
+        body.theme-light .ptfe-panel,
+        body.theme-dark .card,
+        body.theme-dark .kpi-card,
+        body.theme-dark .modal,
+        body.theme-dark .yield-badge,
+        body.theme-dark .mode-toggle,
+        body.theme-dark .pcd-tabs,
+        body.theme-dark .hour-input-card,
+        body.theme-dark .ptfe-panel,
+        body.theme-high-contrast .card,
+        body.theme-high-contrast .kpi-card,
+        body.theme-high-contrast .modal,
+        body.theme-high-contrast .yield-badge,
+        body.theme-high-contrast .mode-toggle,
+        body.theme-high-contrast .pcd-tabs,
+        body.theme-high-contrast .hour-input-card,
+        body.theme-high-contrast .ptfe-panel {
+            background: var(--panel-soft) !important;
+            border-color: var(--border) !important;
+            color: var(--text);
+        }
+
+        body.theme-light .mode-btn,
+        body.theme-light .pcd-tab,
+        body.theme-light .kiosk-btn,
+        body.theme-dark .mode-btn,
+        body.theme-dark .pcd-tab,
+        body.theme-dark .kiosk-btn,
+        body.theme-high-contrast .mode-btn,
+        body.theme-high-contrast .pcd-tab,
+        body.theme-high-contrast .kiosk-btn {
+            color: var(--subtext);
+        }
+
+        body.theme-light .mode-btn.active,
+        body.theme-light .pcd-tab.active,
+        body.theme-dark .mode-btn.active,
+        body.theme-dark .pcd-tab.active,
+        body.theme-high-contrast .mode-btn.active,
+        body.theme-high-contrast .pcd-tab.active {
+            color: var(--active-text);
+        }
+
         @keyframes pulseRed {
             0% {
                 transform: scale(1);
@@ -622,7 +760,7 @@
         .sc-toggle-btn.active {
             background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(34, 197, 94, 0.15));
             border-color: var(--accent);
-            color: #fff;
+            color: var(--heading);
             box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
         }
 
@@ -659,11 +797,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            background: #0b1220;
+            background: var(--field-bg);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 9px 10px;
-            color: #cbd5e1;
+            color: var(--subtext);
             font-size: 13px;
         }
 
@@ -681,7 +819,7 @@
         }
 
         .ptfe-panel-title {
-            color: #cbd5e1;
+            color: var(--subtext);
             font-size: 15px;
             font-weight: 800;
             margin: 0 0 14px;
@@ -701,7 +839,7 @@
         }
 
         .ptfe-result-label {
-            color: #94a3b8;
+            color: var(--subtext);
             font-size: 11px;
             font-weight: 800;
             text-transform: uppercase;
@@ -709,7 +847,7 @@
         }
 
         .ptfe-result-value {
-            color: #fff;
+            color: var(--heading);
             font-size: 22px;
             font-weight: 900;
             margin-top: 4px;
@@ -718,7 +856,7 @@
 
         .ptfe-gauge {
             height: 8px;
-            background: #0b1220;
+            background: var(--field-bg);
             border: 1px solid var(--border);
             border-radius: 999px;
             overflow: hidden;
@@ -764,6 +902,11 @@
 
 <body>
     <script>
+        const savedPortalTheme = ['precision', 'light', 'dark', 'high-contrast'].includes(localStorage.getItem('portalTheme'))
+            ? localStorage.getItem('portalTheme')
+            : 'precision';
+        document.body.classList.add(`theme-${savedPortalTheme}`);
+
         // AUTHENTICATION CHECK
         const user = JSON.parse(localStorage.getItem('currentUser'));
         if (!user) {
@@ -803,14 +946,25 @@
                 <div class="subtitle">Advanced Systems Analysis & Control | V2.5.0</div>
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                <div class="theme-control">
+                    <span>Theme</span>
+                    <div class="select-wrapper" style="width:auto;">
+                        <select id="themeSelect" class="custom-select theme-select" onchange="setPortalTheme(this.value)">
+                            <option value="precision">Precision</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                            <option value="high-contrast">High Contrast</option>
+                        </select>
+                    </div>
+                </div>
                 <div
-                    style="font-size: 13px; color: #94a3b8; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+                    style="font-size: 13px; color: var(--subtext); font-weight: bold; display: flex; align-items: center; gap: 8px;">
                     <div id="navUserList" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end;"></div>
                     <button id="navAdminBtn" onclick="window.location.href='/admin.html'"
                         style="display:none; background:transparent; border:1px solid #f59e0b; color:#f59e0b; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:11px; margin-left:10px;">Admin</button>
                 </div>
                 <div id="currentDateTime"
-                    style="font-size: 14px; color: #fff; font-family: monospace; font-weight: 600;"></div>
+                    style="font-size: 14px; color: var(--heading); font-family: monospace; font-weight: 600;"></div>
                 <div id="shiftTimer" class="timer-display" style="display: none;">00:00:00</div>
             </div>
         </header>
@@ -1352,6 +1506,7 @@
         const isTestAccount = (name) => TEST_ACCOUNTS.includes(name);
         const SESSION_USER = JSON.parse(localStorage.getItem('currentUser')) || {};
         const SESSION_DEPT = SESSION_USER.departmentKey || 'PL';
+        const PORTAL_THEMES = ['precision', 'light', 'dark', 'high-contrast'];
 
         let SEQUENCE_GOALS = {};
         let PCD_SEQUENCES = [];
@@ -1375,6 +1530,17 @@
             targetQty: 0,
             sequenceOe: 0
         };
+
+        function setPortalTheme(theme) {
+            const safeTheme = PORTAL_THEMES.includes(theme) ? theme : 'precision';
+            document.body.classList.remove('theme-precision', 'theme-light', 'theme-dark', 'theme-high-contrast');
+            document.body.classList.add(`theme-${safeTheme}`);
+            localStorage.setItem('portalTheme', safeTheme);
+            const select = document.getElementById('themeSelect');
+            if (select) select.value = safeTheme;
+        }
+
+        setPortalTheme(localStorage.getItem('portalTheme') || 'precision');
 
         async function fetchSmartsheetData() {
             try {
