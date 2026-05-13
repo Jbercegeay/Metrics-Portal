@@ -1335,6 +1335,7 @@
                                 <label class="label">Item Number</label>
                                 <input id="ptfeItem" class="input mono" type="text" inputmode="numeric" style="text-align:left;" placeholder="e.g. 311318" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
                                 <div id="ptfeItemError" class="ptfe-muted-note"></div>
+                                <div id="ptfeItemStandardNote" class="ptfe-muted-note"></div>
                             </div>
                             <div class="ptfe-field">
                                 <label class="label">Lot Number</label>
@@ -1857,6 +1858,14 @@
             }
             const itemInput = document.getElementById('ptfeItem');
             if (itemInput) itemInput.style.borderColor = itemInvalid ? '#ef4444' : '';
+            const itemStandardNote = document.getElementById('ptfeItemStandardNote');
+            if (itemStandardNote) {
+                const validItem = item && /^\d{6}$/.test(item);
+                const hasStandard = validItem && sequence && baseStandard > 0;
+                const noStandard = validItem && sequence && baseStandard === 0;
+                itemStandardNote.textContent = noStandard ? 'No standard found for this item / sequence.' : '';
+                itemStandardNote.style.color = noStandard ? '#d97706' : '';
+            }
             const lotError = document.getElementById('ptfeLotError');
             const lot = getPtfeValue('ptfeLot');
             const lotLooksLikeItem = lot && /^\d{6}$/.test(lot);
