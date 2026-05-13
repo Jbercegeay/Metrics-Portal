@@ -1425,7 +1425,10 @@
                     updateSubmittingOverlay('Submission Failed', result.error || 'PTFE job could not be saved.', true);
                     return;
                 }
-                updateSubmittingOverlay('Saved!', isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
+                const jobSavedMsg = result.simulated
+                    ? 'PTFE job simulated (writes disabled).'
+                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
+                updateSubmittingOverlay('Saved!', jobSavedMsg);
                 resetPtfeForm(false);
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
@@ -1460,7 +1463,10 @@
                     updateSubmittingOverlay('Submission Failed', result.error || 'PTFE event could not be saved.', true);
                     return;
                 }
-                updateSubmittingOverlay('Saved!', isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
+                const eventSavedMsg = result.simulated
+                    ? 'PTFE event simulated (writes disabled).'
+                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
+                updateSubmittingOverlay('Saved!', eventSavedMsg);
                 document.getElementById('ptfeEvent').value = '';
                 document.getElementById('ptfeEventTimeWorked').value = '';
                 document.getElementById('ptfeEventComments').value = '';
@@ -1486,7 +1492,9 @@
             const adminBtn = document.getElementById('navAdminBtn');
             if (adminBtn) adminBtn.style.display = 'none';
             const userList = document.getElementById('navUserList');
-            if (userList) userList.textContent = `${SESSION_USER.name} | PTFE`;
+            if (userList) {
+                userList.innerHTML = `<span>${SESSION_USER.name} | PTFE</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
+            }
             const dateInput = document.getElementById('ptfeDate');
             if (dateInput) dateInput.value = getLocalDate();
             const currentUser = document.getElementById('ptfeCurrentUser');
@@ -1516,7 +1524,9 @@
             document.getElementById('plPortal').style.display = 'none';
             document.getElementById('ptfePortal').style.display = 'block';
             const userList = document.getElementById('navUserList');
-            if (userList) userList.textContent = `${SESSION_USER.name} | ${SESSION_USER.department || SESSION_DEPT}`;
+            if (userList) {
+                userList.innerHTML = `<span>${SESSION_USER.name} | ${SESSION_USER.department || SESSION_DEPT}</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
+            }
             const portal = document.getElementById('ptfePortal');
             if (portal) {
                 portal.innerHTML = '<section class="card"><h2>Department Coming Soon</h2><div class="subtitle" style="margin:0;">This department workflow is deferred until its rollout phase.</div></section>';

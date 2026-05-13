@@ -174,6 +174,7 @@
         let pendingSetupUsername = '';
         let pendingSetupDepartment = 'PL';
         let associatesData = [];
+        let associateLoadRequestId = 0;
 
         // Catch setup redirect from kiosk
         const urlParams = new URLSearchParams(window.location.search);
@@ -183,13 +184,36 @@
             return document.getElementById('department').value || 'PL';
         }
 
-        async function loadAssociatesForDepartment(department) {
+        async function fetchConfigForLogin(department) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
             try {
-                const res = await fetch(`/api/config?dept=${encodeURIComponent(department)}`);
-                const json = await res.json();
+                const res = await fetch(`/api/config?dept=${encodeURIComponent(department)}&scope=login&t=${Date.now()}`, {
+                    cache: 'no-store',
+                    signal: controller.signal
+                });
+                if (!res.ok) throw new Error(`Config request failed (${res.status})`);
+                return await res.json();
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        async function loadAssociatesForDepartment(department, requestId) {
+            const sel = document.getElementById('username');
+            sel.innerHTML = '<option value="">Loading names...</option>';
+            sel.disabled = true;
+            try {
+                let json;
+                try {
+                    json = await fetchConfigForLogin(department);
+                } catch (firstError) {
+                    console.warn("Retrying config load", firstError);
+                    json = await fetchConfigForLogin(department);
+                }
                 if (json.success) {
+                    if (requestId !== associateLoadRequestId || department !== getSelectedDepartment()) return;
                     associatesData = json.data.associates;
-                    const sel = document.getElementById('username');
                     sel.innerHTML = '<option value="">Select your name...</option>';
                     // Sort alphabetically
                     const sorted = [...associatesData].sort((a, b) => a.name.localeCompare(b.name));
@@ -232,26 +256,46 @@
                             sf.querySelector('h1').textContent = `Welcome, ${autoSetupUser}`;
                         }
                     }
+                } else if (requestId === associateLoadRequestId) {
+                    sel.innerHTML = '<option value="">Could not load names</option>';
                 }
-            } catch (e) { console.error("Could not load config", e); }
+            } catch (e) {
+                if (requestId === associateLoadRequestId) {
+                    sel.innerHTML = '<option value="">Could not load names</option>';
+                }
+                console.error("Could not load config", e);
+            } finally {
+                if (requestId === associateLoadRequestId) {
+                    sel.disabled = false;
+                }
+            }
         }
 
-        function addTrainingOptionForDepartment(department) {
+        function addTrainingOptionForDepartment(department, requestId) {
+            if (requestId !== associateLoadRequestId || department !== getSelectedDepartment()) return;
             const sel = document.getElementById('username');
-            const trainingName = department === 'PTFE' ? 'test-ptfe' : department === 'PI' ? 'test-pi' : '';
-            if (!trainingName || associatesData.some(a => a.name === trainingName)) return;
-            associatesData.push({ name: trainingName, Role: 'Associate', hasPassword: true, Training: true });
-            const opt = document.createElement('option');
-            opt.value = trainingName;
-            opt.textContent = trainingName;
-            sel.appendChild(opt);
+            const trainingNames = department === 'PTFE'
+                ? ['test-ptfe']
+                : department === 'PI'
+                    ? ['test-pi']
+                    : ['test1', 'test2'];
+            trainingNames.forEach((trainingName) => {
+                if (associatesData.some(a => a.name === trainingName)) return;
+                associatesData.push({ name: trainingName, Role: 'Associate', hasPassword: true, Training: true });
+                const opt = document.createElement('option');
+                opt.value = trainingName;
+                opt.textContent = trainingName;
+                sel.appendChild(opt);
+            });
         }
 
         async function handleDepartmentChange() {
             const department = getSelectedDepartment();
+            const requestId = ++associateLoadRequestId;
+            associatesData = [];
             document.getElementById('password').value = '';
-            await loadAssociatesForDepartment(department);
-            addTrainingOptionForDepartment(department);
+            await loadAssociatesForDepartment(department, requestId);
+            addTrainingOptionForDepartment(department, requestId);
         }
 
         async function init() {
@@ -305,11 +349,17 @@
                 } else if (data.success) {
                     // Login successful!
                     localStorage.setItem('currentUser', JSON.stringify(data.user));
-                    if (data.adminToken) localStorage.setItem('adminToken', data.adminToken);
+                    const deptKey = data.user.departmentKey || 'PL';
+                    const isPlSupervisor = data.user.role === 'Supervisor' && deptKey === 'PL';
+                    if (isPlSupervisor && data.adminToken) {
+                        localStorage.setItem('adminToken', data.adminToken);
+                    } else {
+                        localStorage.removeItem('adminToken');
+                    }
                     const toast = document.getElementById('toast');
                     toast.textContent = "Login successful!"; toast.style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = data.user.role === 'Supervisor' ? '/admin.html' : '/';
+                        window.location.href = isPlSupervisor ? '/admin.html' : '/';
                     }, 500);
                 } else {
                     showError(data.error || "Login failed");
@@ -344,11 +394,17 @@
 
                 if (data.success) {
                     localStorage.setItem('currentUser', JSON.stringify(data.user));
-                    if (data.adminToken) localStorage.setItem('adminToken', data.adminToken);
+                    const deptKey = data.user.departmentKey || 'PL';
+                    const isPlSupervisor = data.user.role === 'Supervisor' && deptKey === 'PL';
+                    if (isPlSupervisor && data.adminToken) {
+                        localStorage.setItem('adminToken', data.adminToken);
+                    } else {
+                        localStorage.removeItem('adminToken');
+                    }
                     const toast = document.getElementById('toast');
                     toast.textContent = "Password saved. Logging in..."; toast.style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = '/';
+                        window.location.href = isPlSupervisor ? '/admin.html' : '/';
                     }, 1000);
                 } else {
                     showError(data.error || "Failed to save password.", true);

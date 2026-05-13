@@ -21,6 +21,10 @@ const { getClientForDept, getRequiredEnv, smartsheetApi } = require('./lib/smart
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+function isEnvTrue(name) {
+    return ['1', 'true', 'yes', 'on'].includes(String(process.env[name] || '').trim().toLowerCase());
+}
+
 // Middleware
 app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://10.15.3.47:3000').split(',') }));
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off — HTML files use inline scripts
@@ -182,6 +186,9 @@ function requireAdmin(req, res, next) {
     if (!session || session.expires < Date.now()) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
+    if ((session.deptKey || 'PL') !== 'PL') {
+        return res.status(403).json({ success: false, error: 'Admin access is only enabled for PrecisionLiner at this time.' });
+    }
     next();
 }
 
@@ -191,7 +198,9 @@ app.use('/api/admin', requireAdmin);
 app.get('/api/config', async (req, res) => {
     try {
         const dept = normalizeDept(req.query.dept || 'PL');
-        const data = await fetchConfigData(null, dept);
+        const data = await fetchConfigData(null, dept, {
+            includeSupplemental: req.query.scope !== 'login'
+        });
         res.json({ success: true, data });
     } catch (error) {
         console.error("Error fetching master config:", error.response?.data || error.message);
@@ -390,9 +399,9 @@ app.post('/api/login', async (req, res) => {
                     department: departmentConfig.displayName
                 }
             };
-            if (role === 'Supervisor') {
+            if (role === 'Supervisor' && departmentConfig.key === 'PL') {
                 const token = crypto.randomUUID();
-                adminSessions.set(token, { name: username, expires: Date.now() + 8 * 60 * 60 * 1000 });
+                adminSessions.set(token, { name: username, deptKey: departmentConfig.key, expires: Date.now() + 8 * 60 * 60 * 1000 });
                 response.adminToken = token;
             }
             res.json(response);
@@ -448,9 +457,9 @@ app.post('/api/setup-password', async (req, res) => {
                 department: deptConfig.displayName
             }
         };
-        if (role === 'Supervisor') {
+        if (role === 'Supervisor' && deptConfig.key === 'PL') {
             const token = crypto.randomUUID();
-            adminSessions.set(token, { name: username, expires: Date.now() + 8 * 60 * 60 * 1000 });
+            adminSessions.set(token, { name: username, deptKey: deptConfig.key, expires: Date.now() + 8 * 60 * 60 * 1000 });
             setupResponse.adminToken = token;
         }
         res.json(setupResponse);
@@ -578,19 +587,52 @@ async function getPtfeMasterLogColumnMap() {
 async function submitPtfe(req, res) {
     try {
         const data = req.body;
+        let dept = 'PTFE';
+        try {
+            dept = normalizeDept(data.department || data.departmentKey || 'PTFE');
+        } catch (e) {
+            return res.status(400).json({ success: false, error: e.message });
+        }
+        if (dept !== 'PTFE') {
+            return res.status(400).json({ success: false, error: 'Invalid department for PTFE submission.' });
+        }
 
         if (TEST_ACCOUNTS.includes(data['Associate Name'])) {
             console.log(`[TEST MODE] Intercepted PTFE Master Log submission for ${data['Associate Name']}. Bypassing Smartsheet.`);
             return res.json({ success: true, message: "[TEST MODE] Successfully simulated PTFE logging to Smartsheet.", data: [] });
         }
 
+        if (!isEnvTrue('ALLOW_PTFE_MASTER_LOG_WRITES')) {
+            return res.json({
+                success: true,
+                simulated: true,
+                message: "[SAFE MODE] PTFE submission simulated. Set ALLOW_PTFE_MASTER_LOG_WRITES=true to enable PTFE Master Log writes.",
+                data: []
+            });
+        }
+
         const columnMap = await getPtfeMasterLogColumnMap();
         const newRow = { toTop: true, cells: [] };
+        const numericTitles = new Set([
+            'Time Worked',
+            'Start Quantity',
+            'End Quantity',
+            'Footage',
+            'Processing Length',
+            'Scrap Parts',
+            'Scrap Rate %',
+            'Re-Cuts',
+            'Pulling Wraps'
+        ]);
 
         for (const title of PTFE_MASTER_LOG_WRITE_TITLES) {
-            const value = data[title];
+            let value = data[title];
+            if (numericTitles.has(title) && typeof value === 'string' && value.trim() !== '') {
+                const parsed = Number(value);
+                if (!Number.isNaN(parsed)) value = parsed;
+            }
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
-                newRow.cells.push({ columnId: columnMap[title], value });
+                newRow.cells.push({ columnId: columnMap[title], value: value });
             }
         }
 
