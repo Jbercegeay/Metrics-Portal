@@ -717,66 +717,7 @@ app.post('/api/submit-pcd', async (req, res) => {
     }
 });
 
-// 5. PTFE History — today's submissions for one associate
-app.get('/api/ptfe/history', async (req, res) => {
-    try {
-        const { associate, date } = req.query;
-        if (!associate || !date) {
-            return res.status(400).json({ success: false, error: 'associate and date are required' });
-        }
-
-        if (TEST_ACCOUNTS.includes(associate)) {
-            return res.json({ success: true, history: [] });
-        }
-
-        const colMap = await getPtfeMasterLogColumnMap();
-        const sheetId = getRequiredEnv('DEPT_PTFE_MASTER_LOG_SHEET_ID');
-        const client = getClientForDept('PTFE');
-
-        // Fetch only the columns we need for efficiency
-        const columnIds = Object.values(colMap).filter(Boolean).join(',');
-        const response = await client.get(`sheets/${sheetId}?columnIds=${columnIds}`);
-        const rows = response.data.rows || [];
-
-        const getVal = (row, colId) => {
-            if (!colId) return null;
-            const cell = row.cells.find(c => c.columnId === colId);
-            return cell && cell.value !== undefined ? cell.value : null;
-        };
-
-        const history = rows
-            .filter(row =>
-                getVal(row, colMap['Associate Name']) === associate &&
-                getVal(row, colMap['Date']) === date
-            )
-            .map(row => ({
-                entryType:  String(getVal(row, colMap['Entry Type'])   || 'Job'),
-                timeWorked: Number(getVal(row, colMap['Time Worked'])  || 0),
-                item:       String(getVal(row, colMap['Item'])         || ''),
-                lot:        String(getVal(row, colMap['Lot #'])        || ''),
-                sequence:   String(getVal(row, colMap['Sequence'])     || ''),
-                startQty:   Number(getVal(row, colMap['Start Quantity']) || 0),
-                endQty:     Number(getVal(row, colMap['End Quantity'])   || 0),
-                scrapParts: Number(getVal(row, colMap['Scrap Parts'])    || 0),
-                scrapRate:  Number(getVal(row, colMap['Scrap Rate %'])   || 0),
-                event:      String(getVal(row, colMap['Event'])          || ''),
-                comments:   String(getVal(row, colMap['Comments'])       || '')
-            }));
-
-        res.json({ success: true, history });
-    } catch (error) {
-        console.error('Error fetching PTFE history:', error.response?.data || error.message);
-        if (error.code === 'ECONNABORTED') {
-            return res.status(504).json({ success: false, error: 'Smartsheet timed out.' });
-        }
-        if (error.response?.status === 429) {
-            return res.status(429).json({ success: false, error: 'Rate limited. Please wait a moment.' });
-        }
-        res.status(500).json({ success: false, error: 'Failed to fetch history.' });
-    }
-});
-
-// 6. Test Route just to check if server is working
+// 5. Test Route just to check if server is working
 app.get('/api/status', (req, res) => {
     res.json({ status: 'Online', message: 'Smartsheet API Gateway is running.' });
 });

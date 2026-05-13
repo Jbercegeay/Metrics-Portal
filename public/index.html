@@ -1785,15 +1785,28 @@
             document.getElementById('ptfeSubmitBtn')?.focus();
         }
 
-        async function loadPtfeHistory() {
-            const date = document.getElementById('ptfeDate')?.value || getLocalDate();
-            try {
-                const res = await fetch(`${API_BASE_URL}/ptfe/history?associate=${encodeURIComponent(SESSION_USER.name)}&date=${encodeURIComponent(date)}`);
-                const result = await res.json();
-                if (result.success) renderPtfeHistory(result.history);
-            } catch (e) {
-                console.warn('Could not load PTFE history:', e.message);
+        const PTFE_HISTORY_KEY = 'ptfe_daily_history';
+
+        function savePtfeEntryToHistory(entry) {
+            const today = document.getElementById('ptfeDate')?.value || getLocalDate();
+            let stored = null;
+            try { stored = JSON.parse(localStorage.getItem(PTFE_HISTORY_KEY)); } catch(e) {}
+            if (!stored || stored.date !== today || stored.associate !== SESSION_USER.name) {
+                stored = { date: today, associate: SESSION_USER.name, entries: [] };
             }
+            stored.entries.unshift(entry); // most recent first
+            localStorage.setItem(PTFE_HISTORY_KEY, JSON.stringify(stored));
+        }
+
+        function loadPtfeHistory() {
+            const today = document.getElementById('ptfeDate')?.value || getLocalDate();
+            let stored = null;
+            try { stored = JSON.parse(localStorage.getItem(PTFE_HISTORY_KEY)); } catch(e) {}
+            if (!stored || stored.date !== today || stored.associate !== SESSION_USER.name) {
+                renderPtfeHistory([]);
+                return;
+            }
+            renderPtfeHistory(stored.entries);
         }
 
         function renderPtfeHistory(history) {
@@ -1844,22 +1857,48 @@
 
             listEl.innerHTML = history.map(h => {
                 const isEvent = (h.entryType || '').toLowerCase() === 'event';
+                const timeStr = h.submittedAt ? `<span style="color:var(--subtext); font-size:12px; margin-left:auto;">${h.submittedAt}</span>` : '';
+
                 if (isEvent) {
                     return `<div class="ptfe-history-entry">
                         <span class="ptfe-history-badge event">Event</span>
                         <span style="font-weight:700; color:var(--text);">${h.event || '—'}</span>
-                        <span style="margin-left:auto; color:var(--subtext);">${h.timeWorked}m</span>
+                        <span style="color:var(--subtext);">${h.timeWorked}m</span>
+                        ${timeStr}
                     </div>`;
                 }
+
+                // Standard time comparison
+                const std = PTFE_STANDARDS[`${h.item}::${h.sequence}`];
+                const basePPH = Number(std?.goodPphStd) || 0;
+                const assocRate = Number(PTFE_ASSOCIATE_RATES[SESSION_USER.name]) || 1;
+                const adjPPH = basePPH > 0 && assocRate > 0 ? basePPH / assocRate : 0;
+                const stdMins = adjPPH > 0 && h.endQty > 0 ? Math.round((h.endQty / adjPPH) * 60) : null;
+                const delta = stdMins !== null ? h.timeWorked - stdMins : null;
+                const stdHtml = stdMins !== null ? `
+                    <span style="color:var(--subtext); font-size:12px;">std: ~${stdMins}m</span>
+                    <span style="font-weight:700; font-size:12px; color:${delta <= 0 ? 'var(--accent-2)' : 'var(--danger)'};">
+                        ${delta > 0 ? '+' : ''}${delta}m
+                    </span>` : '';
+
                 const yPct = h.startQty > 0 ? ((h.endQty / h.startQty) * 100).toFixed(1) : null;
                 const yColor = yPct ? (yPct >= 95 ? 'var(--accent-2)' : yPct >= 85 ? 'var(--warn)' : 'var(--danger)') : 'var(--subtext)';
-                return `<div class="ptfe-history-entry">
+
+                return `<div class="ptfe-history-entry" style="flex-wrap:wrap; gap:8px;">
                     <span class="ptfe-history-badge job">${h.sequence || 'Job'}</span>
-                    <span style="font-weight:700; color:var(--text); font-family:monospace;">${h.item}</span>
-                    <span style="color:var(--subtext); font-size:12px;">${h.lot}</span>
-                    <span style="margin-left:auto; color:var(--subtext); white-space:nowrap;">${h.startQty} → ${h.endQty}</span>
-                    ${yPct ? `<span style="font-weight:700; color:${yColor}; white-space:nowrap;">${yPct}%</span>` : ''}
-                    <span style="color:var(--subtext); white-space:nowrap;">${h.timeWorked}m</span>
+                    <div style="display:flex; flex-direction:column; gap:2px; flex:1; min-width:160px;">
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span style="font-weight:700; color:var(--text); font-family:monospace;">Item: ${h.item}</span>
+                            <span style="color:var(--subtext); font-size:12px;">Lot: ${h.lot}</span>
+                        </div>
+                        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                            <span style="color:var(--subtext); font-size:12px;">${h.startQty} → ${h.endQty}</span>
+                            ${yPct ? `<span style="font-weight:700; font-size:12px; color:${yColor};">Yield: ${yPct}%</span>` : ''}
+                            <span style="color:var(--subtext); font-size:12px;">Time: <strong style="color:var(--text);">${h.timeWorked}m</strong></span>
+                            ${stdHtml}
+                        </div>
+                    </div>
+                    ${timeStr}
                 </div>`;
             }).join('');
         }
@@ -2210,6 +2249,18 @@
                 const jobSavedMsg = result.simulated
                     ? 'PTFE job simulated (writes disabled).'
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
+                savePtfeEntryToHistory({
+                    submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    entryType: 'Job',
+                    item: payload['Item'],
+                    lot: payload['Lot #'],
+                    sequence: payload['Sequence'],
+                    startQty: Number(payload['Start Quantity']) || 0,
+                    endQty: Number(payload['End Quantity']) || 0,
+                    timeWorked: Number(payload['Time Worked']) || 0,
+                    scrapParts: PTFE_RESULTS.scrapParts,
+                    scrapRate: PTFE_RESULTS.scrapPercent
+                });
                 updateSubmittingOverlay('Saved!', jobSavedMsg);
                 resetPtfeForm(false);
                 loadPtfeHistory();
@@ -2252,6 +2303,12 @@
                 const eventSavedMsg = result.simulated
                     ? 'PTFE event simulated (writes disabled).'
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
+                savePtfeEntryToHistory({
+                    submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    entryType: 'Event',
+                    event: eventName,
+                    timeWorked: duration
+                });
                 updateSubmittingOverlay('Saved!', eventSavedMsg);
                 loadPtfeHistory();
                 document.getElementById('ptfeEvent').value = '';
