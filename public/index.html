@@ -666,6 +666,99 @@
             color: #cbd5e1;
             font-size: 13px;
         }
+
+        .ptfe-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(340px, 0.85fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 980px) {
+            .ptfe-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .ptfe-panel-title {
+            color: #cbd5e1;
+            font-size: 15px;
+            font-weight: 800;
+            margin: 0 0 14px;
+        }
+
+        .ptfe-result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .ptfe-result-box {
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px dashed var(--muted);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .ptfe-result-label {
+            color: #94a3b8;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ptfe-result-value {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 900;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .ptfe-gauge {
+            height: 8px;
+            background: #0b1220;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .ptfe-gauge-fill {
+            height: 100%;
+            width: 0;
+            background: var(--accent-2);
+            transition: width 0.25s ease, background 0.25s ease;
+        }
+
+        .ptfe-inline {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .ptfe-unit {
+            min-width: 82px;
+        }
+
+        .ptfe-muted-note {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .ptfe-alert {
+            display: none;
+            background: rgba(245, 158, 11, 0.12);
+            border-left: 4px solid var(--warn);
+            border-radius: 8px;
+            color: #fde68a;
+            font-size: 13px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 
@@ -1046,115 +1139,185 @@
         </div>
 
         <div id="ptfePortal" style="display:none;">
-            <section class="card">
-                <h2>PTFE Job Entry</h2>
-                <div class="subtitle" id="ptfeCurrentUser">Associate</div>
-                <div class="ptfe-form-grid">
-                    <div class="ptfe-field">
-                        <label class="label">Date</label>
-                        <input id="ptfeDate" class="input" type="date" style="text-align:left;">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Item</label>
-                        <div class="select-wrapper"><select id="ptfeItem" class="custom-select"></select></div>
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Lot #</label>
-                        <input id="ptfeLot" class="input mono" type="text" style="text-align:left;">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Sequence</label>
-                        <div class="select-wrapper"><select id="ptfeSequence" class="custom-select" onchange="updatePtfeConditionalFields()"></select></div>
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Time Worked</label>
-                        <input id="ptfeTimeWorked" class="input mono" type="number" min="0" step="0.01" placeholder="Hours">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Footage</label>
-                        <input id="ptfeFootage" class="input mono" type="number" min="0" step="0.01">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Processing Length</label>
-                        <input id="ptfeProcessingLength" class="input mono" type="number" min="0" step="0.01">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Start Quantity</label>
-                        <input id="ptfeStartQuantity" class="input mono" type="number" min="0" step="1" oninput="updatePtfeScrapRate()">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">End Quantity</label>
-                        <input id="ptfeEndQuantity" class="input mono" type="number" min="0" step="1" oninput="updatePtfeScrapRate()">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Scrap Parts</label>
-                        <input id="ptfeScrapParts" class="input mono" type="number" min="0" step="1" oninput="updatePtfeScrapRate()">
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Scrap Rate %</label>
-                        <input id="ptfeScrapRate" class="input mono input-auto" type="number" min="0" step="0.01" readonly>
-                    </div>
-                    <div class="ptfe-field">
-                        <label class="label">Re-Cuts</label>
-                        <input id="ptfeRecuts" class="input mono" type="number" min="0" step="1">
-                    </div>
-                </div>
+            <div class="mode-toggle">
+                <button id="ptfeJobModeBtn" class="mode-btn active" onclick="setPtfeEntryMode('job')">Job Entry</button>
+                <button id="ptfeEventModeBtn" class="mode-btn" onclick="setPtfeEntryMode('event')">Event Entry</button>
+            </div>
 
-                <div id="ptfePullFields" style="display:none; margin-top:18px;">
-                    <h2>Pulling Details</h2>
+            <div class="ptfe-layout">
+                <section class="card">
+                    <h2>Inputs</h2>
+                    <div class="subtitle" id="ptfeCurrentUser">Associate</div>
+                    <div id="ptfeAlert" class="ptfe-alert"></div>
+                    <div id="ptfeSanityWarnings" class="ptfe-alert"></div>
+
                     <div class="ptfe-form-grid">
                         <div class="ptfe-field">
-                            <label class="label">Pulling Wraps</label>
-                            <input id="ptfePullingWraps" class="input mono" type="number" min="0" step="1">
+                            <label class="label">Date</label>
+                            <input id="ptfeDate" class="input" type="date" style="text-align:left;">
                         </div>
                         <div class="ptfe-field">
-                            <label class="label">Pulling Method</label>
-                            <div id="ptfePullingMethods" class="check-grid"></div>
+                            <label class="label">Time Worked (Minutes)</label>
+                            <input id="ptfeTimeWorked" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 90" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
                         </div>
                     </div>
-                </div>
 
-                <div id="ptfeInspectionParetoSection" style="display:none; margin-top:18px;">
-                    <h2>Inspection Pareto</h2>
-                    <div id="ptfeInspectionParetos" class="check-grid"></div>
-                </div>
+                    <div id="ptfeJobFields" style="margin-top:14px;">
+                        <div class="ptfe-form-grid">
+                            <div class="ptfe-field">
+                                <label class="label">Item Number</label>
+                                <div class="select-wrapper"><select id="ptfeItem" class="custom-select" onchange="updatePtfeCalculations()"></select></div>
+                                <div id="ptfeItemError" class="ptfe-muted-note"></div>
+                            </div>
+                            <div class="ptfe-field">
+                                <label class="label">Lot Number</label>
+                                <input id="ptfeLot" class="input mono" type="text" style="text-align:left;" placeholder="e.g. 10155074-04" oninput="updatePtfeCalculations()">
+                                <div id="ptfeLotError" class="ptfe-muted-note"></div>
+                            </div>
+                            <div class="ptfe-field">
+                                <label class="label">Production Sequence</label>
+                                <div class="select-wrapper"><select id="ptfeSequence" class="custom-select" onchange="updatePtfeCalculations()"></select></div>
+                            </div>
+                            <div id="ptfeRecutsField" class="ptfe-field" style="display:none;">
+                                <label class="label">Re-Cuts</label>
+                                <input id="ptfeRecuts" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                            </div>
+                        </div>
 
-                <div id="ptfePullingParetoSection" style="display:none; margin-top:18px;">
-                    <h2>Pulling Pareto</h2>
-                    <div id="ptfePullingParetos" class="check-grid"></div>
-                </div>
+                        <div id="ptfeSpoolFields" style="display:none; margin-top:14px;">
+                            <div class="ptfe-form-grid">
+                                <div class="ptfe-field">
+                                    <label class="label">Full Spool Footage (feet)</label>
+                                    <input id="ptfeFootage" class="input mono" type="text" inputmode="decimal" placeholder="e.g. 2500" oninput="this.value=this.value.replace(/[^0-9.]/g,''); updatePtfeCalculations()">
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">Processing / Part Length</label>
+                                    <div class="ptfe-inline">
+                                        <input id="ptfeProcessingLength" class="input mono" type="text" inputmode="decimal" placeholder="e.g. 48" oninput="this.value=this.value.replace(/[^0-9.]/g,''); updatePtfeCalculations()">
+                                        <select id="ptfePartUnit" class="custom-select ptfe-unit" onchange="updatePtfeCalculations()">
+                                            <option value="in">in</option>
+                                            <option value="cm">cm</option>
+                                            <option value="mm">mm</option>
+                                        </select>
+                                        <div class="ptfe-result-box" style="min-width:96px; padding:8px;">
+                                            <div class="ptfe-result-label">Inches</div>
+                                            <div id="ptfeLengthInches" class="ptfe-result-value" style="font-size:16px;">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                <div style="margin-top:18px;">
-                    <label class="label">Comments</label>
-                    <textarea id="ptfeComments" class="input" style="text-align:left; height:100px; font-weight:normal;"></textarea>
-                </div>
+                        <div class="ptfe-form-grid" style="margin-top:14px;">
+                            <div class="ptfe-field">
+                                <label class="label">Start Quantity</label>
+                                <input id="ptfeStartQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markPtfeStartManual(); updatePtfeCalculations()">
+                                <div id="ptfeStartHint" class="ptfe-muted-note">Enter manually.</div>
+                            </div>
+                            <div class="ptfe-field">
+                                <label class="label">End Quantity</label>
+                                <input id="ptfeEndQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
+                            </div>
+                        </div>
 
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;">
-                    <button class="btn btn-green" onclick="submitPtfeJob()">Submit PTFE Job</button>
-                    <button class="btn btn-muted" onclick="resetPtfeForm()">Clear</button>
-                </div>
-            </section>
+                        <div id="ptfeInspectionParetoSection" style="display:none; margin-top:18px;">
+                            <p class="ptfe-panel-title">Inspection Pareto</p>
+                            <div id="ptfeInspectionParetos" class="check-grid"></div>
+                        </div>
 
-            <section class="card">
-                <h2>PTFE Event Entry</h2>
-                <div class="ptfe-form-grid">
-                    <div class="ptfe-field">
-                        <label class="label">Event</label>
-                        <div class="select-wrapper"><select id="ptfeEvent" class="custom-select"></select></div>
+                        <div id="ptfePullingParetoSection" style="display:none; margin-top:18px;">
+                            <p class="ptfe-panel-title">Pulling Pareto</p>
+                            <div id="ptfePullingParetos" class="check-grid"></div>
+                        </div>
+
+                        <div id="ptfePullFields" style="display:none; margin-top:18px;">
+                            <p class="ptfe-panel-title">Pulling Details</p>
+                            <div class="ptfe-form-grid">
+                                <div class="ptfe-field">
+                                    <label class="label">Pulling Wraps</label>
+                                    <input id="ptfePullingWraps" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">Pulling Method</label>
+                                    <div id="ptfePullingMethods" class="check-grid"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="ptfe-field">
-                        <label class="label">Time Worked</label>
-                        <input id="ptfeEventTimeWorked" class="input mono" type="number" min="0" step="0.01" placeholder="Hours">
+
+                    <div id="ptfeEventFields" style="display:none; margin-top:14px;">
+                        <div class="ptfe-field">
+                            <label class="label">Event</label>
+                            <div class="select-wrapper"><select id="ptfeEvent" class="custom-select"></select></div>
+                        </div>
                     </div>
-                    <div class="ptfe-field" style="grid-column:1 / -1;">
+
+                    <div style="margin-top:18px;">
                         <label class="label">Comments</label>
-                        <textarea id="ptfeEventComments" class="input" style="text-align:left; height:80px; font-weight:normal;"></textarea>
+                        <textarea id="ptfeComments" class="input" style="text-align:left; height:90px; font-weight:normal;" placeholder="Enter comments..."></textarea>
                     </div>
-                </div>
-                <div style="margin-top:20px;">
-                    <button class="btn btn-blue" onclick="submitPtfeEvent()">Submit PTFE Event</button>
-                </div>
-            </section>
+                </section>
+
+                <section id="ptfeResultsCard" class="card">
+                    <h2>Results</h2>
+                    <div class="ptfe-result-grid">
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Total Spool (in)</div>
+                            <div id="ptfeTotalInches" class="ptfe-result-value">-</div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Parts from Spool</div>
+                            <div id="ptfePartsFromSpool" class="ptfe-result-value">-</div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Scrap Parts</div>
+                            <div id="ptfeScrapPartsDisplay" class="ptfe-result-value">-</div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Parts Per Hour</div>
+                            <div id="ptfePph" class="ptfe-result-value">-</div>
+                        </div>
+                    </div>
+
+                    <div class="ptfe-result-grid" style="margin-top:12px;">
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Yield %</div>
+                            <div id="ptfeYieldPercent" class="ptfe-result-value">-</div>
+                            <div class="ptfe-gauge"><div id="ptfeYieldGauge" class="ptfe-gauge-fill"></div></div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Scrap Rate %</div>
+                            <div id="ptfeScrapRate" class="ptfe-result-value">-</div>
+                            <div class="ptfe-gauge"><div id="ptfeScrapGauge" class="ptfe-gauge-fill"></div></div>
+                        </div>
+                    </div>
+
+                    <div class="ptfe-result-grid" style="margin-top:12px;">
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Base Standard (PPH)</div>
+                            <div id="ptfeBaseStandard" class="ptfe-result-value">-</div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Adjusted Standard (PPH)</div>
+                            <div id="ptfeAdjustedStandard" class="ptfe-result-value">-</div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Target Qty</div>
+                            <div id="ptfeTargetQty" class="ptfe-result-value">-</div>
+                        </div>
+                        <div class="ptfe-result-box">
+                            <div class="ptfe-result-label">Sequence OE %</div>
+                            <div id="ptfeSequenceOe" class="ptfe-result-value">-</div>
+                            <div class="ptfe-gauge"><div id="ptfeOeGauge" class="ptfe-gauge-fill"></div></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px; margin: 0 0 20px;">
+                <button id="ptfeSubmitBtn" class="btn btn-green" onclick="submitPtfeEntry()">Submit to Smartsheet</button>
+                <button class="btn btn-muted" onclick="resetPtfeForm()">Reset</button>
+            </div>
 
             <section class="card">
                 <h2>Hour by Hour Tracker</h2>
@@ -1188,6 +1351,22 @@
         let NON_PRODUCTIVE_SEQUENCES = [];
         let PTFE_CONFIG = null;
         let PTFE_STANDARDS = {};
+        let PTFE_ASSOCIATE_RATES = {};
+        let PTFE_ENTRY_MODE = 'job';
+        let PTFE_START_AUTO = false;
+        let PTFE_RESULTS = {
+            totalInches: 0,
+            lengthInches: 0,
+            partsFromSpool: 0,
+            scrapParts: 0,
+            scrapPercent: 0,
+            yieldPercent: 0,
+            pph: 0,
+            baseStandard: 0,
+            adjustedStandard: 0,
+            targetQty: 0,
+            sequenceOe: 0
+        };
 
         async function fetchSmartsheetData() {
             try {
@@ -1287,38 +1466,180 @@
             return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((input) => input.value);
         }
 
+        function fmtPtfe(value, digits = 0) {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) return '-';
+            const num = Number(value);
+            if (num === 0) return '0';
+            return num.toLocaleString(undefined, {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            });
+        }
+
+        function getPtfeNumber(id) {
+            return Number(document.getElementById(id)?.value) || 0;
+        }
+
+        function getPtfeValue(id) {
+            return document.getElementById(id)?.value || '';
+        }
+
+        function setPtfeText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function setPtfeGauge(id, value, type) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const safeValue = Math.max(0, Math.min(Number(value) || 0, 100));
+            el.style.width = `${safeValue}%`;
+            if (type === 'scrap') {
+                el.style.background = value <= 5 ? 'var(--accent-2)' : value <= 15 ? 'var(--warn)' : 'var(--danger)';
+            } else {
+                el.style.background = value >= 95 ? 'var(--accent-2)' : value >= 85 ? 'var(--warn)' : 'var(--danger)';
+            }
+        }
+
+        function setPtfeEntryMode(mode) {
+            PTFE_ENTRY_MODE = mode === 'event' ? 'event' : 'job';
+            document.getElementById('ptfeJobModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'job');
+            document.getElementById('ptfeEventModeBtn')?.classList.toggle('active', PTFE_ENTRY_MODE === 'event');
+            const jobFields = document.getElementById('ptfeJobFields');
+            const eventFields = document.getElementById('ptfeEventFields');
+            const resultsCard = document.getElementById('ptfeResultsCard');
+            if (jobFields) jobFields.style.display = PTFE_ENTRY_MODE === 'job' ? 'block' : 'none';
+            if (eventFields) eventFields.style.display = PTFE_ENTRY_MODE === 'event' ? 'block' : 'none';
+            if (resultsCard) resultsCard.style.display = PTFE_ENTRY_MODE === 'job' ? 'block' : 'none';
+            updatePtfeCalculations();
+        }
+
         function isPtfeLowYield() {
-            const startQty = Number(document.getElementById('ptfeStartQuantity')?.value) || 0;
-            const endQty = Number(document.getElementById('ptfeEndQuantity')?.value) || 0;
-            return startQty > 0 && (endQty / startQty) <= 0.5;
+            return PTFE_RESULTS.yieldPercent > 0 && PTFE_RESULTS.yieldPercent < 75;
         }
 
         function isPtfeInspectionSequence(sequence) {
             return sequence === 'Inspection' || sequence === 'EV3 Inspection';
         }
 
-        function updatePtfeScrapRate() {
-            const startQty = Number(document.getElementById('ptfeStartQuantity')?.value) || 0;
-            const scrapParts = Number(document.getElementById('ptfeScrapParts')?.value) || 0;
-            const rate = startQty > 0 ? (scrapParts / startQty) * 100 : 0;
-            const rateInput = document.getElementById('ptfeScrapRate');
-            if (rateInput) rateInput.value = rate ? rate.toFixed(2) : '';
-            updatePtfeConditionalFields();
+        function markPtfeStartManual() {
+            PTFE_START_AUTO = false;
+            const startInput = document.getElementById('ptfeStartQuantity');
+            if (startInput) startInput.readOnly = false;
         }
 
-        function updatePtfeConditionalFields() {
-            const sequence = document.getElementById('ptfeSequence')?.value || '';
+        function getPtfeStandard(item, sequence) {
+            return PTFE_STANDARDS[`${item}::${sequence}`] || {};
+        }
+
+        function updatePtfeCalculations() {
+            const sequence = getPtfeValue('ptfeSequence');
             const showPull = sequence === 'Pull';
-            const lowYield = isPtfeLowYield();
-            const showInspectionPareto = lowYield && isPtfeInspectionSequence(sequence);
-            const showPullingPareto = lowYield && showPull;
+            const showRecuts = ['First Cut', 'Overall Length', 'Roll Cut (Both Ends)'].includes(sequence);
+            const footage = getPtfeNumber('ptfeFootage');
+            const partLength = getPtfeNumber('ptfeProcessingLength');
+            const unit = getPtfeValue('ptfePartUnit') || 'in';
+            const lengthInches = unit === 'cm' ? partLength / 2.54 : unit === 'mm' ? partLength / 25.4 : partLength;
+            const totalInches = footage * 12;
+            const partsFromSpool = totalInches > 0 && lengthInches > 0 ? Math.floor(totalInches / lengthInches) : 0;
+            const startInput = document.getElementById('ptfeStartQuantity');
+
+            if (showPull && partsFromSpool > 0 && !PTFE_START_AUTO) {
+                PTFE_START_AUTO = true;
+            }
+            if ((!showPull || partsFromSpool === 0) && PTFE_START_AUTO) {
+                PTFE_START_AUTO = false;
+            }
+            if (startInput) {
+                startInput.readOnly = PTFE_START_AUTO;
+                if (PTFE_START_AUTO) startInput.value = String(partsFromSpool);
+            }
+
+            const startQty = getPtfeNumber('ptfeStartQuantity');
+            const endQty = getPtfeNumber('ptfeEndQuantity');
+            const timeMins = getPtfeNumber('ptfeTimeWorked');
+            const timeHours = timeMins / 60;
+            const scrapParts = Math.max(0, startQty - endQty);
+            const yieldPercent = startQty > 0 ? (endQty / startQty) * 100 : 0;
+            const scrapPercent = startQty > 0 ? Math.max(0, ((startQty - endQty) / startQty) * 100) : 0;
+            const pph = timeHours > 0 ? endQty / timeHours : 0;
+            const item = getPtfeValue('ptfeItem');
+            const standard = getPtfeStandard(item, sequence);
+            const baseStandard = Number(standard.goodPphStd) || 0;
+            const associateRate = Number(PTFE_ASSOCIATE_RATES[SESSION_USER.name]) || 0;
+            const adjustedStandard = baseStandard > 0 && associateRate > 0 ? baseStandard / associateRate : 0;
+            const sequenceOe = adjustedStandard > 0 ? (pph / adjustedStandard) * 100 : 0;
+            const targetQty = adjustedStandard > 0 ? Math.floor(timeHours * adjustedStandard) : 0;
+
+            PTFE_RESULTS = {
+                totalInches,
+                lengthInches,
+                partsFromSpool,
+                scrapParts,
+                scrapPercent,
+                yieldPercent,
+                pph,
+                baseStandard,
+                adjustedStandard,
+                targetQty,
+                sequenceOe
+            };
 
             const pullFields = document.getElementById('ptfePullFields');
+            const spoolFields = document.getElementById('ptfeSpoolFields');
+            const recutsField = document.getElementById('ptfeRecutsField');
             const inspectionSection = document.getElementById('ptfeInspectionParetoSection');
             const pullingSection = document.getElementById('ptfePullingParetoSection');
             if (pullFields) pullFields.style.display = showPull ? 'block' : 'none';
+            if (spoolFields) spoolFields.style.display = showPull ? 'block' : 'none';
+            if (recutsField) recutsField.style.display = showRecuts ? 'block' : 'none';
+            const lowYield = isPtfeLowYield();
+            const showInspectionPareto = lowYield && isPtfeInspectionSequence(sequence);
+            const showPullingPareto = lowYield && showPull;
             if (inspectionSection) inspectionSection.style.display = showInspectionPareto ? 'block' : 'none';
             if (pullingSection) pullingSection.style.display = showPullingPareto ? 'block' : 'none';
+
+            setPtfeText('ptfeLengthInches', lengthInches > 0 ? fmtPtfe(lengthInches, 2) : '-');
+            setPtfeText('ptfeTotalInches', totalInches > 0 ? fmtPtfe(totalInches, 0) : '-');
+            setPtfeText('ptfePartsFromSpool', partsFromSpool > 0 ? fmtPtfe(partsFromSpool, 0) : '-');
+            setPtfeText('ptfeScrapPartsDisplay', startQty ? fmtPtfe(scrapParts, 0) : '-');
+            setPtfeText('ptfePph', pph > 0 ? fmtPtfe(pph, 1) : '-');
+            setPtfeText('ptfeYieldPercent', startQty ? `${yieldPercent.toFixed(1)}%` : '-');
+            setPtfeText('ptfeScrapRate', startQty ? `${scrapPercent.toFixed(1)}%` : '-');
+            setPtfeText('ptfeBaseStandard', baseStandard ? fmtPtfe(baseStandard, 0) : '-');
+            setPtfeText('ptfeAdjustedStandard', adjustedStandard ? fmtPtfe(adjustedStandard, 1) : '-');
+            setPtfeText('ptfeTargetQty', targetQty ? fmtPtfe(targetQty, 0) : '-');
+            setPtfeText('ptfeSequenceOe', baseStandard ? `${sequenceOe.toFixed(1)}%` : '-');
+            setPtfeGauge('ptfeYieldGauge', yieldPercent, 'yield');
+            setPtfeGauge('ptfeScrapGauge', scrapPercent, 'scrap');
+            setPtfeGauge('ptfeOeGauge', sequenceOe, 'yield');
+
+            const itemError = document.getElementById('ptfeItemError');
+            if (itemError) itemError.textContent = item && !/^\d{6}$/.test(item) ? 'Item number should be 6 digits.' : '';
+            const lotError = document.getElementById('ptfeLotError');
+            const lot = getPtfeValue('ptfeLot');
+            if (lotError) lotError.textContent = lot && /^\d{6}$/.test(lot) ? 'This looks like an item number. Please double-check.' : '';
+            const startHint = document.getElementById('ptfeStartHint');
+            if (startHint) startHint.textContent = PTFE_START_AUTO ? 'Auto-calculated from spool footage and part length.' : 'Enter manually.';
+
+            const alert = document.getElementById('ptfeAlert');
+            if (alert) {
+                if (yieldPercent > 100) {
+                    alert.textContent = 'Notice: Yield exceeds 100%. Actual production is higher than calculated start quantity.';
+                    alert.style.display = 'block';
+                } else {
+                    alert.style.display = 'none';
+                }
+            }
+
+            const warnings = [];
+            if (timeMins > 720) warnings.push('Time Worked exceeds 12 hours. Please verify.');
+            if (timeMins > 0 && endQty === 0 && startQty > 0) warnings.push('0 End Quantity entered. Did you produce nothing?');
+            const warningBox = document.getElementById('ptfeSanityWarnings');
+            if (warningBox) {
+                warningBox.innerHTML = warnings.join('<br>');
+                warningBox.style.display = warnings.length ? 'block' : 'none';
+            }
         }
 
         function buildPtfeStandardsIndex(standards) {
@@ -1378,9 +1699,6 @@
             const sequence = document.getElementById('ptfeSequence').value;
             const timeWorked = Number(document.getElementById('ptfeTimeWorked').value) || 0;
             const endQuantity = Number(document.getElementById('ptfeEndQuantity').value) || 0;
-            const standard = PTFE_STANDARDS[`${item}::${sequence}`] || {};
-            const actualPph = timeWorked > 0 ? endQuantity / timeWorked : 0;
-            const oe = Number(standard.goodPphStd) > 0 ? actualPph / Number(standard.goodPphStd) : null;
 
             return {
                 department: 'PTFE',
@@ -1395,24 +1713,26 @@
                 'Sequence': sequence,
                 'Footage': Number(document.getElementById('ptfeFootage').value) || '',
                 'Processing Length': Number(document.getElementById('ptfeProcessingLength').value) || '',
-                'Scrap Parts': Number(document.getElementById('ptfeScrapParts').value) || 0,
-                'Scrap Rate %': Number(document.getElementById('ptfeScrapRate').value) || 0,
+                'Scrap Parts': PTFE_RESULTS.scrapParts,
+                'Scrap Rate %': Number(PTFE_RESULTS.scrapPercent.toFixed(1)),
                 'Re-Cuts': Number(document.getElementById('ptfeRecuts').value) || 0,
                 'Inspection Pareto': getCheckedValues('ptfeInspectionPareto').join(', '),
                 'Pulling Pareto': getCheckedValues('ptfePullingPareto').join(', '),
                 'Pulling Wraps': document.getElementById('ptfePullingWraps').value || '',
                 'Pulling Method': getCheckedValues('ptfePullingMethod').join(', '),
-                'Comments': document.getElementById('ptfeComments').value.trim(),
-                _actualPph: actualPph,
-                _oe: oe
+                'Comments': document.getElementById('ptfeComments').value.trim()
             };
         }
 
+        async function submitPtfeEntry() {
+            if (PTFE_ENTRY_MODE === 'event') return submitPtfeEvent();
+            return submitPtfeJob();
+        }
+
         async function submitPtfeJob() {
+            updatePtfeCalculations();
             if (!validatePtfeJob()) return;
             const payload = getPtfeJobPayload();
-            delete payload._actualPph;
-            delete payload._oe;
             showSubmittingOverlay('Please Wait', 'Submitting PTFE job...');
             try {
                 const response = await fetchWithTimeout(`${API_BASE_URL}/submit-ptfe`, {
@@ -1437,7 +1757,7 @@
 
         async function submitPtfeEvent() {
             const eventName = document.getElementById('ptfeEvent').value;
-            const timeWorked = document.getElementById('ptfeEventTimeWorked').value;
+            const timeWorked = document.getElementById('ptfeTimeWorked').value;
             if (!eventName) return showToast('Event is required.');
             if (!timeWorked) return showToast('Time worked is required.');
 
@@ -1448,7 +1768,7 @@
                 'Date': document.getElementById('ptfeDate').value || getLocalDate(),
                 'Time Worked': Number(timeWorked) || 0,
                 'Event': eventName,
-                'Comments': document.getElementById('ptfeEventComments').value.trim()
+                'Comments': document.getElementById('ptfeComments').value.trim()
             };
 
             showSubmittingOverlay('Please Wait', 'Submitting PTFE event...');
@@ -1468,21 +1788,25 @@
                     : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
                 updateSubmittingOverlay('Saved!', eventSavedMsg);
                 document.getElementById('ptfeEvent').value = '';
-                document.getElementById('ptfeEventTimeWorked').value = '';
-                document.getElementById('ptfeEventComments').value = '';
+                document.getElementById('ptfeTimeWorked').value = '';
+                document.getElementById('ptfeComments').value = '';
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
             }
         }
 
         function resetPtfeForm(clearDate = true) {
-            ['ptfeItem', 'ptfeLot', 'ptfeSequence', 'ptfeTimeWorked', 'ptfeFootage', 'ptfeProcessingLength', 'ptfeStartQuantity', 'ptfeEndQuantity', 'ptfeScrapParts', 'ptfeScrapRate', 'ptfeRecuts', 'ptfePullingWraps', 'ptfeComments'].forEach((id) => {
+            ['ptfeItem', 'ptfeLot', 'ptfeSequence', 'ptfeTimeWorked', 'ptfeFootage', 'ptfeProcessingLength', 'ptfeStartQuantity', 'ptfeEndQuantity', 'ptfeRecuts', 'ptfePullingWraps', 'ptfeComments', 'ptfeEvent'].forEach((id) => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+            PTFE_START_AUTO = false;
+            const startInput = document.getElementById('ptfeStartQuantity');
+            if (startInput) startInput.readOnly = false;
             document.querySelectorAll('#ptfePortal input[type="checkbox"]').forEach((input) => { input.checked = false; });
             if (clearDate) document.getElementById('ptfeDate').value = getLocalDate();
-            updatePtfeConditionalFields();
+            setPtfeEntryMode('job');
+            updatePtfeCalculations();
         }
 
         async function initPtfePortal() {
@@ -1506,12 +1830,21 @@
                 if (!result.success) throw new Error(result.error || 'Failed to load PTFE config.');
                 PTFE_CONFIG = result.data;
                 buildPtfeStandardsIndex(PTFE_CONFIG.standards);
+                PTFE_ASSOCIATE_RATES = {};
+                (PTFE_CONFIG.associates || []).forEach((associate) => {
+                    if (associate.name) PTFE_ASSOCIATE_RATES[associate.name] = Number(associate.Rate) || 0;
+                });
+                if (isTestAccount(SESSION_USER.name) && !PTFE_ASSOCIATE_RATES[SESSION_USER.name]) {
+                    PTFE_ASSOCIATE_RATES[SESSION_USER.name] = 1;
+                }
                 populateSelect('ptfeItem', PTFE_CONFIG.items || [], 'Select item...', 'item', 'item');
                 populateSelect('ptfeSequence', PTFE_CONFIG.sequences || [], 'Select sequence...');
                 populateSelect('ptfeEvent', PTFE_CONFIG.events || [], 'Select event...');
                 populateCheckboxes('ptfeInspectionParetos', PTFE_CONFIG.inspectionParetos || [], 'ptfeInspectionPareto');
                 populateCheckboxes('ptfePullingParetos', PTFE_CONFIG.pullingParetos || [], 'ptfePullingPareto');
                 populateCheckboxes('ptfePullingMethods', PTFE_CONFIG.pullingMethods || [], 'ptfePullingMethod');
+                setPtfeEntryMode('job');
+                updatePtfeCalculations();
                 showToast('PTFE data loaded from Smartsheet.');
             } catch (error) {
                 console.error(error);
