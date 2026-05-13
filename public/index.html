@@ -1335,7 +1335,6 @@
                                 <label class="label">Item Number</label>
                                 <input id="ptfeItem" class="input mono" type="text" inputmode="numeric" style="text-align:left;" placeholder="e.g. 311318" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
                                 <div id="ptfeItemError" class="ptfe-muted-note"></div>
-                                <div id="ptfeItemStandardNote" class="ptfe-muted-note"></div>
                             </div>
                             <div class="ptfe-field">
                                 <label class="label">Lot Number</label>
@@ -1450,6 +1449,7 @@
                         <div class="ptfe-result-box">
                             <div class="ptfe-result-label">Base Standard (PPH)</div>
                             <div id="ptfeBaseStandard" class="ptfe-result-value">-</div>
+                            <div id="ptfeItemStandardNote" class="ptfe-muted-note"></div>
                         </div>
                         <div class="ptfe-result-box">
                             <div class="ptfe-result-label">Adjusted Standard (PPH)</div>
