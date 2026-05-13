@@ -1537,7 +1537,7 @@
                     <button class="btn btn-red" style="padding:8px 16px; font-size:13px;" onclick="confirmPtfeEndShift()">End Shift</button>
                 </div>
                 <div class="ptfe-jxj-tabs" id="ptfeJxjTabs">
-                    <button class="ptfe-jxj-tab active" data-cell="Table Pull" onclick="switchPtfeJxjTab('Table Pull')">Table Pull</button>
+                    <button class="ptfe-jxj-tab active" data-cell="Pull" onclick="switchPtfeJxjTab('Pull')">Pull</button>
                     <button class="ptfe-jxj-tab" data-cell="Cut to Length" onclick="switchPtfeJxjTab('Cut to Length')">CTL</button>
                     <button class="ptfe-jxj-tab" data-cell="Inspection" onclick="switchPtfeJxjTab('Inspection')">Inspection</button>
                     <button class="ptfe-jxj-tab" data-cell="Roll Cut" onclick="switchPtfeJxjTab('Roll Cut')">Roll Cut</button>
@@ -1774,15 +1774,25 @@
         /** PTFE JxJ Tracker **/
         const PTFE_JXJ_KEY = 'ptfe_jxj_state';
         const PTFE_JXJ_CELL_MAP = {
-            'Table Pull':     { cell: 'Table Pull',    prefix: 'Job' },
-            'Cut to Length':  { cell: 'Cut to Length', prefix: 'Job' },
-            'Inspection':     { cell: 'Inspection',    prefix: 'Job' },
-            'EV3 Inspection': { cell: 'Inspection',    prefix: 'Job' },
-            'Roll Cut':       { cell: 'Roll Cut',       prefix: 'HR'  },
-            'Packaging':      { cell: 'Packaging',      prefix: 'Job' }
+            'Pull':                      { cell: 'Pull',          prefix: 'Job' },
+            '10X':                       { cell: 'Inspection',    prefix: 'Job' },
+            'First Cut':                 { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Roll Cut (Both Ends)':      { cell: 'Roll Cut',      prefix: 'HR'  },
+            'CTL':                       { cell: 'Cut to Length', prefix: 'Job' },
+            'Inspection':                { cell: 'Inspection',    prefix: 'Job' },
+            'EV3 Inspection':            { cell: 'Inspection',    prefix: 'Job' },
+            '2nd Inspection':            { cell: 'Inspection',    prefix: 'Job' },
+            'Length Check':              { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Overall Length':            { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Ring Gauge':                { cell: 'Inspection',    prefix: 'Job' },
+            'Pressure Test':             { cell: 'Inspection',    prefix: 'Job' },
+            'Check Flush':               { cell: 'Inspection',    prefix: 'Job' },
+            'Packaging':                 { cell: 'Packaging',     prefix: 'Job' },
+            'Package (Ring Gauge Done)': { cell: 'Packaging',     prefix: 'Job' },
+            'Shipping Mandrel':          { cell: 'Packaging',     prefix: 'Job' }
         };
-        const PTFE_JXJ_TABS = ['Table Pull', 'Cut to Length', 'Inspection', 'Roll Cut', 'Packaging'];
-        let PTFE_JXJ_ACTIVE_TAB = 'Table Pull';
+        const PTFE_JXJ_TABS = ['Pull', 'Cut to Length', 'Inspection', 'Roll Cut', 'Packaging'];
+        let PTFE_JXJ_ACTIVE_TAB = 'Pull';
 
         function initPtfeJxJ() {
             const today = getLocalDate();
@@ -1793,7 +1803,7 @@
                     date: today,
                     associate: SESSION_USER.name,
                     tabs: {
-                        'Table Pull': [],
+                        'Pull': [],
                         'Cut to Length': [],
                         'Inspection': [],
                         'Roll Cut': [],
