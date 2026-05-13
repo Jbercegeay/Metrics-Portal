@@ -4595,6 +4595,30 @@
         }
 
         /** 6. BOOTSTRAP **/
+
+        // Supervisor Reset: Ctrl+Shift+X with PIN 2026 — registered globally for all departments
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && (e.key === 'X' || e.key === 'x')) {
+                e.preventDefault();
+                const pin = prompt('Supervisor PIN required:');
+                if (pin === '2026') {
+                    if (SESSION_DEPT === 'PTFE') {
+                        localStorage.removeItem(PTFE_JXJ_KEY);
+                        showToast('🔒 Supervisor Reset — PTFE tracker cleared.');
+                    } else if (SESSION_DEPT === 'PI') {
+                        showToast('🔒 Supervisor Reset — PI portal cleared.');
+                    } else {
+                        localStorage.removeItem(SHIFT_KEY);
+                        localStorage.removeItem('pcd_handover_note');
+                        showToast('🔒 Supervisor Reset — Portal cleared.');
+                    }
+                    setTimeout(() => location.reload(), 500);
+                } else if (pin !== null) {
+                    showToast('❌ Incorrect PIN.');
+                }
+            }
+        });
+
         window.onload = function () {
             if (SESSION_DEPT === 'PTFE') {
                 initPtfePortal();
@@ -4646,29 +4670,8 @@
             updateTimeFromUI();
             setInterval(updateClock, 1000);
 
-            // #1: "G" keyboard shortcut for +5 Good Units (only when not typing in an input/textarea)
+            // #1: "G" / "H" keyboard shortcuts for +5 / +1 Good Units (PL only, not typing in a field)
             document.addEventListener('keydown', (e) => {
-                // Supervisor Reset: Ctrl+Shift+X with PIN (all departments)
-                if (e.ctrlKey && e.shiftKey && (e.key === 'X' || e.key === 'x')) {
-                    e.preventDefault();
-                    const pin = prompt('Supervisor PIN required:');
-                    if (pin === '2026') {
-                        if (SESSION_DEPT === 'PTFE') {
-                            localStorage.removeItem(PTFE_JXJ_KEY);
-                            showToast('🔒 Supervisor Reset — PTFE tracker cleared.');
-                        } else if (SESSION_DEPT === 'PI') {
-                            showToast('🔒 Supervisor Reset — PI portal cleared.');
-                        } else {
-                            localStorage.removeItem(SHIFT_KEY);
-                            localStorage.removeItem('pcd_handover_note');
-                            showToast('🔒 Supervisor Reset — Portal cleared.');
-                        }
-                        setTimeout(() => location.reload(), 500);
-                    } else if (pin !== null) {
-                        showToast('❌ Incorrect PIN.');
-                    }
-                    return;
-                }
                 const tag = (e.target.tagName || '').toLowerCase();
                 if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
                 if (e.key === 'g' || e.key === 'G') { addGood(5); }
