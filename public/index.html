@@ -640,22 +640,25 @@
 
         /* Kiosk Operator Bar */
         .kiosk-bar {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 10px;
+            align-items: stretch;
+            width: 100%;
         }
 
         .kiosk-btn {
-            padding: 8px 16px;
+            padding: 14px 16px;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: rgba(255, 255, 255, 0.05);
             color: #94a3b8;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 800;
             transition: all 0.2s;
+            min-height: 54px;
+            text-align: left;
         }
 
         .kiosk-btn:hover {
@@ -677,14 +680,17 @@
         }
 
         .kiosk-add-btn {
-            padding: 8px 14px;
+            padding: 14px 16px;
             border-radius: 8px;
             border: 1px dashed var(--accent);
             background: transparent;
             color: var(--accent);
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 900;
             transition: all 0.2s;
+            min-height: 54px;
+            text-align: center;
         }
 
         .kiosk-add-btn:hover {
@@ -754,6 +760,31 @@
             font-size: 10px;
             font-weight: 900;
             vertical-align: middle;
+        }
+
+        .workspace-panel {
+            border-color: rgba(56, 189, 248, 0.55);
+            background: rgba(15, 23, 42, 0.76);
+        }
+
+        .workspace-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 14px;
+        }
+
+        .workspace-panel-title {
+            margin: 0;
+            color: var(--accent);
+            font-size: 18px;
+        }
+
+        .workspace-panel-note {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px;
         }
 
         /* Spool Check QC Section */
@@ -1075,6 +1106,16 @@
                 onclick="acknowledgeHandoverNote()">Acknowledge</button>
         </div>
 
+        <section class="card workspace-panel">
+            <div class="workspace-panel-header">
+                <div>
+                    <h2 class="workspace-panel-title">Associate Workspaces</h2>
+                    <div class="workspace-panel-note">Choose who is actively entering data on this workstation. Each associate keeps a separate open job workspace.</div>
+                </div>
+            </div>
+            <div id="kioskBarContainer" class="kiosk-bar"></div>
+        </section>
+
         <!-- KPI bars are dynamically rendered by calculateOEE() -->
         <div id="kpiContainer"></div>
 
@@ -1101,10 +1142,8 @@
                             style="text-align: left; font-size: 18px; padding: 12px;">
                     </div>
                     <div class="row" style="grid-template-columns: 100px 1fr;">
-                        <label class="label">Operator(s)</label>
-                        <div id="kioskBarContainer" class="kiosk-bar">
-                            <!-- Dynamically populated by initKioskBar() -->
-                        </div>
+                        <label class="label">Associate</label>
+                        <div style="color:var(--muted); font-size:13px; align-self:center;">Use Associate Workspaces above to switch active associates.</div>
                     </div>
 
                     <div id="jobHeaderFields">
@@ -1387,6 +1426,15 @@
         </div>
 
         <div id="ptfePortal" style="display:none;">
+            <section class="card workspace-panel">
+                <div class="workspace-panel-header">
+                    <div>
+                        <h2 class="workspace-panel-title">Associate Workspaces</h2>
+                        <div class="workspace-panel-note">PTFE currently supports one active associate at a time. Add Associate is available here as the entry point for the shared-workstation rollout.</div>
+                    </div>
+                </div>
+                <div id="ptfeWorkspaceRoster" class="kiosk-bar"></div>
+            </section>
             <div id="ptfeKpiContainer"></div>
             <div class="mode-toggle">
                 <button id="ptfeJobModeBtn" class="mode-btn active" onclick="setPtfeEntryMode('job')">Job Entry</button>
@@ -2646,6 +2694,7 @@
             if (dateInput) dateInput.value = getLocalDate();
             const currentUser = document.getElementById('ptfeCurrentUser');
             if (currentUser) currentUser.textContent = `${SESSION_USER.name} | ${SESSION_USER.department || 'PTFE'}`;
+            renderSingleAssociateWorkspacePanel('ptfeWorkspaceRoster', 'PTFE');
 
             // Stale JxJ state detection
             const today = getLocalDate();
@@ -2725,6 +2774,15 @@
             if (portal.dataset.departmentShell === 'PI' && document.getElementById('piSequence')) return;
             portal.dataset.departmentShell = 'PI';
             portal.innerHTML = `
+                <section class="card workspace-panel">
+                    <div class="workspace-panel-header">
+                        <div>
+                            <h2 class="workspace-panel-title">Associate Workspaces</h2>
+                            <div class="workspace-panel-note">Polyimide currently supports one active associate at a time. Add Associate is available here as the entry point for the shared-workstation rollout.</div>
+                        </div>
+                    </div>
+                    <div id="piWorkspaceRoster" class="kiosk-bar"></div>
+                </section>
                 <div id="piKpiContainer"></div>
                 <div class="mode-toggle">
                     <button id="piJobModeBtn" class="mode-btn active" onclick="setPiEntryMode('job')">Job Entry</button>
@@ -3570,6 +3628,7 @@
             if (dateInput) dateInput.value = getLocalDate();
             const currentUser = document.getElementById('piCurrentUser');
             if (currentUser) currentUser.textContent = `${SESSION_USER.name} | Polyimide`;
+            renderSingleAssociateWorkspacePanel('piWorkspaceRoster', 'Polyimide');
 
             const today = getLocalDate();
             let existingJxj = null;
@@ -4460,6 +4519,33 @@
             const metrics = buildDepartmentKpiMetrics(results, mode);
             const subtext = mode === 'event' ? 'EVENT' : 'JOB';
             container.innerHTML = buildKpiRowHTML(`${containerId}Row`, '', subtext, metrics, '');
+        }
+
+        function renderSingleAssociateWorkspacePanel(containerId, deptLabel) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+
+            const active = document.createElement('button');
+            active.className = 'kiosk-btn active';
+            active.innerHTML = `${SESSION_USER.name}<span class="workspace-badge">Active</span>`;
+            active.title = `${deptLabel} active associate workspace`;
+            container.appendChild(active);
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'kiosk-add-btn';
+            addBtn.textContent = '+ Add Associate';
+            addBtn.onclick = () => showDepartmentAssociateRoadmapModal(deptLabel);
+            container.appendChild(addBtn);
+        }
+
+        function showDepartmentAssociateRoadmapModal(deptLabel) {
+            customConfirm(
+                'Shared Workstation Rollout',
+                `${deptLabel} now has the associate workspace entry point. Full multi-associate independent workspaces will be added after the Precision Liner workflow is proven.`,
+                () => {},
+                true
+            );
         }
 
         function calculateOEE() {

@@ -15,6 +15,7 @@ Changelog entries are not required for every commit. Add entries under `Unreleas
 ### Added
 
 - Started the multi-associate kiosk workspace rollout for Precision Liner with a prominent active-associate banner, open-work badges, per-associate submit labels, and detailed submit confirmations.
+- Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace entry panels for the shared-workstation rollout.
 
 ## v1.1.0 - 2026-05-15
 
