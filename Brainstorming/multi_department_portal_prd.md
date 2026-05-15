@@ -16,7 +16,7 @@ Expand the current PrecisionLiner portal into a multi-department production port
 
 ## Non-Goals For Initial Rollout
 
-- Do not rebuild the admin panel for PTFE/Polyimide yet.
+- Do not rebuild the admin panel for Polyimide yet.
 - Do not migrate away from Smartsheet.
 - Do not rewrite the PrecisionLiner UI unless required to support department routing.
 
@@ -29,7 +29,7 @@ Use phased delivery, not a one-shot build.
 1. **Foundation:** department-aware config, login, Smartsheet clients, and routing. PrecisionLiner must continue working. ✅ **COMPLETE**
 2. **PTFE:** first new department view and submit flow. ✅ **COMPLETE** (Phase 1 + 1.5)
 3. **Polyimide:** mirror the PTFE pattern with PI-specific calculation differences. ⏳ **NOT STARTED**
-4. **Later:** department-aware admin panel, training/docs updates.
+4. **Later:** PI admin panel, training/docs updates, and frontend modularization.
 
 ## Department Model
 
@@ -61,24 +61,24 @@ The legacy `SMARTSHEET_ACCESS_TOKEN` pattern should not be reintroduced.
 
 ## Login Experience
 
-The final login flow should support choosing a department first, then loading that department's associate list. The server authenticates against the selected department's Master Configuration sheet and returns the user role plus department.
-
-Until the frontend selector is built, existing PrecisionLiner login behavior must continue to work as the default path.
+The login flow supports choosing a department first, then loading that department's associate list. The server authenticates against the selected department's Master Configuration sheet and returns the user role plus department.
 
 ## Acceptance Criteria
 
 - PrecisionLiner users can log in and submit exactly as before.
 - PTFE and PI config sheets can be loaded with their own tokens.
 - Test accounts exist and bypass Smartsheet writes:
-  - `test1`
-  - `test2`
-  - `test-ptfe`
-  - `test-pi`
+- `test-pl`
+- `test-pl-super`
+- `test-ptfe`
+- `test-ptfe-super`
+- `test-pi`
+- `test-pi-super`
 - Department routing cannot accidentally submit a PTFE or PI row to PrecisionLiner sheets.
-- Hour-by-hour for PTFE/PI displays as deferred until its format is approved.
+- PTFE Job x Job tracker works end-to-end. PI tracker will mirror the PTFE pattern after PI is built.
 
 ## Open Decisions
 
-- Whether the first PI view is built inside `public/index.html` (same pattern as PTFE) or split into a separate frontend module.
-- Timing for a department-aware admin panel.
+- Whether the first PI view is built inside `public/index.html` first, then extracted after validation, or split into a separate frontend module during the PI build.
+- Timing for PI admin.
 - PI Job x Job tracker cell names and sequence-to-tab mapping (confirm before building).

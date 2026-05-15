@@ -117,7 +117,7 @@
         <p style="color: #94a3b8; margin-bottom: 15px;">Please select your name and enter your password.</p>
 
         <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid var(--accent); padding: 12px; margin-bottom: 25px; text-align: left; font-size: 13px; color: #cbd5e1; border-radius: 4px;">
-            <strong>Training Mode Available:</strong> You can sign into the <strong>test1</strong>, <strong>test2</strong>, <strong>test-ptfe</strong>, or <strong>test-pi</strong> accounts to play and learn (password: <strong>trenton1</strong>). Submissions from these accounts will NOT be sent to Smartsheet.
+            <strong>Training Mode Available:</strong> You can sign into the <strong>test-pl</strong>, <strong>test-ptfe</strong>, or <strong>test-pi</strong> accounts to play and learn (password: <strong>trenton1</strong>). Submissions from these accounts will NOT be sent to Smartsheet.
         </div>
 
         <div id="errorMsg"></div>
@@ -278,7 +278,7 @@
                 ? ['test-ptfe']
                 : department === 'PI'
                     ? ['test-pi']
-                    : ['test1', 'test2'];
+                    : ['test-pl'];
             trainingNames.forEach((trainingName) => {
                 if (associatesData.some(a => a.name === trainingName)) return;
                 associatesData.push({ name: trainingName, Role: 'Associate', hasPassword: true, Training: true });
@@ -307,6 +307,13 @@
             el.textContent = msg;
             el.style.display = 'block';
             setTimeout(() => el.style.display = 'none', 4000);
+        }
+
+        function getAdminDestination(deptKey) {
+            if (deptKey === 'PTFE') return '/admin-ptfe.html';
+            if (deptKey === 'PL') return '/admin-pl.html';
+            if (deptKey === 'PI') return '/admin-pi.html';
+            return '/';
         }
 
         async function handleLogin() {
@@ -350,16 +357,17 @@
                     // Login successful!
                     localStorage.setItem('currentUser', JSON.stringify(data.user));
                     const deptKey = data.user.departmentKey || 'PL';
-                    const isPlSupervisor = data.user.role === 'Supervisor' && deptKey === 'PL';
-                    if (isPlSupervisor && data.adminToken) {
+                    const isSupervisor = data.user.role === 'Supervisor';
+                    if (isSupervisor && data.adminToken) {
                         localStorage.setItem('adminToken', data.adminToken);
                     } else {
                         localStorage.removeItem('adminToken');
                     }
+                    const adminDest = getAdminDestination(deptKey);
                     const toast = document.getElementById('toast');
                     toast.textContent = "Login successful!"; toast.style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = isPlSupervisor ? '/admin.html' : '/';
+                        window.location.href = (isSupervisor && data.adminToken) ? adminDest : '/';
                     }, 500);
                 } else {
                     showError(data.error || "Login failed");
@@ -395,16 +403,17 @@
                 if (data.success) {
                     localStorage.setItem('currentUser', JSON.stringify(data.user));
                     const deptKey = data.user.departmentKey || 'PL';
-                    const isPlSupervisor = data.user.role === 'Supervisor' && deptKey === 'PL';
-                    if (isPlSupervisor && data.adminToken) {
+                    const isSupervisor = data.user.role === 'Supervisor';
+                    if (isSupervisor && data.adminToken) {
                         localStorage.setItem('adminToken', data.adminToken);
                     } else {
                         localStorage.removeItem('adminToken');
                     }
+                    const adminDest = getAdminDestination(deptKey);
                     const toast = document.getElementById('toast');
                     toast.textContent = "Password saved. Logging in..."; toast.style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = isPlSupervisor ? '/admin.html' : '/';
+                        window.location.href = (isSupervisor && data.adminToken) ? adminDest : '/';
                     }, 1000);
                 } else {
                     showError(data.error || "Failed to save password.", true);

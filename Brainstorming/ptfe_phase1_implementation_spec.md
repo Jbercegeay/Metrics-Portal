@@ -143,7 +143,13 @@ See `ptfe_jxj_tracker_roadmap.md` for full spec. Summary:
 ## Deferred
 
 - Polyimide (PI) implementation
-- PTFE supervisor/admin panel view (current admin panel is PL-only)
 - Phase 1.5 quality alert (flag same item with high scrap from today's submissions)
 - Rate Lookup Modal
 - Job Timer (backend session endpoint)
+
+## Production Readiness Notes
+
+- PTFE admin is implemented in `public/admin-ptfe.html`.
+- `public/admin.html` is now a generic admin doorway that routes PL supervisors to `admin-pl.html` and PTFE supervisors to `admin-ptfe.html`.
+- Production hosting has been confirmed to run through PM2 restoring `server.js`, so the Express routes in `server.js` are the deployment path.
+- `api/config.js` is kept as a compatibility handler, but it is not the current production host path.

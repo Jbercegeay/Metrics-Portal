@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Test Login</title>
+    <style>
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            min-width: 280px;
+        }
+        h2 { color: #38bdf8; margin-top: 0; }
+        p  { color: #94a3b8; margin: 0; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 id="title">Signing in...</h2>
+        <p id="msg">Loading test supervisor session.</p>
+    </div>
+
+    <script>
+        const DEPT_MAP = {
+            PL:   { account: 'test-pl-super',   dest: '/admin-pl.html' },
+            PTFE: { account: 'test-ptfe-super',  dest: '/admin-ptfe.html' },
+            PI:   { account: 'test-pi-super',    dest: '/admin-pi.html' }
+        };
+
+        async function go() {
+            const params = new URLSearchParams(window.location.search);
+            const dept = (params.get('dept') || '').toUpperCase();
+            const entry = DEPT_MAP[dept];
+
+            if (!entry) {
+                document.getElementById('title').textContent = 'Invalid Department';
+                document.getElementById('msg').className = 'error';
+                document.getElementById('msg').textContent =
+                    'Use ?dept=PL, ?dept=PTFE, or ?dept=PI';
+                return;
+            }
+
+            document.getElementById('title').textContent = `Signing in as ${dept} supervisor...`;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: entry.account,
+                        password: 'trenton1',
+                        department: dept
+                    })
+                });
+                const data = await res.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Login failed');
+                }
+                if (!data.adminToken) {
+                    throw new Error('No admin token returned');
+                }
+
+                localStorage.setItem('currentUser', JSON.stringify(data.user));
+                if (data.adminToken) {
+                    localStorage.setItem('adminToken', data.adminToken);
+                } else {
+                    localStorage.removeItem('adminToken');
+                }
+
+                document.getElementById('msg').textContent = 'Redirecting...';
+                window.location.href = entry.dest;
+
+            } catch (e) {
+                document.getElementById('title').textContent = 'Login Failed';
+                document.getElementById('msg').className = 'error';
+                document.getElementById('msg').textContent = e.message;
+            }
+        }
+
+        go();
+    </script>
+</body>
+</html>

@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Portal Admin | PTFE</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --accent: #38bdf8;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        h1, h2, h3 { color: var(--accent); margin-top: 0; }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: #94a3b8;
+            font-size: 12px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select.inline-select {
+            background: #0b1220;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 6px 8px;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        input[type="checkbox"] { transform: scale(1.2); }
+
+        .btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover { opacity: 0.9; }
+
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-warn   { background: #f59e0b; color: #000; }
+        .btn-sm     { padding: 4px 8px; font-size: 12px; }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #22c55e;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        #toast.error { background: #ef4444; }
+
+        .section-note {
+            font-size: 13px;
+            color: #94a3b8;
+            margin: -10px 0 12px 0;
+        }
+
+        .standards-tools {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .standards-tools input {
+            flex: 1;
+        }
+
+        .standard-group-row {
+            background: #172033;
+        }
+
+        .standard-group-row td {
+            border-bottom-color: #475569;
+            padding: 10px;
+        }
+
+        .standard-group-button {
+            background: transparent;
+            border: 0;
+            color: var(--text);
+            cursor: pointer;
+            font: inherit;
+            font-weight: 700;
+            padding: 0;
+            text-align: left;
+        }
+
+        .standard-count {
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 400;
+            margin-left: 10px;
+        }
+
+        .standard-empty {
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        input.schedule-minutes {
+            min-width: 58px;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        // AUTH CHECK
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        const adminToken = localStorage.getItem('adminToken');
+        if (!user || user.role !== 'Supervisor') {
+            window.location.href = '/login.html';
+        }
+        if ((user.departmentKey || '') !== 'PTFE') {
+            window.location.href = '/';
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('loggedInName').textContent = user.name;
+        });
+    </script>
+
+    <div class="container">
+        <div class="flex-between">
+            <div>
+                <h1 style="margin-bottom:5px;">PTFE Admin Panel</h1>
+                <div style="font-size:14px; color:#94a3b8;">Logged in as: <span id="loggedInName" style="color:var(--accent);"></span></div>
+            </div>
+            <a href="/" style="color:var(--accent); text-decoration:none;">&larr; Back to Portal</a>
+        </div>
+        <p style="color:#94a3b8; margin-top:0;">Manage Associates, Schedules, Sequences, Events, Pareto lists, and PPH Standards.</p>
+
+        <!-- ── ASSOCIATES ───────────────────────────────────────────────────── -->
+        <div class="card" id="card-associates">
+            <div class="flex-between">
+                <h2>Associates & Schedules</h2>
+                <button class="btn" onclick="addAssociate()">+ Add Associate</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:270px">Associate Name</th>
+                        <th style="width:120px">Cell</th>
+                        <th style="width:76px">Sched Min</th>
+                        <th style="width:66px">Mon</th>
+                        <th style="width:66px">Tue</th>
+                        <th style="width:66px">Wed</th>
+                        <th style="width:66px">Thur</th>
+                        <th style="width:66px">Fri</th>
+                        <th style="width:66px">Sat</th>
+                        <th style="width:66px">Sun</th>
+                        <th style="width:60px">Training</th>
+                        <th style="width:110px">Role</th>
+                        <th style="width:140px"></th>
+                    </tr>
+                </thead>
+                <tbody id="tb-associates"></tbody>
+            </table>
+            <button class="btn" onclick="saveSection('associates')">Save Associates</button>
+        </div>
+
+        <div class="grid-2">
+            <!-- ── SEQUENCES ─────────────────────────────────────────────────── -->
+            <div class="card" id="card-sequences">
+                <div class="flex-between">
+                    <h2>Sequences</h2>
+                    <button class="btn btn-sm" onclick="addItem('sequences')">+ Add</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Sequence Name</th>
+                            <th style="width:50px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb-sequences"></tbody>
+                </table>
+                <button class="btn" onclick="saveSection('sequences')">Save Sequences</button>
+            </div>
+
+            <!-- ── EVENTS ────────────────────────────────────────────────────── -->
+            <div class="card" id="card-events">
+                <div class="flex-between">
+                    <h2>Downtime Events</h2>
+                    <button class="btn btn-sm" onclick="addItem('events')">+ Add</button>
+                </div>
+                <p class="section-note">Lunch, Break, and Bathroom are always included automatically.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Event Name</th>
+                            <th style="width:50px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tb-events"></tbody>
+                </table>
+                <button class="btn" onclick="saveSection('events')">Save Events</button>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <!-- ── INSPECTION PARETO ─────────────────────────────────────────── -->
+            <div class="card" id="card-inspectionPareto">
+                <div class="flex-between">
+                    <h2>Inspection Pareto</h2>
+                    <button class="btn btn-sm" onclick="addItem('inspectionPareto')">+ Add</button>
+                </div>
+                <table>
+                    <thead><tr><th>Category</th><th style="width:50px"></th></tr></thead>
+                    <tbody id="tb-inspectionPareto"></tbody>
+                </table>
+                <button class="btn" onclick="saveSection('inspectionPareto')">Save</button>
+            </div>
+
+            <!-- ── PULLING PARETO ────────────────────────────────────────────── -->
+            <div class="card" id="card-pullingPareto">
+                <div class="flex-between">
+                    <h2>Pulling Pareto</h2>
+                    <button class="btn btn-sm" onclick="addItem('pullingPareto')">+ Add</button>
+                </div>
+                <table>
+                    <thead><tr><th>Category</th><th style="width:50px"></th></tr></thead>
+                    <tbody id="tb-pullingPareto"></tbody>
+                </table>
+                <button class="btn" onclick="saveSection('pullingPareto')">Save</button>
+            </div>
+
+            <!-- ── PULLING METHOD ────────────────────────────────────────────── -->
+            <div class="card" id="card-pullingMethod">
+                <div class="flex-between">
+                    <h2>Pulling Methods</h2>
+                    <button class="btn btn-sm" onclick="addItem('pullingMethod')">+ Add</button>
+                </div>
+                <table>
+                    <thead><tr><th>Method Name</th><th style="width:50px"></th></tr></thead>
+                    <tbody id="tb-pullingMethod"></tbody>
+                </table>
+                <button class="btn" onclick="saveSection('pullingMethod')">Save</button>
+            </div>
+        </div>
+
+        <!-- ── PPH STANDARDS ────────────────────────────────────────────────── -->
+        <div class="card" id="card-standards">
+            <div class="flex-between">
+                <h2>PPH Standards</h2>
+                <button class="btn btn-sm" onclick="addStandard()">+ Add Standard</button>
+            </div>
+            <p class="section-note">One row per Item + Sequence combination. These values drive the OE% calculation on the portal.</p>
+            <div class="standards-tools">
+                <input type="text" id="standardSearch" placeholder="Search item or sequence..." oninput="filterStandards(this.value)">
+                <button class="btn btn-sm" onclick="expandAllStandards()">Expand All</button>
+                <button class="btn btn-sm" onclick="collapseAllStandards()">Collapse All</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item #</th>
+                        <th>Sequence</th>
+                        <th style="width:130px">Good PPH Std</th>
+                        <th style="width:130px">Total PPH Std</th>
+                        <th style="width:50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="tb-standards"></tbody>
+            </table>
+            <button class="btn" onclick="saveSection('standards')">Save Standards</button>
+        </div>
+
+        <!-- ── ITEMS ─────────────────────────────────────────────────────────── -->
+        <div class="card" id="card-items">
+            <div class="flex-between">
+                <h2>Items</h2>
+                <button class="btn btn-sm" onclick="addPtfeItem()">+ Add Item</button>
+            </div>
+            <p class="section-note">Items available for selection on the portal job entry form.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:120px">Item #</th>
+                        <th style="width:140px">FG Length (in)</th>
+                        <th>Product Family</th>
+                        <th style="width:50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="tb-items"></tbody>
+            </table>
+            <button class="btn" onclick="saveSection('items')">Save Items</button>
+        </div>
+    </div>
+
+    <div id="toast">Saved!</div>
+
+    <script>
+        const ADMIN_HEADERS = {
+            'Content-Type': 'application/json',
+            'X-Admin-Token': adminToken
+        };
+
+        const expandedStandardItems = new Set();
+        let standardSearchTerm = '';
+        let renderedStandardGroups = [];
+        const DEPT = 'PTFE';
+
+        const BASE_CELLS = ['Accucut', 'CTL/Specs', 'Cut to Length', 'DHR', 'EV3', 'Floater', 'Inspection', 'Packaging', 'Pull', 'Roll Cut', 'Table Pull'];
+
+        let configData = {
+            associates:      [],
+            sequences:       [],
+            events:          [],
+            inspectionParetos: [],
+            pullingParetos:  [],
+            pullingMethods:  [],
+            standards:       [],
+            items:           []
+        };
+
+        // ── DATA LOAD ──────────────────────────────────────────────────────────
+        async function loadData() {
+            try {
+                const res = await fetch('/api/config?dept=PTFE');
+                const json = await res.json();
+                if (!json.success) { showToast('Failed to load config', true); return; }
+                const d = json.data;
+                configData.associates      = d.associates      || [];
+                configData.sequences       = d.sequences       || [];
+                configData.events          = d.events          || [];
+                configData.inspectionParetos = d.inspectionParetos || [];
+                configData.pullingParetos  = d.pullingParetos  || [];
+                configData.pullingMethods  = d.pullingMethods  || [];
+                configData.standards       = d.standards       || [];
+                configData.items           = d.items           || [];
+                renderAll();
+            } catch (e) {
+                showToast('Failed to load data', true);
+            }
+        }
+
+        // ── RENDER ─────────────────────────────────────────────────────────────
+        function cellOptions(selected) {
+            const selectedCell = String(selected || '').trim();
+            const choices = new Set(['', ...BASE_CELLS]);
+            configData.associates.forEach((associate) => {
+                const cell = String(associate.Cell || '').trim();
+                if (cell) choices.add(cell);
+            });
+            if (selectedCell) choices.add(selectedCell);
+
+            return Array.from(choices).map(c =>
+                `<option value="${esc(c)}" ${c === selectedCell ? 'selected' : ''}>${c || 'None'}</option>`
+            ).join('');
+        }
+
+        function renderAll() {
+            // Associates
+            document.getElementById('tb-associates').innerHTML = configData.associates.map((a, i) => `
+                <tr>
+                    <td><input type="text" value="${esc(a.name)}" onchange="upd('associates',${i},'name',this.value)"></td>
+                    <td>
+                        <select class="inline-select" onchange="upd('associates',${i},'Cell',this.value)">
+                            ${cellOptions(a.Cell)}
+                        </select>
+                    </td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.ScheduledMinutes)}" onchange="updWholeNumber('associates',${i},'ScheduledMinutes',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Mon)}" onchange="updWholeNumber('associates',${i},'Mon',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Tue)}" onchange="updWholeNumber('associates',${i},'Tue',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Wed)}" onchange="updWholeNumber('associates',${i},'Wed',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Thur)}" onchange="updWholeNumber('associates',${i},'Thur',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Fri)}" onchange="updWholeNumber('associates',${i},'Fri',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Sat)}" onchange="updWholeNumber('associates',${i},'Sat',this.value)"></td>
+                    <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Sun)}" onchange="updWholeNumber('associates',${i},'Sun',this.value)"></td>
+                    <td style="text-align:center">
+                        <input type="checkbox" ${a.Training ? 'checked' : ''} onchange="upd('associates',${i},'Training',this.checked)">
+                    </td>
+                    <td>
+                        <select class="inline-select" onchange="upd('associates',${i},'Role',this.value)">
+                            <option value="Associate" ${a.Role==='Associate'?'selected':''}>Associate</option>
+                            <option value="Supervisor" ${a.Role==='Supervisor'?'selected':''}>Supervisor</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-warn" onclick="resetPassword(${i})">Reset Pass</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteItem('associates',${i})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Sequences
+            document.getElementById('tb-sequences').innerHTML = configData.sequences.map((s, i) => `
+                <tr>
+                    <td><input type="text" value="${esc(s.name)}" onchange="upd('sequences',${i},'name',this.value)"></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('sequences',${i})">Delete</button></td>
+                </tr>
+            `).join('');
+
+            // Events
+            document.getElementById('tb-events').innerHTML = configData.events.map((e, i) => `
+                <tr>
+                    <td><input type="text" value="${esc(e.name)}" onchange="upd('events',${i},'name',this.value)"></td>
+                    <td>${e.id ? `<button class="btn btn-danger btn-sm" onclick="deleteItem('events',${i})">Delete</button>` : ''}</td>
+                </tr>
+            `).join('');
+
+            // Simple name-only lists
+            renderNameList('inspectionPareto',  configData.inspectionParetos);
+            renderNameList('pullingPareto',      configData.pullingParetos);
+            renderNameList('pullingMethod',      configData.pullingMethods);
+
+            renderStandards();
+
+            // Items
+            document.getElementById('tb-items').innerHTML = configData.items.map((it, i) => `
+                <tr>
+                    <td><input type="text" value="${esc(it.item)}" onchange="upd('items',${i},'item',this.value)"></td>
+                    <td><input type="number" value="${numberValue(it.fgLength)}" onchange="updNumber('items',${i},'fgLength',this.value)"></td>
+                    <td><input type="text" value="${esc(it.productFamily)}" onchange="upd('items',${i},'productFamily',this.value)"></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('items',${i})">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderNameList(type, arr) {
+            const tbKey = type === 'inspectionPareto'  ? 'inspectionPareto'
+                        : type === 'pullingPareto'      ? 'pullingPareto'
+                        : 'pullingMethod';
+            const dataKey = type === 'inspectionPareto'  ? 'inspectionParetos'
+                          : type === 'pullingPareto'      ? 'pullingParetos'
+                          : 'pullingMethods';
+            document.getElementById(`tb-${tbKey}`).innerHTML = arr.map((item, i) => `
+                <tr>
+                    <td><input type="text" value="${esc(item.name)}" onchange="updList('${dataKey}',${i},'name',this.value)"></td>
+                    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('${type}',${i})">Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function renderStandards() {
+            const term = standardSearchTerm.trim().toLowerCase();
+            const groupsByItem = new Map();
+            configData.standards.forEach((standard, index) => {
+                const item = String(standard.item || '').trim() || '(No Item)';
+                if (!groupsByItem.has(item)) groupsByItem.set(item, []);
+                groupsByItem.get(item).push({ standard, index });
+            });
+
+            renderedStandardGroups = Array.from(groupsByItem.entries())
+                .map(([item, rows]) => ({ item, rows }))
+                .filter((group) => {
+                    if (!term) return true;
+                    return group.item.toLowerCase().includes(term)
+                        || group.rows.some(({ standard }) => String(standard.sequence || '').toLowerCase().includes(term));
+                })
+                .sort((a, b) => a.item.localeCompare(b.item, undefined, { numeric: true, sensitivity: 'base' }));
+
+            if (renderedStandardGroups.length === 0) {
+                document.getElementById('tb-standards').innerHTML = `
+                    <tr><td colspan="5" class="standard-empty">No standards match the current search.</td></tr>
+                `;
+                return;
+            }
+
+            document.getElementById('tb-standards').innerHTML = renderedStandardGroups.map((group, groupIndex) => {
+                const isOpen = term || expandedStandardItems.has(group.item);
+                const rows = isOpen ? group.rows
+                    .sort((a, b) => String(a.standard.sequence || '').localeCompare(String(b.standard.sequence || ''), undefined, { numeric: true, sensitivity: 'base' }))
+                    .map(({ standard, index }) => `
+                        <tr>
+                            <td><input type="text" value="${esc(standard.item)}" onchange="upd('standards',${index},'item',this.value)"></td>
+                            <td><input type="text" value="${esc(standard.sequence)}" onchange="upd('standards',${index},'sequence',this.value)"></td>
+                            <td><input type="number" step="1" value="${wholeNumber(standard.goodPphStd)}" onchange="updWholeNumber('standards',${index},'goodPphStd',this.value)"></td>
+                            <td><input type="number" step="1" value="${wholeNumber(standard.totalPphStd)}" onchange="updWholeNumber('standards',${index},'totalPphStd',this.value)"></td>
+                            <td><button class="btn btn-danger btn-sm" onclick="deleteItem('standards',${index})">Delete</button></td>
+                        </tr>
+                    `).join('') : '';
+
+                return `
+                    <tr class="standard-group-row">
+                        <td colspan="4">
+                            <button class="standard-group-button" onclick="toggleStandardGroup(${groupIndex})">
+                                ${isOpen ? 'v' : '>'} ${esc(group.item)}
+                                <span class="standard-count">${group.rows.length} sequence${group.rows.length === 1 ? '' : 's'}</span>
+                            </button>
+                        </td>
+                        <td><button class="btn btn-sm" onclick="addStandard(${groupIndex})">+ Seq</button></td>
+                    </tr>
+                    ${rows}
+                `;
+            }).join('');
+        }
+
+        // ── DATA HELPERS ───────────────────────────────────────────────────────
+        function esc(v) {
+            return String(v || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+
+        function wholeNumber(value) {
+            const n = Number(value);
+            return Number.isFinite(n) ? Math.round(n) : 0;
+        }
+
+        function numberValue(value) {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : 0;
+        }
+
+        function upd(type, index, field, value) {
+            configData[type][index][field] = value;
+        }
+
+        function updWholeNumber(type, index, field, value) {
+            configData[type][index][field] = wholeNumber(value);
+        }
+
+        function updNumber(type, index, field, value) {
+            configData[type][index][field] = numberValue(value);
+        }
+
+        function updList(dataKey, index, field, value) {
+            configData[dataKey][index][field] = value;
+        }
+
+        // ── ADD ROWS ───────────────────────────────────────────────────────────
+        function addAssociate() {
+            configData.associates.push({ name: '', Cell: '', ScheduledMinutes: 0, Mon: 0, Tue: 0, Wed: 0, Thur: 0, Fri: 0, Sat: 0, Sun: 0, Training: false, Role: 'Associate' });
+            renderAll();
+        }
+
+        function addItem(type) {
+            if (type === 'sequences')       configData.sequences.push({ name: '' });
+            else if (type === 'events')     configData.events.push({ name: '' });
+            else if (type === 'inspectionPareto') configData.inspectionParetos.push({ name: '' });
+            else if (type === 'pullingPareto')    configData.pullingParetos.push({ name: '' });
+            else if (type === 'pullingMethod')    configData.pullingMethods.push({ name: '' });
+            renderAll();
+        }
+
+        function addStandard(groupIndex = null) {
+            const group = Number.isInteger(groupIndex) ? renderedStandardGroups[groupIndex] : null;
+            const item = group ? group.item : '';
+            configData.standards.push({ item: item === '(No Item)' ? '' : item, sequence: '', goodPphStd: 0, totalPphStd: 0 });
+            if (item) expandedStandardItems.add(item);
+            renderAll();
+        }
+
+        function toggleStandardGroup(groupIndex) {
+            const group = renderedStandardGroups[groupIndex];
+            if (!group) return;
+            if (expandedStandardItems.has(group.item)) expandedStandardItems.delete(group.item);
+            else expandedStandardItems.add(group.item);
+            renderStandards();
+        }
+
+        function expandAllStandards() {
+            renderedStandardGroups.forEach(group => expandedStandardItems.add(group.item));
+            renderStandards();
+        }
+
+        function collapseAllStandards() {
+            expandedStandardItems.clear();
+            renderStandards();
+        }
+
+        function filterStandards(value) {
+            standardSearchTerm = value || '';
+            renderStandards();
+        }
+
+        function addPtfeItem() {
+            configData.items.push({ item: '', fgLength: 0, productFamily: '' });
+            renderAll();
+        }
+
+        // ── DELETE ─────────────────────────────────────────────────────────────
+        async function deleteItem(type, index) {
+            const dataKey = typeToDataKey(type);
+            const item = configData[dataKey][index];
+            if (!item) return;
+
+            if (item.id) {
+                if (!confirm('Permanently delete this from Smartsheet?')) return;
+                showToast('Deleting...');
+                try {
+                    const res = await fetch('/api/admin/config/delete', {
+                        method: 'POST',
+                        headers: ADMIN_HEADERS,
+                        body: JSON.stringify({ rowId: item.id, type, dept: DEPT })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        configData[dataKey].splice(index, 1);
+                        renderAll();
+                        showToast('Deleted successfully!');
+                    } else {
+                        showToast('Failed to delete: ' + (json.error || ''), true);
+                    }
+                } catch (err) {
+                    showToast('Error deleting row', true);
+                }
+            } else {
+                configData[dataKey].splice(index, 1);
+                renderAll();
+            }
+        }
+
+        function typeToDataKey(type) {
+            const map = {
+                associates:      'associates',
+                sequences:       'sequences',
+                events:          'events',
+                inspectionPareto:'inspectionParetos',
+                pullingPareto:   'pullingParetos',
+                pullingMethod:   'pullingMethods',
+                standards:       'standards',
+                items:           'items'
+            };
+            return map[type] || type;
+        }
+
+        // ── SAVE ───────────────────────────────────────────────────────────────
+        async function saveSection(type) {
+            const dataKey = typeToDataKey(type);
+            const items = configData[dataKey];
+            showToast(`Saving ${type}...`);
+            try {
+                const res = await fetch('/api/admin/config/save', {
+                    method: 'POST',
+                    headers: ADMIN_HEADERS,
+                    body: JSON.stringify({ type, items, dept: DEPT })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast(`${type} saved successfully!`);
+                    // Reload so IDs are populated for newly added rows
+                    await loadData();
+                } else {
+                    showToast('Failed to save: ' + (json.error || ''), true);
+                }
+            } catch (e) {
+                showToast('Error saving: ' + e.message, true);
+            }
+        }
+
+        // ── PASSWORD RESET ─────────────────────────────────────────────────────
+        async function resetPassword(index) {
+            const item = configData.associates[index];
+            if (!item || !item.id) return showToast('Save the associate first before resetting password.', true);
+            if (!confirm(`Reset password for ${item.name}? They will create a new password on next login.`)) return;
+
+            showToast('Resetting password...');
+            try {
+                const res = await fetch('/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: ADMIN_HEADERS,
+                    body: JSON.stringify({ rowId: item.id, dept: DEPT })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    showToast('Password reset successfully!');
+                } else {
+                    showToast('Failed to reset: ' + (json.error || ''), true);
+                }
+            } catch (e) {
+                showToast('Error resetting password', true);
+            }
+        }
+
+        // ── TOAST ──────────────────────────────────────────────────────────────
+        function showToast(msg, isError = false) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = isError ? 'error' : '';
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+
+</html>

@@ -14,11 +14,11 @@ Context: Brainstorming doc for agents and developers building PTFE and Polyamide
 
 ## Overview
 
-**Current state:** PTFE and PI each run off a standalone single-HTML-file portal (no server, no authentication, submits to Smartsheet via Form URL).
+**Current state:** PTFE is integrated into the server-backed portal. PI still exists as planning/standalone reference material and has not been built into the portal yet.
 
-**Target state:** Both departments integrated into the PL Portal as first-class department routes — with proper bcrypt login, server-backed direct Smartsheet API writes, and the same resilience features already built for Precision Liner.
+**Target state:** PTFE and PI integrated into the PL Portal as first-class department routes — with proper bcrypt login, server-backed direct Smartsheet API writes, and the same resilience features already built for Precision Liner.
 
-**Build order:** PTFE first. PI second. Build one, prove it, then mirror the pattern for the other.
+**Build order:** PTFE first. PI second. PTFE is complete; PI should mirror the proven PTFE pattern.
 
 ---
 
@@ -34,6 +34,27 @@ Context: Brainstorming doc for agents and developers building PTFE and Polyamide
 | Job x Job tracker format | **DECIDED & BUILT** — see `ptfe_jxj_tracker_roadmap.md` | Job-by-job (not hour-by-hour) for 4 of 5 cells; Roll Cut uses HR slots. One Smartsheet row per job, submitted at End Shift. |
 | Pareto fields (Inspection, Pulling, Pulling Method) | Multi-select checkboxes | Selected values join as comma-separated string → MULTI_PICKLIST column in Smartsheet |
 | PPH Standards source | Load from Smartsheet Standards sheet | Already exists and populated in Reference Sheets; replaces the large hardcoded lookup table in the standalone portals |
+| Production portal entry point | One `public/index.html` for PL/PTFE/PI until PI is built and proven | Shared shell/session/submission behavior stays in one place during integration; split JavaScript into department modules after all three workflows are stable |
+| Admin page naming | Generic admin router + department-specific admin pages | Use `admin.html` as the stable admin doorway. It routes to `admin-pl.html`, `admin-ptfe.html`, and eventually `admin-pi.html`. |
+
+---
+
+## Future Frontend Modularization
+
+For now, `public/index.html` remains the single production portal entry point. That keeps department routing, login session handling, shared overlays, theme controls, and common submit/logout behavior together while PTFE is being proven and PI is still pending.
+
+After the third department (PI) is implemented and validated end-to-end, split the large inline JavaScript out of `index.html` into smaller department and shared modules. Recommended target structure:
+
+| File | Purpose |
+|------|---------|
+| `public/index.html` | Thin HTML shell and shared markup containers |
+| `public/js/shared-session.js` | Login/session helpers, department routing, admin URL routing, logout |
+| `public/js/shared-ui.js` | Toasts, submit overlay, theme handling, common modals |
+| `public/js/pl-portal.js` | PrecisionLiner production workflow |
+| `public/js/ptfe-portal.js` | PTFE production workflow and Job x Job tracker |
+| `public/js/pi-portal.js` | Polyimide production workflow |
+
+Do this after PI is working, not before. The split should be a mechanical extraction with behavior parity first, then cleanup after verification. Avoid changing Smartsheet write behavior during the same refactor.
 
 ---
 
@@ -337,16 +358,20 @@ Department is selected first, which filters the name dropdown to that dept only:
 | `.env` | Add `DEPT_PTFE_*` and `DEPT_PI_*` blocks |
 | `lib/smartsheet.js` | Add `getClientForDept()` factory |
 | `server.js` | Refactor config cache to dept-keyed; add dept routing at login; add `/api/submit-ptfe` and `/api/submit-pi` endpoints; add PPH standards cache |
-| `public/index.html` | Add PTFE and PI view branches; include `department` in all submission payloads; store from login response |
+| `public/index.html` | Add PTFE and PI view branches; include `department` in all submission payloads; store from login response. After PI is proven, extract inline JavaScript into shared + department files. |
 | `public/login.html` | Store `department` from login response in `localStorage` |
+| `public/admin.html` | Generic admin entry point. Reads the supervisor session and routes to the correct department admin page. |
+| `public/admin-pl.html` | PL admin panel. |
+| `public/admin-ptfe.html` | PTFE admin panel. Mirrors the PL admin pattern with PTFE-specific lists, items, and PPH standards. |
+| `public/admin-pi.html` | Future PI admin panel once PI integration starts. |
 
 Reference: `portal_scaling_and_future_proofing.md` → Improvement 7 for the full multi-department server architecture pattern.
 
 ---
 
-## Critical Notes for the Building Agent
+## Current Build Notes
 
-Read these before writing any code. Each one will cause a build failure or regression if missed.
+These notes were originally written before PTFE was built. They are now retained as guidance for future PTFE changes and the later PI build.
 
 ### 1. Master Log columns are only partially documented here — and formula columns must be excluded
 
@@ -368,11 +393,15 @@ The column maps in this doc already omit `scrapRatePct` and `sequenceOE` as a pr
 - PTFE Master Log Sheet ID: `3341343016308612`
 - PI Master Log Sheet ID: `8097032053936004`
 
-### 2. `/api/config` is currently PL-only and dept-unaware
+### 2. `/api/config` is department-aware
+
+Current status: implemented. `GET /api/config` in `server.js` accepts `dept=PL|PTFE|PI` and defaults to PL when no department is supplied. Login uses `scope=login` to avoid loading heavy supplemental PTFE standards data unnecessarily.
 
 The existing `GET /api/config` in `server.js` reads PL's config sheet with no dept parameter. The new login flow calls `/api/config?dept=PTFE`. This endpoint must be updated to accept a `dept` query param and route to the correct config sheet. **This is a change to live PL code** — ensure `dept=PL` (or no dept param defaulting to PL) continues to work exactly as before. All existing `login.html` and kiosk login calls that currently hit `/api/config` without a dept param must still return PL data.
 
-### 3. `lib/config.js` `fetchConfigData()` is hardcoded to PL's sheet
+### 3. `lib/config.js` `fetchConfigData()` is department-aware
+
+Current status: implemented. `fetchConfigData(sheetId, dept, options)` accepts the department and optional supplemental loading flag.
 
 `fetchConfigData()` in `lib/config.js` reads from `EMPLOYEE_SCHEDULE_SHEET_ID` directly. It cannot serve PTFE or PI without modification. Refactor it to accept a sheet ID parameter:
 
@@ -394,19 +423,29 @@ async function fetchConfigData(sheetId = MASTER_CONFIG_SHEET_ID) {
 
 ### 4. `_configCache` refactor touches live PL login
 
+Current status: implemented. Config cache is department-keyed and PL remains the default path.
+
 `server.js` currently has `let _configCache = null` — a single object serving PL only. This must become a dept-keyed map: `const _configCache = {}`. The refactor must not break the existing PL login flow. Make PL the default key (`_configCache['PL']`) and verify PL login still works after the change.
 
 ### 5. Hour-by-Hour tracker — do NOT build yet
 
-The H×H format for PTFE/PI is undecided (see Open Questions). Do not build the H×H section of the UI or create H×H Smartsheet sheets for PTFE/PI. Add a visible placeholder in the PTFE UI ("Hour-by-Hour tracker — coming soon") and move on. The rest of the feature can be fully built and tested without it.
+PTFE uses Job x Job, not Hour-by-Hour. PI should follow the PTFE Job x Job pattern unless floor requirements change.
 
 ### 6. Training accounts for PTFE/PI
 
-PL has `test1` and `test2` hardcoded in `server.js` as training accounts that simulate success without writing to Smartsheet. PTFE and PI need equivalent accounts. Add `test-ptfe` and `test-pi` (or similar) following the same pattern. Coordinate with the user on what username convention to use.
+Current status: implemented as `test-pl`, `test-ptfe`, `test-pi`, plus supervisor variants `test-pl-super`, `test-ptfe-super`, and `test-pi-super`. Password: `trenton1`.
 
-### 7. `admin.html` is currently PL-only
+Current test accounts are `test-pl`, `test-ptfe`, `test-pi`, plus supervisor variants `test-pl-super`, `test-ptfe-super`, and `test-pi-super`. Password: `trenton1`.
 
-PTFE/PI supervisors logging in will be redirected to `admin.html` (same as PL supervisors). The current admin panel only shows PL data. For the initial PTFE build, this is acceptable — just make sure PTFE supervisors can log in and use the associate portal even if the admin panel is PL-data-only. A PTFE/PI admin panel view is a future task, not part of this build.
+### 7. Admin pages are department-specific
+
+The admin page naming pattern is now department-specific:
+
+- `public/admin-pl.html` — PrecisionLiner admin
+- `public/admin-ptfe.html` — PTFE admin
+- `public/admin-pi.html` — future PI admin
+
+`public/admin.html` is the stable generic admin doorway. It reads `localStorage.currentUser.departmentKey` and routes supervisors to the correct department-specific admin page. Department-specific links can still point directly to `admin-pl.html` or `admin-ptfe.html` when the destination is already known.
 
 ### 8. Sequence Goals column for PTFE/PI
 

@@ -7,7 +7,7 @@ This is a CommonJS Node/Express application with static frontend pages.
 - `server.js` is the main Express server, API router, static file host, and Smartsheet workflow coordinator.
 - `lib/` contains shared backend modules, including Smartsheet API access and config loading.
 - `api/` contains serverless-style handlers that reuse shared backend logic.
-- `public/` contains browser-facing HTML entry points such as `index.html`, `login.html`, and `admin.html`.
+- `public/` contains browser-facing HTML entry points such as `index.html`, `login.html`, `admin.html`, `admin-pl.html`, and `admin-ptfe.html`.
 - `docs/` contains SOP/training documentation and images under `docs/sop_images/`.
 - `scripts/` contains one-off operational utilities, such as Smartsheet column migration.
 - `data/` is runtime data; `data/defect_columns.json` is ignored and should not be treated as source.
@@ -35,4 +35,4 @@ This checkout does not include local Git history, so no historical convention ca
 
 ## Security & Configuration Tips
 
-Keep `.env` local and out of commits. Required Smartsheet IDs and tokens are loaded from environment variables such as `SMARTSHEET_ACCESS_TOKEN`, `MASTER_LOG_SHEET_ID`, and `EMPLOYEE_SCHEDULE_SHEET_ID`. Review `CORS_ORIGIN` before deployment, and avoid logging token values or sheet payloads containing employee data.
+Keep `.env` local and out of commits. Required Smartsheet IDs and tokens are loaded from department-scoped variables such as `DEPT_PL_API_TOKEN`, `DEPT_PL_MASTER_LOG_SHEET_ID`, `DEPT_PTFE_CONFIG_SHEET_ID`, and `DEPT_PI_CONFIG_SHEET_ID`. Review `CORS_ORIGIN` before deployment, and avoid logging token values or sheet payloads containing employee data.

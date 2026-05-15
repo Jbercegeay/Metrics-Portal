@@ -1,402 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>Portal Admin | Precision Liner</title>
+    <title>Redirecting | Admin</title>
     <style>
-        :root {
-            --bg: #0f172a;
-            --panel: #1e293b;
-            --border: #334155;
-            --text: #f8fafc;
-            --accent: #38bdf8;
-        }
-
         body {
-            background-color: #0f172a;
+            background: #0f172a;
             color: #f8fafc;
             font-family: 'Segoe UI', system-ui, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
             margin: 0;
-            padding: 20px;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        h1,
-        h2,
-        h3 {
-            color: #38bdf8;
-            margin-top: 0;
-        }
-
         .card {
             background: #1e293b;
             border: 1px solid #334155;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 32px;
+            text-align: center;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
+        h1 {
+            color: #38bdf8;
+            margin-top: 0;
         }
-
-        th,
-        td {
-            text-align: left;
-            padding: 10px;
-            border-bottom: 1px solid #334155;
-        }
-
-        th {
+        p {
             color: #94a3b8;
-            font-size: 12px;
-            text-transform: uppercase;
         }
-
-        input[type="text"],
-        input[type="number"] {
-            background: #0b1220;
-            border: 1px solid #334155;
-            color: #fff;
-            padding: 8px;
-            border-radius: 4px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        input[type="checkbox"] {
-            transform: scale(1.2);
-        }
-
-        .btn {
-            background: #38bdf8;
-            color: #000;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: #fff;
-        }
-
-        .btn-sm {
-            padding: 4px 8px;
-            font-size: 12px;
-        }
-
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        #toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #22c55e;
-            color: #fff;
-            padding: 12px 24px;
-            border-radius: 8px;
-            display: none;
-            font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        }
-
-        #toast.error {
-            background: #ef4444;
+        a {
+            color: #38bdf8;
         }
     </style>
 </head>
-
 <body>
-    <script>
-        // AUTHENTICATION CHECK
-        const user = JSON.parse(localStorage.getItem('currentUser'));
-        const adminToken = localStorage.getItem('adminToken');
-        if (!user || user.role !== 'Supervisor') {
-            window.location.href = '/login.html';
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('loggedInName').textContent = user.name;
-        });
-    </script>
-    <div class="container">
-        <div class="flex-between">
-            <div>
-                <h1 style="margin-bottom: 5px;">Master Configuration Admin</h1>
-                <div style="font-size: 14px; color: #94a3b8;">Logged in as: <span
-                        id="loggedInName" style="color:var(--accent);"></span></div>
-            </div>
-            <a href="/" style="color:var(--accent); text-decoration:none;">&larr; Back to Portal</a>
-        </div>
-        <p style="color:#94a3b8; margin-top:0;">Manage Associates, Schedules, Sequences, and Dropdowns.</p>
-
-        <div class="card" id="card-associates">
-            <div class="flex-between">
-                <h2>Associates & Schedules</h2>
-                <button class="btn" onclick="addAssociate()">+ Add Associate</button>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Associate Name</th>
-                        <th style="width:70px">Mon</th>
-                        <th style="width:70px">Tue</th>
-                        <th style="width:70px">Wed</th>
-                        <th style="width:70px">Thur</th>
-                        <th style="width:70px">Fri</th>
-                        <th style="width:70px">Sat</th>
-                        <th style="width:70px">Sun</th>
-                        <th style="width:60px">Training</th>
-                        <th style="width:100px">Role</th>
-                        <th style="width:120px"></th>
-                    </tr>
-                </thead>
-                <tbody id="tb-associates"></tbody>
-            </table>
-            <button class="btn" onclick="saveData('associates')">Save Associates</button>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div class="card" id="card-sequences">
-                <div class="flex-between">
-                    <h2>Sequences</h2>
-                    <button class="btn btn-sm" onclick="addSequence()">+ Add Sequence</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Sequence Name</th>
-                            <th style="width:100px">Goal (Parts/Hr)</th>
-                            <th style="width:50px"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tb-sequences"></tbody>
-                </table>
-                <button class="btn" onclick="saveData('sequences')">Save Sequences</button>
-            </div>
-
-            <div class="card" id="card-defects">
-                <div class="flex-between">
-                    <h2>Defect Log Items</h2>
-                    <button class="btn btn-sm" onclick="addDefect()">+ Add Defect</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Defect Name</th>
-                            <th style="width:50px"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tb-defects"></tbody>
-                </table>
-                <button class="btn" onclick="saveData('defects')">Save Defects</button>
-            </div>
-
-            <div class="card" id="card-events">
-                <div class="flex-between">
-                    <h2>Downtime Events</h2>
-                    <button class="btn btn-sm" onclick="addEvent()">+ Add Event</button>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Event Name</th>
-                            <th style="width:50px"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tb-events"></tbody>
-                </table>
-                <button class="btn" onclick="saveData('events')">Save Events</button>
-            </div>
-        </div>
+    <div class="card">
+        <h1>Opening Admin...</h1>
+        <p id="message">Checking your department.</p>
     </div>
 
-    <div id="toast">Saved Successfully!</div>
-
     <script>
-        const API_URL = '/api/config';
-        const SAVE_URL = '/api/admin/config/save';
-        let configData = { associates: [], sequences: [], defects: [], events: [] };
+        const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        const adminToken = localStorage.getItem('adminToken');
+        const message = document.getElementById('message');
 
-        async function loadData() {
-            try {
-                const res = await fetch(API_URL);
-                const json = await res.json();
-                if (json.success) {
-                    configData = json.data;
-                    renderAll();
-                }
-            } catch (e) { showToast("Failed to load data", true); }
+        if (!user || user.role !== 'Supervisor' || !adminToken) {
+            window.location.replace('/login.html');
+        } else if ((user.departmentKey || 'PL') === 'PTFE') {
+            window.location.replace('/admin-ptfe.html');
+        } else if ((user.departmentKey || 'PL') === 'PI') {
+            window.location.replace('/admin-pi.html');
+        } else if ((user.departmentKey || 'PL') === 'PL') {
+            window.location.replace('/admin-pl.html');
+        } else {
+            message.innerHTML = 'No admin panel exists for this department yet. <a href="/">Return to portal</a>.';
         }
-
-        function showToast(msg, isError = false) {
-            const el = document.getElementById('toast');
-            el.textContent = msg;
-            el.className = isError ? 'error' : '';
-            el.style.display = 'block';
-            setTimeout(() => el.style.display = 'none', 3000);
-        }
-
-        // ------------- RENDERING -------------
-        function renderAll() {
-            // Associates
-            const tbAssoc = document.getElementById('tb-associates');
-            tbAssoc.innerHTML = configData.associates.map((a, i) => `
-                <tr>
-                    <td><input type="text" value="${a.name}" onchange="update('associates', ${i}, 'name', this.value)"></td>
-                    <td><input type="number" value="${a.Mon}" onchange="update('associates', ${i}, 'Mon', this.value)"></td>
-                    <td><input type="number" value="${a.Tue}" onchange="update('associates', ${i}, 'Tue', this.value)"></td>
-                    <td><input type="number" value="${a.Wed}" onchange="update('associates', ${i}, 'Wed', this.value)"></td>
-                    <td><input type="number" value="${a.Thur}" onchange="update('associates', ${i}, 'Thur', this.value)"></td>
-                    <td><input type="number" value="${a.Fri}" onchange="update('associates', ${i}, 'Fri', this.value)"></td>
-                    <td><input type="number" value="${a.Sat}" onchange="update('associates', ${i}, 'Sat', this.value)"></td>
-                    <td><input type="number" value="${a.Sun}" onchange="update('associates', ${i}, 'Sun', this.value)"></td>
-                    <td style="text-align:center"><input type="checkbox" ${a.Training ? 'checked' : ''} onchange="update('associates', ${i}, 'Training', this.checked)"></td>
-                    <td>
-                        <select onchange="update('associates', ${i}, 'Role', this.value)" style="width:100%; padding:6px; background:#0b1220; border:1px solid var(--border); color:#fff;">
-                            <option value="Associate" ${a.Role === 'Associate' ? 'selected' : ''}>Associate</option>
-                            <option value="Supervisor" ${a.Role === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm" style="background:#f59e0b; color:#000;" onclick="resetPassword(${i})">Reset Pass</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteItem('associates', ${i})">🗑️</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Sequences
-            const tbSeq = document.getElementById('tb-sequences');
-            tbSeq.innerHTML = configData.sequences.map((s, i) => `
-                <tr>
-                    <td><input type="text" value="${s.name}" onchange="update('sequences', ${i}, 'name', this.value)"></td>
-                    <td><input type="number" value="${s.goal}" onchange="update('sequences', ${i}, 'goal', this.value)"></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('sequences', ${i})">🗑️</button></td>
-                </tr>
-            `).join('');
-
-            // Defects
-            const tbDef = document.getElementById('tb-defects');
-            tbDef.innerHTML = configData.defects.map((d, i) => `
-                <tr>
-                    <td><input type="text" value="${d.name}" onchange="update('defects', ${i}, 'name', this.value)"></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('defects', ${i})">🗑️</button></td>
-                </tr>
-            `).join('');
-
-            // Events
-            const tbEv = document.getElementById('tb-events');
-            tbEv.innerHTML = configData.events.map((e, i) => `
-                <tr>
-                    <td><input type="text" value="${e.name}" onchange="update('events', ${i}, 'name', this.value)"></td>
-                    <td><button class="btn btn-danger btn-sm" onclick="deleteItem('events', ${i})">🗑️</button></td>
-                </tr>
-            `).join('');
-        }
-
-        function update(type, index, field, value) {
-            configData[type][index][field] = value;
-        }
-
-        async function deleteItem(type, index) {
-            const item = configData[type][index];
-            if (!item) return;
-
-            if (item.id) {
-                if (!confirm(`Are you sure you want to PERMANENTLY delete this from Smartsheet?`)) return;
-                showToast(`Deleting from Smartsheet...`);
-                try {
-                    const res = await fetch('/api/admin/config/delete', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
-                        body: JSON.stringify({ rowId: item.id, type: type })
-                    });
-                    const json = await res.json();
-                    if (json.success) {
-                        configData[type].splice(index, 1);
-                        renderAll();
-                        showToast(`Deleted successfully!`);
-                    } else {
-                        showToast(`Failed to delete row`, true);
-                    }
-                } catch (err) {
-                    showToast(`Error deleting row`, true);
-                }
-            } else {
-                // Not saved to Smartsheet yet, just remove from local array
-                configData[type].splice(index, 1);
-                renderAll();
-            }
-        }
-
-        async function resetPassword(index) {
-            const item = configData.associates[index];
-            if (!item || !item.id) return showToast("Save the associate first before resetting password.", true);
-
-            if (!confirm(`Are you sure you want to reset the password for ${item.name}? They will be forced to create a new password on their next login.`)) return;
-
-            showToast(`Resetting password...`);
-            try {
-                const res = await fetch('/api/admin/reset-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
-                    body: JSON.stringify({ rowId: item.id })
-                });
-                const json = await res.json();
-                if (json.success) {
-                    showToast(`Password successfully cleared!`);
-                } else {
-                    showToast(`Failed to reset password`, true);
-                }
-            } catch (err) {
-                showToast(`Error resetting password`, true);
-            }
-        }
-
-        function addAssociate() {
-            configData.associates.push({ name: '', Mon: 0, Tue: 0, Wed: 0, Thur: 0, Fri: 0, Sat: 0, Sun: 0, Training: false, Role: 'Associate' });
-            renderAll();
-        }
-        function addSequence() { configData.sequences.push({ name: '', goal: 0 }); renderAll(); }
-        function addDefect() { configData.defects.push({ name: '' }); renderAll(); }
-        function addEvent() { configData.events.push({ name: '' }); renderAll(); }
-
-        async function saveData(type) {
-            showToast(`Saving ${type}...`);
-            try {
-                const res = await fetch(SAVE_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
-                    body: JSON.stringify({ type: type, items: configData[type] })
-                });
-                const json = await res.json();
-                if (json.success) showToast(`${type} saved successfully!`);
-                else showToast(`Failed to save ${type}`, true);
-            } catch (e) {
-                showToast(`Error saving ${type}`, true);
-            }
-        }
-
-        window.onload = loadData;
     </script>
 </body>
-
 </html>

@@ -25,8 +25,92 @@ function isEnvTrue(name) {
     return ['1', 'true', 'yes', 'on'].includes(String(process.env[name] || '').trim().toLowerCase());
 }
 
+function toSmartsheetNumber(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+}
+
+function toSmartsheetWholeNumber(value, fallback = 0) {
+    return Math.round(toSmartsheetNumber(value, fallback));
+}
+
+const MASTER_LOG_DUPLICATE_WINDOW_MS = Number(process.env.MASTER_LOG_DUPLICATE_WINDOW_MS || 10 * 60 * 1000);
+const recentMasterLogSubmissions = new Map();
+
+function normalizeDuplicateValue(value) {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    const text = String(value).trim();
+    if (!text) return '';
+    const numberLike = text.replace(/,/g, '');
+    if (/^-?\d+(\.\d+)?$/.test(numberLike)) {
+        const parsed = Number(numberLike);
+        if (Number.isFinite(parsed)) return String(parsed);
+    }
+    return text.replace(/\s+/g, ' ');
+}
+
+function buildSubmissionKey(dept, entries) {
+    const normalized = entries
+        .filter(([title]) => title !== 'clientSubmissionId')
+        .map(([title, value]) => [title, normalizeDuplicateValue(value)])
+        .filter(([, value]) => value !== '')
+        .sort(([a], [b]) => a.localeCompare(b));
+    return crypto
+        .createHash('sha256')
+        .update(JSON.stringify([normalizeDept(dept), normalized]))
+        .digest('hex');
+}
+
+function pruneRecentMasterLogSubmissions(now = Date.now()) {
+    for (const [key, record] of recentMasterLogSubmissions.entries()) {
+        if ((now - record.startedAt) > MASTER_LOG_DUPLICATE_WINDOW_MS) {
+            recentMasterLogSubmissions.delete(key);
+        }
+    }
+}
+
+function reserveMasterLogSubmission(dept, entries) {
+    const now = Date.now();
+    pruneRecentMasterLogSubmissions(now);
+    const key = buildSubmissionKey(dept, entries);
+    if (recentMasterLogSubmissions.has(key)) {
+        return { duplicate: true, key, record: recentMasterLogSubmissions.get(key) };
+    }
+    recentMasterLogSubmissions.set(key, {
+        dept: normalizeDept(dept),
+        startedAt: now,
+        status: 'pending'
+    });
+    return { duplicate: false, key };
+}
+
+function finishMasterLogSubmission(key, success) {
+    const record = recentMasterLogSubmissions.get(key);
+    if (!record) return;
+    if (success) {
+        record.status = 'success';
+        record.completedAt = Date.now();
+        return;
+    }
+    recentMasterLogSubmissions.delete(key);
+}
+
+function isSixDigitItemNumber(value) {
+    return /^\d{6}$/.test(String(value || '').trim());
+}
+
+function validateItemNumberPayload(data, keys = ['Item', 'Item Number']) {
+    for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            return isSixDigitItemNumber(data[key]);
+        }
+    }
+    return true;
+}
+
 // Middleware
-app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://10.15.3.47:3000').split(',') }));
+app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',') }));
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off — HTML files use inline scripts
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
@@ -158,12 +242,14 @@ const adminSessions = new Map();
 let _configCache = null;
 let _configCacheTime = 0;
 const CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-const TEST_ACCOUNTS = ['test1', 'test2', 'test-ptfe', 'test-pi'];
+const TEST_ACCOUNTS = ['test-pl', 'test-ptfe', 'test-pi', 'test-pl-super', 'test-ptfe-super', 'test-pi-super'];
 const TEST_ACCOUNT_DETAILS = {
-    test1: { departmentKey: 'PL', department: 'PrecisionLiner', role: 'Associate' },
-    test2: { departmentKey: 'PL', department: 'PrecisionLiner', role: 'Associate' },
-    'test-ptfe': { departmentKey: 'PTFE', department: 'PTFE', role: 'Associate' },
-    'test-pi': { departmentKey: 'PI', department: 'Polyimide', role: 'Associate' }
+    'test-pl':       { departmentKey: 'PL',   department: 'PrecisionLiner', role: 'Associate' },
+    'test-ptfe':     { departmentKey: 'PTFE', department: 'PTFE',           role: 'Associate' },
+    'test-pi':       { departmentKey: 'PI',   department: 'Polyimide',      role: 'Associate' },
+    'test-pl-super': { departmentKey: 'PL',   department: 'PrecisionLiner', role: 'Supervisor' },
+    'test-ptfe-super':{ departmentKey: 'PTFE',department: 'PTFE',           role: 'Supervisor' },
+    'test-pi-super': { departmentKey: 'PI',   department: 'Polyimide',      role: 'Supervisor' }
 };
 
 async function getCachedConfigSheet(dept = 'PL') {
@@ -186,8 +272,20 @@ function requireAdmin(req, res, next) {
     if (!session || session.expires < Date.now()) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
-    if ((session.deptKey || 'PL') !== 'PL') {
-        return res.status(403).json({ success: false, error: 'Admin access is only enabled for PrecisionLiner at this time.' });
+
+    let requestedDept;
+    try {
+        requestedDept = normalizeDept(req.body?.dept || req.query?.dept || session.deptKey || 'PL');
+    } catch (error) {
+        return res.status(400).json({ success: false, error: error.message });
+    }
+
+    if (!['PL', 'PTFE', 'PI'].includes(requestedDept)) {
+        return res.status(403).json({ success: false, error: 'Admin access is not enabled for this department.' });
+    }
+
+    if ((session.deptKey || 'PL') !== requestedDept) {
+        return res.status(403).json({ success: false, error: 'Admin session is not valid for this department.' });
     }
     next();
 }
@@ -211,7 +309,81 @@ app.get('/api/config', async (req, res) => {
 // 2. Admin POST Route to save Config changes
 app.post('/api/admin/config/save', async (req, res) => {
     try {
-        const { type, items } = req.body;
+        const { type, items, dept: deptParam } = req.body;
+        const dept = normalizeDept(deptParam || 'PL');
+
+        // ── PTFE branch ─────────────────────────────────────────────────────────
+        if (['PTFE', 'PI'].includes(dept)) {
+            const deptClient = getClientForDept(dept);
+            const deptConfig = getDepartmentConfig(dept);
+            let sheetId;
+            if (type === 'standards') {
+                sheetId = getRequiredEnv(deptConfig.standardsSheetEnv);
+            } else if (type === 'items') {
+                sheetId = getRequiredEnv(deptConfig.itemsSheetEnv);
+            } else {
+                sheetId = getConfigSheetId(dept);
+            }
+            const sheetRes = await deptClient.get(`sheets/${sheetId}`);
+            const colMap = buildColumnMap(sheetRes.data);
+
+            const toUpdate = [], toAdd = [];
+            items.forEach(item => {
+                let cells = [];
+                if (type === 'associates') {
+                    cells = [
+                        { columnId: colMap['Associate Name'], value: item.name },
+                        { columnId: colMap['Cell'],           value: item.Cell || '' },
+                        { columnId: colMap['Scheduled Minutes'], value: toSmartsheetWholeNumber(item.ScheduledMinutes) },
+                        { columnId: colMap['Mon'],            value: toSmartsheetWholeNumber(item.Mon) },
+                        { columnId: colMap['Tue'],            value: toSmartsheetWholeNumber(item.Tue) },
+                        { columnId: colMap['Wed'],            value: toSmartsheetWholeNumber(item.Wed) },
+                        { columnId: colMap['Thur'] || colMap['Thurs'], value: toSmartsheetWholeNumber(item.Thur) },
+                        { columnId: colMap['Fri'],            value: toSmartsheetWholeNumber(item.Fri) },
+                        { columnId: colMap['Sat'],            value: toSmartsheetWholeNumber(item.Sat) },
+                        { columnId: colMap['Sun'],            value: toSmartsheetWholeNumber(item.Sun) },
+                        { columnId: colMap['Training?'],      value: item.Training || false },
+                        { columnId: colMap['Role'],           value: item.Role || 'Associate' }
+                    ].filter(c => c.columnId);
+                } else if (type === 'sequences') {
+                    cells = [
+                        { columnId: colMap['Sequences'],       value: (item.name || '').trim() },
+                        { columnId: colMap['Sequence Goals'],  value: toSmartsheetWholeNumber(item.goal) }
+                    ].filter(c => c.columnId);
+                } else if (type === 'events') {
+                    cells = [{ columnId: colMap['Events'], value: (item.name || '').trim() }].filter(c => c.columnId);
+                } else if (type === 'inspectionPareto') {
+                    cells = [{ columnId: colMap['Inspection Pareto'], value: (item.name || '').trim() }].filter(c => c.columnId);
+                } else if (type === 'pullingPareto') {
+                    cells = [{ columnId: colMap['Pulling Pareto'], value: (item.name || '').trim() }].filter(c => c.columnId);
+                } else if (type === 'pullingMethod') {
+                    cells = [{ columnId: colMap['Pulling Method'], value: (item.name || '').trim() }].filter(c => c.columnId);
+                } else if (type === 'standards') {
+                    cells = [
+                        { columnId: colMap['Item'],          value: (item.item || '').trim() },
+                        { columnId: colMap['Sequence'],      value: (item.sequence || '').trim() },
+                        { columnId: colMap['Good PPH Std'],  value: toSmartsheetWholeNumber(item.goodPphStd) },
+                        { columnId: colMap['Total PPH Std'], value: toSmartsheetWholeNumber(item.totalPphStd) }
+                    ].filter(c => c.columnId);
+                } else if (type === 'items') {
+                    cells = [
+                        { columnId: colMap['Item'],          value: (item.item || '').trim() },
+                        { columnId: colMap['FG Length (in)'],value: toSmartsheetNumber(item.fgLength) },
+                        { columnId: colMap['Product Family'],value: (item.productFamily || '').trim() },
+                        { columnId: colMap['Unit Of Measure'],value: (item.unitOfMeasure || '').trim() }
+                    ].filter(c => c.columnId);
+                }
+                if (item.id) {
+                    toUpdate.push({ id: item.id, cells });
+                } else {
+                    toAdd.push({ toBottom: true, cells });
+                }
+            });
+            if (toUpdate.length > 0) await deptClient.put(`sheets/${sheetId}/rows`, toUpdate);
+            if (toAdd.length > 0) await deptClient.post(`sheets/${sheetId}/rows`, toAdd);
+            return res.json({ success: true, message: `Successfully saved ${type}` });
+        }
+        // ── End PTFE branch ──────────────────────────────────────────────────────
 
         // Fetch current sheet to find "holes" (empty slots) for list-type items
         let availableRows = [];
@@ -295,8 +467,51 @@ app.post('/api/admin/config/save', async (req, res) => {
 // 3. Admin DELETE Route to remove Config rows
 app.post('/api/admin/config/delete', async (req, res) => {
     try {
-        const { rowId, type } = req.body;
+        const { rowId, type, dept: deptParam } = req.body;
         if (!rowId || !type) return res.status(400).json({ success: false, error: 'Row ID and type required' });
+        const dept = normalizeDept(deptParam || 'PL');
+
+        // ── PTFE branch ─────────────────────────────────────────────────────────
+        if (['PTFE', 'PI'].includes(dept)) {
+            const deptClient = getClientForDept(dept);
+            const deptConfig = getDepartmentConfig(dept);
+            let sheetId;
+            if (type === 'standards') {
+                sheetId = getRequiredEnv(deptConfig.standardsSheetEnv);
+            } else if (type === 'items') {
+                sheetId = getRequiredEnv(deptConfig.itemsSheetEnv);
+            } else {
+                sheetId = getConfigSheetId(dept);
+            }
+            const sheetRes = await deptClient.get(`sheets/${sheetId}`);
+            const colMap = buildColumnMap(sheetRes.data);
+
+            let cells = [];
+            if (type === 'associates') {
+                cells = ['Associate Name', 'Cell', 'Scheduled Minutes', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', 'Training?', 'Role', 'Password Hash']
+                    .filter(col => colMap[col])
+                    .map(col => ({ columnId: colMap[col], value: col === 'Training?' ? false : '' }));
+                const thurCol = colMap['Thurs'];
+                if (thurCol && !colMap['Thur']) cells.push({ columnId: thurCol, value: '' });
+            } else if (type === 'sequences') {
+                cells = ['Sequences', 'Sequence Goals'].filter(c => colMap[c]).map(c => ({ columnId: colMap[c], value: '' }));
+            } else if (type === 'events') {
+                if (colMap['Events']) cells = [{ columnId: colMap['Events'], value: '' }];
+            } else if (type === 'inspectionPareto') {
+                if (colMap['Inspection Pareto']) cells = [{ columnId: colMap['Inspection Pareto'], value: '' }];
+            } else if (type === 'pullingPareto') {
+                if (colMap['Pulling Pareto']) cells = [{ columnId: colMap['Pulling Pareto'], value: '' }];
+            } else if (type === 'pullingMethod') {
+                if (colMap['Pulling Method']) cells = [{ columnId: colMap['Pulling Method'], value: '' }];
+            } else if (type === 'standards') {
+                cells = ['Item', 'Sequence', 'Good PPH Std', 'Total PPH Std'].filter(c => colMap[c]).map(c => ({ columnId: colMap[c], value: '' }));
+            } else if (type === 'items') {
+                cells = ['Item', 'FG Length (in)', 'Product Family', 'Unit Of Measure'].filter(c => colMap[c]).map(c => ({ columnId: colMap[c], value: '' }));
+            }
+            if (cells.length > 0) await deptClient.put(`sheets/${sheetId}/rows`, [{ id: rowId, cells }]);
+            return res.json({ success: true, message: 'Item deleted successfully' });
+        }
+        // ── End PTFE branch ──────────────────────────────────────────────────────
 
         const cells = [];
         if (type === 'associates') {
@@ -351,7 +566,7 @@ app.post('/api/login', async (req, res) => {
             if (password !== 'trenton1') {
                 return res.json({ success: false, error: 'Incorrect password' });
             }
-            return res.json({
+            const testResponse = {
                 success: true,
                 user: {
                     name: username,
@@ -359,7 +574,13 @@ app.post('/api/login', async (req, res) => {
                     departmentKey: testAccount.departmentKey,
                     department: testAccount.department
                 }
-            });
+            };
+            if (testAccount.role === 'Supervisor' && ['PL', 'PTFE', 'PI'].includes(testAccount.departmentKey)) {
+                const token = crypto.randomUUID();
+                adminSessions.set(token, { name: username, deptKey: testAccount.departmentKey, expires: Date.now() + 8 * 60 * 60 * 1000 });
+                testResponse.adminToken = token;
+            }
+            return res.json(testResponse);
         }
 
         const sheetData = await getCachedConfigSheet(requestedDept);
@@ -399,7 +620,7 @@ app.post('/api/login', async (req, res) => {
                     department: departmentConfig.displayName
                 }
             };
-            if (role === 'Supervisor' && departmentConfig.key === 'PL') {
+            if (role === 'Supervisor' && ['PL', 'PTFE', 'PI'].includes(departmentConfig.key)) {
                 const token = crypto.randomUUID();
                 adminSessions.set(token, { name: username, deptKey: departmentConfig.key, expires: Date.now() + 8 * 60 * 60 * 1000 });
                 response.adminToken = token;
@@ -457,7 +678,7 @@ app.post('/api/setup-password', async (req, res) => {
                 department: deptConfig.displayName
             }
         };
-        if (role === 'Supervisor' && deptConfig.key === 'PL') {
+        if (role === 'Supervisor' && ['PL', 'PTFE', 'PI'].includes(deptConfig.key)) {
             const token = crypto.randomUUID();
             adminSessions.set(token, { name: username, deptKey: deptConfig.key, expires: Date.now() + 8 * 60 * 60 * 1000 });
             setupResponse.adminToken = token;
@@ -471,14 +692,28 @@ app.post('/api/setup-password', async (req, res) => {
 
 app.post('/api/admin/reset-password', async (req, res) => {
     try {
-        const { rowId } = req.body;
+        const { rowId, dept: deptParam } = req.body;
         if (!rowId) return res.status(400).json({ success: false, error: 'Row ID required' });
+        const dept = normalizeDept(deptParam || 'PL');
 
-        // Clear the password hash cell
-        await smartsheetApi.put(`sheets/${MASTER_CONFIG_SHEET_ID}/rows`, [{
-            id: rowId,
-            cells: [{ columnId: CONFIG_COLUMN_MAP['Password Hash'], value: "" }]
-        }]);
+        if (dept === 'PL') {
+            // PL: use existing hardcoded path
+            await smartsheetApi.put(`sheets/${MASTER_CONFIG_SHEET_ID}/rows`, [{
+                id: rowId,
+                cells: [{ columnId: CONFIG_COLUMN_MAP['Password Hash'], value: "" }]
+            }]);
+        } else {
+            // Other depts: build column map from live sheet
+            const client = getClientForDept(dept);
+            const sheetId = getConfigSheetId(dept);
+            const sheetRes = await client.get(`sheets/${sheetId}`);
+            const colMap = buildColumnMap(sheetRes.data);
+            if (!colMap['Password Hash']) throw new Error('Password Hash column not found in config sheet');
+            await client.put(`sheets/${sheetId}/rows`, [{
+                id: rowId,
+                cells: [{ columnId: colMap['Password Hash'], value: "" }]
+            }]);
+        }
 
         res.json({ success: true, message: 'Password reset' });
     } catch (error) {
@@ -489,11 +724,19 @@ app.post('/api/admin/reset-password', async (req, res) => {
 
 // 3. Handle Form Submissions (Master Log)
 app.post('/api/submit', async (req, res) => {
+    let submissionKey = null;
     try {
         const data = req.body;
         const dept = normalizeDept(data.department || data.departmentKey || 'PL');
         if (dept === 'PTFE') {
             return submitPtfe(req, res);
+        }
+        if (dept === 'PI') {
+            return submitPi(req, res);
+        }
+
+        if (!validateItemNumberPayload(data)) {
+            return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
         }
 
         // --- TEST ACCOUNT INTERCEPTION ---
@@ -511,6 +754,7 @@ app.post('/api/submit', async (req, res) => {
             toTop: true, // Add to the top of the sheet
             cells: []
         };
+        const submittedEntries = [];
 
         // Iterate through the payload and map to columns if it exists
         for (const [key, value] of Object.entries(data)) {
@@ -524,15 +768,29 @@ app.post('/api/submit', async (req, res) => {
                     columnId: COLUMN_MAP[key],
                     value: parsedValue
                 });
+                submittedEntries.push([key, parsedValue]);
             }
+        }
+
+        const reservation = reserveMasterLogSubmission('PL', submittedEntries);
+        submissionKey = reservation.key;
+        if (reservation.duplicate) {
+            return res.json({
+                success: true,
+                duplicate: true,
+                message: 'Duplicate PL submission ignored because an identical row was already submitted recently.',
+                data: []
+            });
         }
 
         // Send the payload to the Master Log Sheet
         const response = await smartsheetApi.post(`sheets/${MASTER_LOG_SHEET_ID}/rows`, [newRow]);
+        finishMasterLogSubmission(submissionKey, true);
 
         res.json({ success: true, message: "Successfully logged data to Smartsheet.", data: response.data });
 
     } catch (error) {
+        if (submissionKey) finishMasterLogSubmission(submissionKey, false);
         console.error("Error submitting to Smartsheet:", error.response?.data || error.message);
         if (error.code === 'ECONNABORTED') {
             return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });
@@ -585,6 +843,7 @@ async function getPtfeMasterLogColumnMap() {
 }
 
 async function submitPtfe(req, res) {
+    let submissionKey = null;
     try {
         const data = req.body;
         let dept = 'PTFE';
@@ -595,6 +854,10 @@ async function submitPtfe(req, res) {
         }
         if (dept !== 'PTFE') {
             return res.status(400).json({ success: false, error: 'Invalid department for PTFE submission.' });
+        }
+
+        if (!validateItemNumberPayload(data)) {
+            return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
         }
 
         if (TEST_ACCOUNTS.includes(data['Associate Name'])) {
@@ -613,6 +876,7 @@ async function submitPtfe(req, res) {
 
         const columnMap = await getPtfeMasterLogColumnMap();
         const newRow = { toTop: true, cells: [] };
+        const submittedEntries = [];
         const numericTitles = new Set([
             'Time Worked',
             'Start Quantity',
@@ -633,6 +897,7 @@ async function submitPtfe(req, res) {
             }
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
                 newRow.cells.push({ columnId: columnMap[title], value: value });
+                submittedEntries.push([title, value]);
             }
         }
 
@@ -640,9 +905,22 @@ async function submitPtfe(req, res) {
             return res.status(400).json({ success: false, error: 'No PTFE fields to submit.' });
         }
 
+        const reservation = reserveMasterLogSubmission('PTFE', submittedEntries);
+        submissionKey = reservation.key;
+        if (reservation.duplicate) {
+            return res.json({
+                success: true,
+                duplicate: true,
+                message: 'Duplicate PTFE submission ignored because an identical row was already submitted recently.',
+                data: []
+            });
+        }
+
         const response = await getClientForDept('PTFE').post(`sheets/${getRequiredEnv('DEPT_PTFE_MASTER_LOG_SHEET_ID')}/rows`, [newRow]);
+        finishMasterLogSubmission(submissionKey, true);
         return res.json({ success: true, message: "Successfully logged PTFE data to Smartsheet.", data: response.data });
     } catch (error) {
+        if (submissionKey) finishMasterLogSubmission(submissionKey, false);
         console.error("Error submitting PTFE to Smartsheet:", error.response?.data || error.message);
         if (error.code === 'ECONNABORTED') {
             return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });
@@ -685,6 +963,9 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
         if (!Array.isArray(rows) || rows.length === 0) {
             return res.status(400).json({ success: false, error: 'No rows provided.' });
         }
+        if (rows.some(row => !validateItemNumberPayload(row, ['Item Number']))) {
+            return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
+        }
         // Test account interception
         if (TEST_ACCOUNTS.includes(rows[0]['Associate Name'])) {
             return res.json({ success: true, message: '[TEST MODE] PTFE JxJ simulated.', data: [] });
@@ -715,6 +996,227 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
         if (error.code === 'ECONNABORTED') return res.status(504).json({ success: false, error: 'Smartsheet timed out.' });
         if (error.response?.status === 429) return res.status(429).json({ success: false, error: 'Rate limited.' });
         res.status(500).json({ success: false, error: 'Failed to submit PTFE JxJ data.' });
+    }
+});
+
+const PI_MASTER_LOG_WRITE_TITLES = [
+    'Entry Type',
+    'Associate Name',
+    'Date',
+    'Time Worked',
+    'Item',
+    'Lot #',
+    'Start Quantity',
+    'End Quantity',
+    'Sequence',
+    'Footage',
+    'Processing Length',
+    'Scrap Parts',
+    'Scrap Rate %',
+    'Re-Cuts',
+    'Inspection Pareto',
+    'Pulling Pareto',
+    'Pulling Wraps',
+    'Pulling Method',
+    'Event',
+    'Comments'
+];
+
+let _piMasterLogColumnMap = null;
+
+async function getPiMasterLogColumnMap() {
+    if (_piMasterLogColumnMap) return _piMasterLogColumnMap;
+    const client = getClientForDept('PI');
+    const sheetId = getRequiredEnv('DEPT_PI_MASTER_LOG_SHEET_ID');
+    const response = await client.get(`sheets/${sheetId}?include=columns`);
+    const allColumns = buildColumnMap(response.data);
+    const missingColumns = PI_MASTER_LOG_WRITE_TITLES.filter(title => !allColumns[title]);
+    if (missingColumns.length > 0) {
+        throw new Error(`PI Master Log is missing required column(s): ${missingColumns.join(', ')}`);
+    }
+    _piMasterLogColumnMap = PI_MASTER_LOG_WRITE_TITLES.reduce((map, title) => {
+        if (allColumns[title]) {
+            map[title] = allColumns[title];
+        }
+        return map;
+    }, {});
+    return _piMasterLogColumnMap;
+}
+
+async function submitPi(req, res) {
+    let submissionKey = null;
+    try {
+        const data = req.body;
+        let dept = 'PI';
+        try {
+            dept = normalizeDept(data.department || data.departmentKey || 'PI');
+        } catch (e) {
+            return res.status(400).json({ success: false, error: e.message });
+        }
+        if (dept !== 'PI') {
+            return res.status(400).json({ success: false, error: 'Invalid department for PI submission.' });
+        }
+
+        if (!validateItemNumberPayload(data)) {
+            return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
+        }
+
+        if (TEST_ACCOUNTS.includes(data['Associate Name'])) {
+            console.log(`[TEST MODE] Intercepted PI Master Log submission for ${data['Associate Name']}. Bypassing Smartsheet.`);
+            return res.json({ success: true, message: "[TEST MODE] Successfully simulated PI logging to Smartsheet.", data: [] });
+        }
+
+        if (!isEnvTrue('ALLOW_PI_MASTER_LOG_WRITES')) {
+            return res.json({
+                success: true,
+                simulated: true,
+                message: "[SAFE MODE] PI submission simulated. Set ALLOW_PI_MASTER_LOG_WRITES=true to enable PI Master Log writes.",
+                data: []
+            });
+        }
+
+        const columnMap = await getPiMasterLogColumnMap();
+        const newRow = { toTop: true, cells: [] };
+        const submittedEntries = [];
+        const numericTitles = new Set([
+            'Time Worked',
+            'Start Quantity',
+            'End Quantity',
+            'Footage',
+            'Processing Length',
+            'Scrap Parts',
+            'Scrap Rate %',
+            'Re-Cuts',
+            'Pulling Wraps'
+        ]);
+
+        for (const title of PI_MASTER_LOG_WRITE_TITLES) {
+            let value = data[title];
+            if (numericTitles.has(title) && typeof value === 'string' && value.trim() !== '') {
+                const parsed = Number(value);
+                if (!Number.isNaN(parsed)) value = parsed;
+            }
+            if (columnMap[title] && value !== undefined && value !== null && value !== '') {
+                newRow.cells.push({ columnId: columnMap[title], value: value });
+                submittedEntries.push([title, value]);
+            }
+        }
+
+        if (newRow.cells.length === 0) {
+            return res.status(400).json({ success: false, error: 'No PI fields to submit.' });
+        }
+
+        const reservation = reserveMasterLogSubmission('PI', submittedEntries);
+        submissionKey = reservation.key;
+        if (reservation.duplicate) {
+            return res.json({
+                success: true,
+                duplicate: true,
+                message: 'Duplicate PI submission ignored because an identical row was already submitted recently.',
+                data: []
+            });
+        }
+
+        const response = await getClientForDept('PI').post(`sheets/${getRequiredEnv('DEPT_PI_MASTER_LOG_SHEET_ID')}/rows`, [newRow]);
+        finishMasterLogSubmission(submissionKey, true);
+        return res.json({ success: true, message: "Successfully logged PI data to Smartsheet.", data: response.data });
+    } catch (error) {
+        if (submissionKey) finishMasterLogSubmission(submissionKey, false);
+        console.error("Error submitting PI to Smartsheet:", error.response?.data || error.message);
+        if (error.code === 'ECONNABORTED') {
+            return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });
+        }
+        if (error.response?.status === 429) {
+            return res.status(429).json({ success: false, error: 'Smartsheet is rate limited. Please wait a moment and try again.' });
+        }
+        return res.status(500).json({ success: false, error: 'Failed to submit PI data.' });
+    }
+}
+
+app.post('/api/submit-pi', submitPi);
+
+let _piJobLogColumnMap = null;
+
+async function getPiJobLogColumnMap() {
+    if (_piJobLogColumnMap) return _piJobLogColumnMap;
+    const client = getClientForDept('PI');
+    const sheetId = getRequiredEnv('DEPT_PI_JOB_LOG_SHEET_ID');
+    const response = await client.get(`sheets/${sheetId}?include=columns`);
+    _piJobLogColumnMap = buildColumnMap(response.data);
+    return _piJobLogColumnMap;
+}
+
+app.post('/api/submit-pi-jxj', async (req, res) => {
+    try {
+        const rows = req.body;
+        if (!Array.isArray(rows) || rows.length === 0) {
+            return res.status(400).json({ success: false, error: 'No rows provided.' });
+        }
+        const invalidDeptRow = rows.find(row => row.Department && normalizeDept(row.Department) !== 'PI');
+        if (invalidDeptRow) {
+            return res.status(400).json({ success: false, error: 'Invalid department for PI JxJ submission.' });
+        }
+        if (rows.some(row => !validateItemNumberPayload(row, ['Item Number']))) {
+            return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
+        }
+
+        if (rows.some(row => TEST_ACCOUNTS.includes(row['Associate Name']))) {
+            return res.json({ success: true, message: '[TEST MODE] PI JxJ simulated.', data: [] });
+        }
+
+        if (!isEnvTrue('ALLOW_PI_MASTER_LOG_WRITES')) {
+            return res.json({ success: true, simulated: true, message: '[SAFE MODE] PI JxJ simulated.' });
+        }
+
+        const columnMap = await getPiJobLogColumnMap();
+        const writeFields = [
+            { key: 'Row ID', columns: ['Row ID'] },
+            { key: 'Work Date', columns: ['Work Date'] },
+            { key: 'Associate Name', columns: ['Associate Name'] },
+            { key: 'Cell', columns: ['Cell'] },
+            { key: 'Job Slot', columns: ['Job Slot'] },
+            { key: 'Row Type', columns: ['Row Type'] },
+            { key: 'Item Number', columns: ['Item Number'] },
+            { key: 'Lot Number', columns: ['Lot Number'] },
+            { key: 'Std PPH', columns: ['Std PPH'], numeric: true },
+            { key: 'Actual PPH', columns: ['Actual PPH'], numeric: true },
+            { key: 'OE %', columns: ['OE %', 'OE Pct'], numeric: true },
+            { key: 'Time (Min)', columns: ['Time (Min)', 'Time Min'], numeric: true },
+            { key: 'Start Qty', columns: ['Start Qty'], numeric: true },
+            { key: 'End Qty', columns: ['End Qty'], numeric: true },
+            { key: 'Loss Reason', columns: ['Loss Reason'] },
+            { key: 'Countermeasures', columns: ['Countermeasures'] },
+            { key: 'Submitted At', columns: ['Submitted At'] }
+        ];
+        const missingColumns = writeFields
+            .filter(field => !field.columns.some(column => columnMap[column]))
+            .map(field => field.columns.join(' or '));
+        if (missingColumns.length > 0) {
+            throw new Error(`PI JxJ Log is missing required column(s): ${missingColumns.join(', ')}`);
+        }
+        const smartsheetRows = rows.map(row => {
+            const newRow = { toTop: true, cells: [] };
+            for (const field of writeFields) {
+                const colTitle = field.columns.find(column => columnMap[column]);
+                const colId = columnMap[colTitle];
+                let value = row[field.key];
+                if (!colId || value === undefined || value === null || value === '') continue;
+                if (field.numeric && typeof value === 'string') {
+                    const parsed = Number(value);
+                    if (!isNaN(parsed)) value = parsed;
+                }
+                newRow.cells.push({ columnId: colId, value });
+            }
+            return newRow;
+        }).filter(r => r.cells.length > 0);
+
+        const response = await getClientForDept('PI').post(`sheets/${getRequiredEnv('DEPT_PI_JOB_LOG_SHEET_ID')}/rows`, smartsheetRows);
+        res.json({ success: true, message: `Logged ${smartsheetRows.length} PI JxJ row(s).`, data: response.data });
+    } catch (error) {
+        console.error('Error submitting PI JxJ:', error.response?.data || error.message);
+        if (error.code === 'ECONNABORTED') return res.status(504).json({ success: false, error: 'Smartsheet timed out.' });
+        if (error.response?.status === 429) return res.status(429).json({ success: false, error: 'Rate limited.' });
+        res.status(500).json({ success: false, error: 'Failed to submit PI JxJ data.' });
     }
 });
 
@@ -787,5 +1289,8 @@ app.get('/api/status', (req, res) => {
 // Start the Server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on http://0.0.0.0:${PORT}`);
-    console.log(`Open from another PC using: http://${process.env.SERVER_HOST || '10.15.3.47'}:${PORT}`);
+    console.log(`Local access: http://localhost:${PORT}`);
+    if (process.env.SHOW_LAN_HINT === 'true' && process.env.SERVER_HOST) {
+        console.log(`LAN access: http://${process.env.SERVER_HOST}:${PORT}`);
+    }
 });

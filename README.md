@@ -1,64 +1,123 @@
-# Precision Liner Production Control Portal (V2.4.3)
+# Multi-Department Metrics Portal
 
-A professional manufacturing execution and production control portal designed for real-time tracking of production metrics, quality yield, and overall equipment effectiveness (OEE). This application connects a dynamic frontend interface with a Smartsheet backend to provide a robust, enterprise-grade tracking solution.
+A manufacturing metrics portal for PrecisionLiner, PTFE, and future Polyimide production workflows. The application serves static browser pages from an Express backend and writes production/admin data to department-specific Smartsheet resources.
 
-## 🚀 Features
+## Features
 
-- **Real-Time KPI Dashboard**: Track Availability, Performance, Quality, and overall OEE in real-time throughout the shift.
-- **Dynamic Lot Entry**: Interface for logging job details, sequence information, and part counts for individual lots.
-- **Defect Tracking**: Granular defect logging with automated yield calculations and root cause analysis for low-yield scenarios.
-- **PCD Tracker**: Hour-by-hour production control diagram (PCD) to monitor progress against shift goals.
-- **Event Logging**: Track non-productive time (PTO, Meetings, Clean-Up, etc.) with integrated timers.
-- **Shift Handover**: Notes and communication tools to ensure seamless transitions between shift associates.
-- **Smartsheet Integration**: Automated data synchronization with Smartsheet for centralized reporting and analysis.
+- Department-aware login for PL, PTFE, and future PI.
+- PrecisionLiner production tracking with PCD/hour-by-hour workflow.
+- PTFE production entry with standards lookup, pareto capture, and Job x Job tracker.
+- Department-specific admin pages for PL and PTFE.
+- Smartsheet-backed configuration, authentication, and production logs.
+- Test accounts for local validation without Smartsheet writes.
 
-## 🛠️ Technology Stack
+## Technology Stack
 
-- **Frontend**: Vanilla HTML5, CSS3 (Modern UI with Glassmorphism), and JavaScript.
-- **Backend**: Node.js with Express.js.
-- **API Integration**: Axios for communicating with the Smartsheet API.
-- **Environment Management**: Dotenv for secure handling of API credentials.
-- **Version Control**: Git & GitHub.
+- Frontend: plain HTML, CSS, and JavaScript.
+- Backend: Node.js with Express.
+- API integration: Axios for Smartsheet.
+- Environment management: Dotenv for local `.env` files.
 
-## 📋 Prerequisites
+## Prerequisites
 
-- [Node.js](https://nodejs.org/) (v14 or higher recommended)
-- [npm](https://www.npmjs.com/) (included with Node.js)
-- A valid Smartsheet API Access Token.
+- Node.js v18 or higher.
+- npm.
+- Valid department-scoped Smartsheet API tokens and sheet IDs.
 
-## ⚙️ Setup Instructions
+## Setup
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/Jbercegeay/Precision-Liner-Portal.git
-   cd Precision-Liner-Portal
-   ```
+1. Install dependencies:
 
-2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-3. **Configure Environment Variables**:
-   Create a `.env` file in the root directory and add your Smartsheet configuration:
+2. Configure `.env` in the repo root:
+
    ```env
-   SMARTSHEET_ACCESS_TOKEN=your_access_token_here
-   SMARTSHEET_SHEET_ID=your_sheet_id_here
+   DEPT_PL_API_TOKEN=your_pl_access_token_here
+   DEPT_PL_CONFIG_SHEET_ID=your_pl_config_sheet_id_here
+   DEPT_PL_MASTER_LOG_SHEET_ID=your_pl_master_log_sheet_id_here
+   DEPT_PL_HOUR_BY_HOUR_SHEET_ID=your_pl_hour_by_hour_sheet_id_here
+   DEPT_PL_DEFECT_SEEDS_SHEET_ID=your_pl_defect_seed_sheet_id_here
+
+   DEPT_PTFE_API_TOKEN=your_ptfe_access_token_here
+   DEPT_PTFE_CONFIG_SHEET_ID=your_ptfe_config_sheet_id_here
+   DEPT_PTFE_ITEMS_SHEET_ID=your_ptfe_items_sheet_id_here
+   DEPT_PTFE_STANDARDS_SHEET_ID=your_ptfe_standards_sheet_id_here
+   DEPT_PTFE_MASTER_LOG_SHEET_ID=your_ptfe_master_log_sheet_id_here
+   DEPT_PTFE_JOB_LOG_SHEET_ID=your_ptfe_job_log_sheet_id_here
+
+   DEPT_PI_API_TOKEN=your_pi_access_token_here
+   DEPT_PI_CONFIG_SHEET_ID=your_pi_config_sheet_id_here
+   DEPT_PI_ITEMS_SHEET_ID=your_pi_items_sheet_id_here
+   DEPT_PI_STANDARDS_SHEET_ID=your_pi_standards_sheet_id_here
+   DEPT_PI_MASTER_LOG_SHEET_ID=your_pi_master_log_sheet_id_here
+   DEPT_PI_JOB_LOG_SHEET_ID=your_pi_job_log_sheet_id_here
+
+   # Safety: PTFE and PI submissions are simulated unless enabled.
+   ALLOW_PTFE_MASTER_LOG_WRITES=false
+   ALLOW_PI_MASTER_LOG_WRITES=false
    ```
 
-4. **Run the Application**:
-   Start the backend server:
+3. Start the app:
+
    ```bash
    node server.js
    ```
-   The application will be accessible at `http://localhost:3000`.
 
-## 📂 Project Structure
+   or:
 
-- `server.js`: The central Express backend handling API routing and Smartsheet communication.
-- `public/index.html`: The main application entry point and user interface.
-- `scripts/`: various utility scripts for Smartsheet management.
-- `.env`: (Local only) Secure environment configuration.
+   ```bash
+   npm start
+   ```
 
----
-*Developed for Advanced Systems Analysis & Control.*
+4. Open `http://localhost:3000`.
+
+## Production Hosting
+
+The current server PC uses Task Scheduler to run `pm2.cmd resurrect`. PM2 restores the saved `PL-Portal` process, which points to:
+
+- `C:\ServerData\Repos\Precision-Liner-Portal\server.js`
+- `C:\ServerData\Repos\Precision-Liner-Portal`
+
+So the current deployment path is the Express app in `server.js`.
+
+## Project Structure
+
+- `server.js`: Main Express backend, API routes, auth, admin endpoints, and Smartsheet write logic.
+- `lib/config.js`: Department config parsing and supplemental PTFE/PI item/standards loading.
+- `lib/smartsheet.js`: Smartsheet client factory and retry behavior.
+- `public/index.html`: Main production portal entry point for PL, PTFE, and PI.
+- `public/login.html`: Department-aware login and password setup.
+- `public/admin.html`: Generic admin entry point that routes supervisors to department admin pages.
+- `public/admin-pl.html`: PrecisionLiner admin panel.
+- `public/admin-ptfe.html`: PTFE admin panel.
+- `public/admin-pi.html`: Polyimide admin panel.
+- `public/admin-test.html`: Local test-supervisor shortcut for PL/PTFE admin validation and PI portal validation.
+- `api/config.js`: Serverless-style compatibility handler. The current production deployment uses `server.js`.
+- `Brainstorming/`: Planning, implementation specs, and future roadmap notes.
+- `docs/`: SOP/training documents.
+- `scripts/`: One-off utilities.
+
+## Validation
+
+- `npm run validate:pi` runs a read-only PI environment and Smartsheet column mapping check.
+
+## Test Accounts
+
+Password for all test accounts: `trenton1`.
+
+- `test-pl`
+- `test-pl-super`
+- `test-ptfe`
+- `test-ptfe-super`
+- `test-pi`
+- `test-pi-super`
+
+## Notes
+
+- `npm test` is still a placeholder and should not be treated as validation.
+- PTFE writes are controlled by `ALLOW_PTFE_MASTER_LOG_WRITES`.
+- PI Master Log and PI Job x Job writes are controlled by `ALLOW_PI_MASTER_LOG_WRITES`; keep false until PI validation is approved and `DEPT_PI_JOB_LOG_SHEET_ID` exists.
+- Keep `.env` local and out of commits.

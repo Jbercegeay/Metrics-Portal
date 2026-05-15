@@ -973,6 +973,7 @@
             <h3 id="submittingTitle" style="margin:0 0 8px;">Please Wait</h3>
             <p id="submittingText" style="margin:0 0 4px; color:var(--muted);">Submitting to Smartsheet...</p>
             <p style="margin:0 0 20px; font-size:0.8rem; color:var(--muted);" id="submittingSubText">Do not press any buttons.</p>
+            <button id="submittingRetryBtn" class="btn btn-blue" style="display:none; margin-right:8px;">Retry</button>
             <button id="submittingOkBtn" class="btn btn-blue" style="display:none;" onclick="hideSubmittingOverlay()">OK</button>
         </div>
     </div>
@@ -1001,7 +1002,7 @@
                 <div
                     style="font-size: 13px; color: var(--text); font-weight: bold; display: flex; align-items: center; gap: 8px;">
                     <div id="navUserList" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end;"></div>
-                    <button id="navAdminBtn" onclick="window.location.href='/admin.html'"
+                    <button id="navAdminBtn" onclick="goToAdmin()"
                         style="display:none; background:transparent; border:1px solid #f59e0b; color:#f59e0b; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:11px; margin-left:10px;">Admin</button>
                 </div>
                 <div id="currentDateTime"
@@ -1096,7 +1097,8 @@
                             <div class="row" style="margin-bottom:0; grid-template-columns: 100px 1fr;"><label
                                     class="label">Item #</label><input id="itemNumber" class="input mono"
                                     style="text-align: left; font-size: 18px; padding: 15px;" type="text"
-                                    placeholder="ENTER ITEM NUMBER"></div>
+                                    inputmode="numeric" placeholder="ENTER ITEM NUMBER"
+                                    oninput="this.value=this.value.replace(/[^0-9]/g,''); state.itemNumber=this.value; save();"></div>
                         </div>
 
                         <!-- Spool Check QC Details (visible only when Spool Check sequence is selected) -->
@@ -1348,7 +1350,7 @@
                         <div class="ptfe-form-grid">
                             <div class="ptfe-field">
                                 <label class="label">Item Number</label>
-                                <input id="ptfeItem" class="input mono" type="text" inputmode="numeric" style="text-align:left;" placeholder="e.g. 311318" maxlength="6" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
+                                <input id="ptfeItem" class="input mono" type="text" inputmode="numeric" style="text-align:left;" placeholder="e.g. 311318" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePtfeCalculations()">
                                 <div id="ptfeItemError" class="ptfe-muted-note"></div>
                             </div>
                             <div class="ptfe-field">
@@ -1565,7 +1567,7 @@
         let ASSOCIATE_SCHEDULES = {}; // maps name to { Mon, Tue ... Training }
 
         const API_BASE_URL = '/api';
-        const TEST_ACCOUNTS = ['test1', 'test2', 'test-ptfe', 'test-pi'];
+        const TEST_ACCOUNTS = ['test-pl', 'test-ptfe', 'test-pi', 'test-pl-super', 'test-ptfe-super', 'test-pi-super'];
         const isTestAccount = (name) => TEST_ACCOUNTS.includes(name);
         const SESSION_USER = JSON.parse(localStorage.getItem('currentUser')) || {};
         const SESSION_DEPT = SESSION_USER.departmentKey || 'PL';
@@ -1593,6 +1595,35 @@
             targetQty: 0,
             sequenceOe: 0
         };
+        let PI_CONFIG = null;
+        let PI_STANDARDS = {};
+        let PI_ENTRY_MODE = 'job';
+        let PI_START_AUTO = false;
+        let PI_START_MANUAL_OVERRIDE = false;
+        let PI_MULTIPLIER_APPLIED = false;
+        let PI_RESULTS = {
+            totalInches: 0,
+            lengthInches: 0,
+            partsFromSpool: 0,
+            scrapParts: 0,
+            scrapPercent: 0,
+            yieldPercent: 0,
+            pph: 0,
+            baseStandard: 0,
+            adjustedStandard: 0,
+            targetQty: 0,
+            sequenceOe: 0
+        };
+
+        function getAdminUrl() {
+            if (SESSION_DEPT === 'PTFE') return '/admin-ptfe.html';
+            if (SESSION_DEPT === 'PI') return '/admin-pi.html';
+            return '/admin-pl.html';
+        }
+
+        function goToAdmin() {
+            window.location.href = getAdminUrl();
+        }
 
         function setPortalTheme(theme) {
             const safeTheme = PORTAL_THEMES.includes(theme) ? theme : 'precision';
@@ -1664,7 +1695,7 @@
                 if (subtitle) subtitle.textContent = 'Job & Event Entry | Phase 1';
             } else if (SESSION_DEPT === 'PI') {
                 if (title) title.textContent = 'Polyimide Production Portal';
-                if (subtitle) subtitle.textContent = 'Coming Soon';
+                if (subtitle) subtitle.textContent = 'Job & Event Entry | Phase 1';
             }
         }
 
@@ -1672,7 +1703,7 @@
             const select = document.getElementById(selectId);
             if (!select) return;
             select.innerHTML = `<option value="">${placeholder}</option>`;
-            (items || []).forEach((item) => {
+            [...(items || [])].sort((a, b) => String(a[labelKey] || '').localeCompare(String(b[labelKey] || ''))).forEach((item) => {
                 const value = item[valueKey];
                 if (value === undefined || value === null || value === '') return;
                 const option = document.createElement('option');
@@ -1686,7 +1717,7 @@
             const container = document.getElementById(containerId);
             if (!container) return;
             container.innerHTML = '';
-            (items || []).forEach((item) => {
+            [...(items || [])].sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))).forEach((item) => {
                 const label = document.createElement('label');
                 label.className = 'check-pill';
                 const input = document.createElement('input');
@@ -1854,6 +1885,28 @@
             renderPtfeJxJ(PTFE_JXJ_ACTIVE_TAB);
         }
 
+        function checkPtfeQualityAlert(item) {
+            if (!item) return;
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs) return;
+
+            const lowOeJobs = [];
+            for (const cell of PTFE_JXJ_TABS) {
+                const jobs = jxj.tabs[cell] || [];
+                jobs.forEach(j => {
+                    if (j.item === String(item) && j.oe > 0 && j.oe < 75) {
+                        lowOeJobs.push({ cell, slot: j.slot, oe: j.oe });
+                    }
+                });
+            }
+
+            if (lowOeJobs.length >= 2) {
+                const details = lowOeJobs.map(j => `${j.cell} ${j.slot}: ${j.oe}%`).join('\n');
+                showToast(`⚠️ Quality Alert: Item ${item} has ${lowOeJobs.length} low-OE entries this shift (below 75%):\n${details}`);
+            }
+        }
+
         function renderPtfeJxJ(cellName) {
             PTFE_JXJ_ACTIVE_TAB = cellName;
             // Update tab active state
@@ -1985,6 +2038,7 @@
                 // Job rows
                 jobs.forEach(j => {
                     rows.push({
+                        'Department': 'PI',
                         'Row ID': `${associate}-${cell}-${workDate}-${j.slot}`,
                         'Work Date': workDate,
                         'Associate Name': associate,
@@ -2014,6 +2068,7 @@
                 const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
 
                 rows.push({
+                    'Department': 'PI',
                     'Row ID': `${associate}-${cell}-${workDate}-Summary`,
                     'Work Date': workDate,
                     'Associate Name': associate,
@@ -2044,6 +2099,11 @@
                 const result = await response.json();
                 if (!result.success) {
                     updateSubmittingOverlay('Submission Failed', result.error || 'JxJ shift could not be saved.', true);
+                    const retryBtn = document.getElementById('submittingRetryBtn');
+                    if (retryBtn) {
+                        retryBtn.style.display = 'inline-block';
+                        retryBtn.onclick = () => { hideSubmittingOverlay(); performPtfeEndShift(countermeasures); };
+                    }
                     return;
                 }
                 localStorage.removeItem(PTFE_JXJ_KEY);
@@ -2051,6 +2111,11 @@
                 setTimeout(() => performLogout(), 1500);
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+                const retryBtn = document.getElementById('submittingRetryBtn');
+                if (retryBtn) {
+                    retryBtn.style.display = 'inline-block';
+                    retryBtn.onclick = () => { hideSubmittingOverlay(); performPtfeEndShift(countermeasures); };
+                }
             }
         }
 
@@ -2316,9 +2381,8 @@
             }
 
             const itemVal = String(document.getElementById('ptfeItem').value || '').trim();
-            if (!/^\d{6}$/.test(itemVal)) {
-                showToast('Item number must be exactly 6 digits.');
-                document.getElementById('ptfeItem').focus();
+            if (!isSixDigitItemNumber(itemVal)) {
+                showItemNumberError('ptfeItem');
                 return false;
             }
 
@@ -2383,8 +2447,12 @@
         }
 
         async function submitPtfeJob() {
+            if (!beginSubmitLock('ptfe-job', ['ptfeSubmitBtn'])) return;
             updatePtfeCalculations();
-            if (!validatePtfeJob()) return;
+            if (!validatePtfeJob()) {
+                endSubmitLock('ptfe-job');
+                return;
+            }
             const payload = getPtfeJobPayload();
             showSubmittingOverlay('Please Wait', 'Submitting PTFE job...');
             try {
@@ -2396,6 +2464,8 @@
                 const result = await response.json();
                 if (!result.success) {
                     updateSubmittingOverlay('Submission Failed', result.error || 'PTFE job could not be saved.', true);
+                    const retryBtn = document.getElementById('submittingRetryBtn');
+                    if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPtfeJob(); }; }
                     return;
                 }
                 const jobSavedMsg = result.simulated
@@ -2411,21 +2481,27 @@
                     timeWorked: Number(payload['Time Worked']) || 0,
                     stdPph: PTFE_RESULTS.adjustedStandard || 0
                 });
+                checkPtfeQualityAlert(payload['Item']);
                 updateSubmittingOverlay('Saved!', jobSavedMsg);
                 resetPtfeForm(false);
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+                const retryBtn = document.getElementById('submittingRetryBtn');
+                if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPtfeJob(); }; }
+            } finally {
+                endSubmitLock('ptfe-job');
             }
         }
 
         async function submitPtfeEvent() {
+            if (!beginSubmitLock('ptfe-event', ['ptfeSubmitBtn'])) return;
             const eventName = document.getElementById('ptfeEvent').value;
             const startTime = document.getElementById('ptfeEventStartTime').value;
             const endTime = document.getElementById('ptfeEventEndTime').value;
-            if (!eventName) return showToast('Event is required.');
-            if (!startTime || !endTime) return showToast('Start and end time are required.');
+            if (!eventName) { endSubmitLock('ptfe-event'); return showToast('Event is required.'); }
+            if (!startTime || !endTime) { endSubmitLock('ptfe-event'); return showToast('Start and end time are required.'); }
             const duration = calcEventMinutes(startTime, endTime);
-            if (duration <= 0) return showToast('End time must be after start time.');
+            if (duration <= 0) { endSubmitLock('ptfe-event'); return showToast('End time must be after start time.'); }
 
             const payload = {
                 department: 'PTFE',
@@ -2447,6 +2523,8 @@
                 const result = await response.json();
                 if (!result.success) {
                     updateSubmittingOverlay('Submission Failed', result.error || 'PTFE event could not be saved.', true);
+                    const retryBtn = document.getElementById('submittingRetryBtn');
+                    if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPtfeEvent(); }; }
                     return;
                 }
                 const eventSavedMsg = result.simulated
@@ -2460,6 +2538,10 @@
                 document.getElementById('ptfeComments').value = '';
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+                const retryBtn = document.getElementById('submittingRetryBtn');
+                if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPtfeEvent(); }; }
+            } finally {
+                endSubmitLock('ptfe-event');
             }
         }
 
@@ -2490,7 +2572,7 @@
             document.getElementById('plPortal').style.display = 'none';
             document.getElementById('ptfePortal').style.display = 'block';
             const adminBtn = document.getElementById('navAdminBtn');
-            if (adminBtn) adminBtn.style.display = 'none';
+            if (adminBtn && SESSION_USER.role === 'Supervisor') adminBtn.style.display = 'inline-block';
             const userList = document.getElementById('navUserList');
             if (userList) {
                 userList.innerHTML = `<span>${SESSION_USER.name} | PTFE</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
@@ -2541,6 +2623,924 @@
             } catch (error) {
                 console.error(error);
                 showToast('Failed to load PTFE configuration.');
+            }
+        }
+
+        /** PI Portal **/
+        const PI_NAV_SEQUENCE = [
+            'piDate', 'piItem', 'piLot', 'piSequence', 'piFootage', 'piProcessingLength',
+            'piStartQuantity', 'piEndQuantity', 'piTimeWorked', 'piRecuts', 'piPullingWraps',
+            'piComments', 'piEvent', 'piEventStartTime', 'piEventEndTime'
+        ];
+        const PI_JXJ_KEY = 'pi_jxj_state';
+        const PI_JXJ_CELL_MAP = {
+            'Long Pull':              { cell: 'Pull',          prefix: 'Job' },
+            'Table Pull':             { cell: 'Pull',          prefix: 'Job' },
+            'CTL':                    { cell: 'Cut to Length', prefix: 'Job' },
+            'Inspection':             { cell: 'Inspection',    prefix: 'Job' },
+            'Check Flush':            { cell: 'Inspection',    prefix: 'Job' },
+            'Pressure Test':          { cell: 'Inspection',    prefix: 'Job' },
+            '10X':                    { cell: 'Inspection',    prefix: 'Job' },
+            'Spark Test':             { cell: 'Inspection',    prefix: 'Job' },
+            'Crush Test':             { cell: 'Inspection',    prefix: 'Job' },
+            'First Cut':              { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Length Check':           { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Overall Length':         { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Roll Cut (Both Ends)':   { cell: 'Roll Cut',      prefix: 'HR'  },
+            'Packaging':              { cell: 'Packaging',     prefix: 'Job' },
+            'Flush':                  { cell: 'Packaging',     prefix: 'Job' },
+            'Wrapping':               { cell: 'Packaging',     prefix: 'Job' }
+        };
+        const PI_JXJ_TABS = ['Pull', 'Cut to Length', 'Inspection', 'Roll Cut', 'Packaging'];
+        let PI_JXJ_ACTIVE_TAB = 'Pull';
+
+        function renderPiPortalShell() {
+            const portal = document.getElementById('ptfePortal');
+            if (!portal) return;
+            if (portal.dataset.departmentShell === 'PI' && document.getElementById('piSequence')) return;
+            portal.dataset.departmentShell = 'PI';
+            portal.innerHTML = `
+                <div class="mode-toggle">
+                    <button id="piJobModeBtn" class="mode-btn active" onclick="setPiEntryMode('job')">Job Entry</button>
+                    <button id="piEventModeBtn" class="mode-btn" onclick="setPiEntryMode('event')">Event Entry</button>
+                </div>
+                <div class="ptfe-layout">
+                    <section class="card">
+                        <h2>Inputs</h2>
+                        <div class="subtitle" id="piCurrentUser">Associate</div>
+                        <div id="piAlert" class="ptfe-alert"></div>
+                        <div id="piSanityWarnings" class="ptfe-alert"></div>
+                        <div class="ptfe-form-grid">
+                            <div class="ptfe-field">
+                                <label class="label">Date</label>
+                                <input id="piDate" class="input" type="date" style="text-align:left;">
+                            </div>
+                        </div>
+                        <div id="piJobFields" style="margin-top:14px;">
+                            <div class="ptfe-form-grid">
+                                <div class="ptfe-field">
+                                    <label class="label">Item Number</label>
+                                    <input id="piItem" class="input mono" type="text" inputmode="numeric" style="text-align:left;" placeholder="e.g. 311318" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePiCalculations()">
+                                    <div id="piItemError" class="ptfe-muted-note"></div>
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">Lot Number</label>
+                                    <input id="piLot" class="input mono" type="text" style="text-align:left;" placeholder="e.g. 10155074-04" oninput="updatePiCalculations()">
+                                    <div id="piLotError" class="ptfe-muted-note"></div>
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">Production Sequence</label>
+                                    <div class="select-wrapper"><select id="piSequence" class="custom-select" onchange="updatePiCalculations()"></select></div>
+                                </div>
+                            </div>
+                            <div id="piSpoolFields" style="display:none; margin-top:14px;">
+                                <div class="ptfe-form-grid">
+                                    <div class="ptfe-field">
+                                        <label class="label">Full Spool Footage (feet)</label>
+                                        <input id="piFootage" class="input mono" type="text" inputmode="decimal" placeholder="e.g. 2500" oninput="this.value=this.value.replace(/[^0-9.]/g,''); updatePiCalculations()">
+                                    </div>
+                                    <div class="ptfe-field">
+                                        <label class="label">Processing / Part Length</label>
+                                        <div class="ptfe-inline">
+                                            <input id="piProcessingLength" class="input mono" type="text" inputmode="decimal" placeholder="e.g. 48" oninput="this.value=this.value.replace(/[^0-9.]/g,''); updatePiCalculations()">
+                                            <select id="piPartUnit" class="custom-select ptfe-unit" onchange="updatePiCalculations()">
+                                                <option value="in">in</option>
+                                                <option value="cm">cm</option>
+                                                <option value="mm">mm</option>
+                                            </select>
+                                            <div class="ptfe-result-box" style="min-width:96px; padding:8px;">
+                                                <div class="ptfe-result-label">Inches</div>
+                                                <div id="piLengthInches" class="ptfe-result-value" style="font-size:16px;">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="ptfe-form-grid" style="margin-top:14px;">
+                                <div class="ptfe-field">
+                                    <label class="label">Start Quantity</label>
+                                    <input id="piStartQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); markPiStartManual(); updatePiCalculations()">
+                                    <div id="piMultiplierGroup" class="ptfe-multiplier-row">
+                                        <div class="ptfe-field">
+                                            <label class="label" for="piMultiplierInput">Start Qty Multiplier</label>
+                                            <input id="piMultiplierInput" class="input mono" type="text" inputmode="decimal" value="1" aria-label="Start quantity multiplier" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+                                        </div>
+                                        <button class="btn btn-blue" style="padding:10px 12px; white-space:nowrap;" onclick="openPiMultiplier()">Apply Multiplier</button>
+                                        <button id="piMultiplierResetBtn" class="btn btn-muted" style="padding:10px 12px; white-space:nowrap; display:none; font-size:13px; letter-spacing:0.02em;" onclick="resetPiMultiplier()">Reset to Auto</button>
+                                    </div>
+                                    <div id="piStartHint" class="ptfe-muted-note">Enter manually.</div>
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">End Quantity</label>
+                                    <input id="piEndQuantity" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePiCalculations()">
+                                </div>
+                            </div>
+                            <div style="margin-top:18px;">
+                                <label class="label">Time Worked (Minutes)</label>
+                                <input id="piTimeWorked" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 90" oninput="this.value=this.value.replace(/[^0-9]/g,''); updatePiCalculations()">
+                            </div>
+                        </div>
+                        <div id="piEventFields" style="display:none; margin-top:14px;">
+                            <div class="ptfe-field">
+                                <label class="label">Event</label>
+                                <div class="select-wrapper"><select id="piEvent" class="custom-select"></select></div>
+                            </div>
+                            <div class="ptfe-form-grid" style="margin-top:14px;">
+                                <div class="ptfe-field">
+                                    <label class="label">Start Time</label>
+                                    <input id="piEventStartTime" class="input mono" type="time" style="text-align:center;" onchange="updatePiEventDuration()">
+                                </div>
+                                <div class="ptfe-field">
+                                    <label class="label">End Time</label>
+                                    <input id="piEventEndTime" class="input mono" type="time" style="text-align:center;" onchange="updatePiEventDuration()">
+                                </div>
+                            </div>
+                            <div id="piEventDurationDisplay" class="ptfe-muted-note" style="margin-top:6px; text-align:right;"></div>
+                        </div>
+                        <div style="margin-top:18px;">
+                            <label class="label">Comments</label>
+                            <textarea id="piComments" class="input" style="text-align:left; height:90px; font-weight:normal;" placeholder="Enter comments..."></textarea>
+                        </div>
+                    </section>
+                    <section id="piResultsCard" class="card">
+                        <h2>Results</h2>
+                        <div class="ptfe-result-grid">
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Total Spool (in)</div><div id="piTotalInches" class="ptfe-result-value">-</div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Parts from Spool</div><div id="piPartsFromSpool" class="ptfe-result-value">-</div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Scrap Parts</div><div id="piScrapPartsDisplay" class="ptfe-result-value">-</div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Parts Per Hour</div><div id="piPph" class="ptfe-result-value">-</div></div>
+                        </div>
+                        <div class="ptfe-result-grid" style="margin-top:12px;">
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Yield %</div><div id="piYieldPercent" class="ptfe-result-value">-</div><div class="ptfe-gauge"><div id="piYieldGauge" class="ptfe-gauge-fill"></div></div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Scrap Rate %</div><div id="piScrapRate" class="ptfe-result-value">-</div><div class="ptfe-gauge"><div id="piScrapGauge" class="ptfe-gauge-fill"></div></div></div>
+                        </div>
+                        <div class="ptfe-result-grid" style="margin-top:12px;">
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Base Standard (PPH)</div><div id="piBaseStandard" class="ptfe-result-value">-</div><div id="piItemStandardNote" class="ptfe-muted-note"></div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Adjusted Standard (PPH)</div><div id="piAdjustedStandard" class="ptfe-result-value">-</div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Target Qty</div><div id="piTargetQty" class="ptfe-result-value">-</div></div>
+                            <div class="ptfe-result-box"><div class="ptfe-result-label">Sequence OE %</div><div id="piSequenceOe" class="ptfe-result-value">-</div><div class="ptfe-gauge"><div id="piOeGauge" class="ptfe-gauge-fill"></div></div></div>
+                        </div>
+                        <div id="piLogicPanels" style="margin-top:18px;">
+                            <div id="piRecutsField" class="ptfe-field" style="display:none;"><p class="ptfe-panel-title">Sequence Details</p><label class="label">Re-Cuts</label><input id="piRecuts" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                            <div id="piInspectionParetoSection" style="display:none; margin-top:18px;"><p class="ptfe-panel-title">Inspection Pareto</p><div id="piInspectionParetos" class="check-grid"></div></div>
+                            <div id="piPullingParetoSection" style="display:none; margin-top:18px;"><p class="ptfe-panel-title">Pulling Pareto</p><div id="piPullingParetos" class="check-grid"></div></div>
+                            <div id="piPullFields" style="display:none; margin-top:18px;">
+                                <p class="ptfe-panel-title">Pulling Details</p>
+                                <div class="ptfe-form-grid">
+                                    <div class="ptfe-field"><label class="label">Pulling Wraps</label><input id="piPullingWraps" class="input mono" type="text" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                                    <div class="ptfe-field"><label class="label">Pulling Method</label><div id="piPullingMethods" class="check-grid"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:12px; margin: 0 0 20px;">
+                    <button id="piSubmitBtn" class="btn btn-green" onclick="submitPiEntry()">Submit to Smartsheet</button>
+                    <button class="btn btn-muted" onclick="resetPiForm()">Reset</button>
+                </div>
+                <section id="piJxjSection" class="card" style="padding-bottom:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                        <h2 style="margin:0;">Job x Job Tracker</h2>
+                        <button class="btn btn-red" style="padding:8px 16px; font-size:13px;" onclick="confirmPiEndShift()">End Shift</button>
+                    </div>
+                    <div class="ptfe-jxj-tabs" id="piJxjTabs">
+                        <button class="ptfe-jxj-tab active" data-cell="Pull" onclick="switchPiJxJTab('Pull')">Pull</button>
+                        <button class="ptfe-jxj-tab" data-cell="Cut to Length" onclick="switchPiJxJTab('Cut to Length')">CTL</button>
+                        <button class="ptfe-jxj-tab" data-cell="Inspection" onclick="switchPiJxJTab('Inspection')">Inspection</button>
+                        <button class="ptfe-jxj-tab" data-cell="Roll Cut" onclick="switchPiJxJTab('Roll Cut')">Roll Cut</button>
+                        <button class="ptfe-jxj-tab" data-cell="Packaging" onclick="switchPiJxJTab('Packaging')">Packaging</button>
+                    </div>
+                    <div style="overflow-x:auto; border:1px solid var(--border); border-top:none; border-radius:0 0 12px 12px;">
+                        <div id="piJxjTableWrap"></div>
+                    </div>
+                </section>`;
+        }
+
+        function getPiValue(id) {
+            return String(document.getElementById(id)?.value || '').trim();
+        }
+
+        function getPiNumber(id) {
+            const value = Number(getPiValue(id));
+            return Number.isFinite(value) ? value : 0;
+        }
+
+        function setPiText(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        function setPiGauge(id, percent, mode = 'yield') {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const width = Math.max(0, Math.min(100, Number(percent) || 0));
+            el.style.width = `${width}%`;
+            let color = 'var(--accent)';
+            if (mode === 'scrap') {
+                color = percent <= 5 ? 'var(--accent)' : percent <= 15 ? 'var(--warn)' : 'var(--danger)';
+            } else {
+                color = percent >= 85 ? 'var(--accent)' : percent >= 70 ? 'var(--warn)' : 'var(--danger)';
+            }
+            el.style.background = color;
+        }
+
+        function setPiDisplay(id, display) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = display;
+        }
+
+        function convertToInches(value, unit) {
+            const numericValue = Number(value) || 0;
+            const normalizedUnit = String(unit || 'in').toLowerCase();
+            if (normalizedUnit === 'cm') return numericValue / 2.54;
+            if (normalizedUnit === 'mm') return numericValue / 25.4;
+            return numericValue;
+        }
+
+        function normalizePiSequence(sequence) {
+            return String(sequence || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+
+        function isPiPullSequence(sequence) {
+            const normalized = normalizePiSequence(sequence);
+            return normalized === 'long pull' || normalized === 'table pull' || normalized.includes('pull');
+        }
+
+        function isPiInspectionSequence(sequence) {
+            return sequence === 'Inspection';
+        }
+
+        function isPiRecutSequence(sequence) {
+            return ['First Cut', 'Overall Length', 'Roll Cut (Both Ends)'].includes(sequence);
+        }
+
+        function isPiLowYield() {
+            return PI_RESULTS.yieldPercent > 0 && PI_RESULTS.yieldPercent < 75;
+        }
+
+        function getPiStandard(item, sequence) {
+            return PI_STANDARDS[`${item}::${sequence}`] || {};
+        }
+
+        function buildPiStandardsIndex(standards) {
+            PI_STANDARDS = {};
+            (standards || []).forEach((standard) => {
+                if (!standard.item || !standard.sequence) return;
+                PI_STANDARDS[`${standard.item}::${standard.sequence}`] = standard;
+            });
+        }
+
+        function markPiStartManual() {
+            PI_START_AUTO = false;
+            PI_START_MANUAL_OVERRIDE = true;
+            const startInput = document.getElementById('piStartQuantity');
+            if (startInput) startInput.readOnly = false;
+        }
+
+        function openPiMultiplier() {
+            if ((!PI_START_AUTO && !PI_MULTIPLIER_APPLIED) || PI_RESULTS.partsFromSpool <= 0) return;
+            const multiplier = Number(document.getElementById('piMultiplierInput')?.value || '1');
+            if (!Number.isFinite(multiplier) || multiplier <= 0) {
+                showToast('Enter a valid multiplier greater than 0.');
+                return;
+            }
+            const startInput = document.getElementById('piStartQuantity');
+            if (startInput) startInput.value = String(Math.floor(PI_RESULTS.partsFromSpool * multiplier));
+            PI_START_AUTO = false;
+            PI_START_MANUAL_OVERRIDE = true;
+            PI_MULTIPLIER_APPLIED = true;
+            const resetBtn = document.getElementById('piMultiplierResetBtn');
+            if (resetBtn) resetBtn.style.display = 'inline-block';
+            updatePiCalculations();
+        }
+
+        function resetPiMultiplier() {
+            PI_START_AUTO = true;
+            PI_START_MANUAL_OVERRIDE = false;
+            PI_MULTIPLIER_APPLIED = false;
+            const multiplierInput = document.getElementById('piMultiplierInput');
+            if (multiplierInput) multiplierInput.value = '1';
+            const resetBtn = document.getElementById('piMultiplierResetBtn');
+            if (resetBtn) resetBtn.style.display = 'none';
+            updatePiCalculations();
+        }
+
+        function updatePiCalculations() {
+            const sequence = getPiValue('piSequence');
+            const showPull = isPiPullSequence(sequence);
+            const showRecuts = isPiRecutSequence(sequence);
+            const footage = getPiNumber('piFootage');
+            const partLength = getPiNumber('piProcessingLength');
+            const unit = getPiValue('piPartUnit') || 'in';
+            const lengthInches = convertToInches(partLength, unit);
+            const totalInches = footage * 12;
+            const partsFromSpool = totalInches > 0 && lengthInches > 0 ? Math.floor(totalInches / lengthInches) : 0;
+            const startInput = document.getElementById('piStartQuantity');
+            if (showPull && partsFromSpool > 0 && !PI_START_AUTO && !PI_START_MANUAL_OVERRIDE) {
+                PI_START_AUTO = true;
+            }
+            if ((!showPull || partsFromSpool === 0) && PI_START_AUTO) {
+                PI_START_AUTO = false;
+                PI_START_MANUAL_OVERRIDE = false;
+            }
+            if (startInput) {
+                startInput.readOnly = PI_START_AUTO;
+                if (PI_START_AUTO) startInput.value = String(partsFromSpool);
+            }
+
+            const startQty = getPiNumber('piStartQuantity');
+            const endQty = getPiNumber('piEndQuantity');
+            const timeMins = getPiNumber('piTimeWorked');
+            const scrapParts = Math.max(0, startQty - endQty);
+            const yieldPercent = startQty > 0 ? (endQty / startQty) * 100 : 0;
+            const scrapPercent = startQty > 0 ? Math.max(0, ((startQty - endQty) / startQty) * 100) : 0;
+            const pph = timeMins > 0 ? (endQty / timeMins) * 60 : 0;
+            const item = getPiValue('piItem');
+            const standard = getPiStandard(item, sequence);
+            const baseStandard = Number(standard.goodPphStd || standard.totalPphStd || 0);
+            const adjustedStandard = baseStandard > 0 ? baseStandard / 0.8 : 0;
+            const targetQty = adjustedStandard > 0 && timeMins > 0 ? (adjustedStandard / 60) * timeMins : 0;
+            const sequenceOe = adjustedStandard > 0 && pph > 0 ? (pph / adjustedStandard) * 100 : 0;
+
+            PI_RESULTS = {
+                totalInches,
+                lengthInches,
+                partsFromSpool,
+                scrapParts,
+                scrapPercent,
+                yieldPercent,
+                pph,
+                baseStandard,
+                adjustedStandard,
+                targetQty,
+                sequenceOe
+            };
+
+            setPiDisplay('piPullFields', showPull ? 'block' : 'none');
+            setPiDisplay('piSpoolFields', showPull ? 'block' : 'none');
+            setPiDisplay('piRecutsField', showRecuts ? 'block' : 'none');
+            setPiDisplay('piInspectionParetoSection', isPiLowYield() && isPiInspectionSequence(sequence) ? 'block' : 'none');
+            setPiDisplay('piPullingParetoSection', isPiLowYield() && showPull ? 'block' : 'none');
+
+            setPiText('piLengthInches', lengthInches > 0 ? fmtPtfe(lengthInches, 2) : '-');
+            setPiText('piTotalInches', totalInches > 0 ? fmtPtfe(totalInches, 0) : '-');
+            setPiText('piPartsFromSpool', partsFromSpool > 0 ? fmtPtfe(partsFromSpool, 0) : '-');
+            setPiText('piScrapPartsDisplay', startQty ? fmtPtfe(scrapParts, 0) : '-');
+            setPiText('piPph', pph > 0 ? fmtPtfe(pph, 1) : '-');
+            setPiText('piYieldPercent', startQty ? `${yieldPercent.toFixed(1)}%` : '-');
+            setPiText('piScrapRate', startQty ? `${scrapPercent.toFixed(1)}%` : '-');
+            setPiText('piBaseStandard', baseStandard ? fmtPtfe(baseStandard, 0) : '-');
+            setPiText('piAdjustedStandard', adjustedStandard ? fmtPtfe(adjustedStandard, 1) : '-');
+            setPiText('piTargetQty', targetQty ? fmtPtfe(targetQty, 0) : '-');
+            setPiText('piSequenceOe', baseStandard ? `${sequenceOe.toFixed(1)}%` : '-');
+            setPiGauge('piYieldGauge', yieldPercent, 'yield');
+            setPiGauge('piScrapGauge', scrapPercent, 'scrap');
+            setPiGauge('piOeGauge', sequenceOe, 'yield');
+
+            const itemInvalid = item && !/^\d{6}$/.test(item);
+            const itemError = document.getElementById('piItemError');
+            if (itemError) {
+                itemError.textContent = itemInvalid ? 'Item number must be 6 digits.' : '';
+                itemError.style.color = itemInvalid ? '#ef4444' : '';
+            }
+            const itemInput = document.getElementById('piItem');
+            if (itemInput) itemInput.style.borderColor = itemInvalid ? '#ef4444' : '';
+            const standardNote = document.getElementById('piItemStandardNote');
+            if (standardNote) {
+                const noStandard = item && /^\d{6}$/.test(item) && sequence && baseStandard === 0;
+                standardNote.textContent = noStandard ? 'No standard found for this item / sequence.' : '';
+                standardNote.style.color = noStandard ? '#d97706' : '';
+            }
+            const lot = getPiValue('piLot');
+            const lotLooksLikeItem = lot && /^\d{6}$/.test(lot);
+            const lotError = document.getElementById('piLotError');
+            if (lotError) {
+                lotError.textContent = lotLooksLikeItem ? 'This looks like an item number. Please double-check.' : '';
+                lotError.style.color = lotLooksLikeItem ? '#d97706' : '';
+            }
+            const lotInput = document.getElementById('piLot');
+            if (lotInput) lotInput.style.borderColor = lotLooksLikeItem ? '#d97706' : '';
+            const startHint = document.getElementById('piStartHint');
+            if (startHint) startHint.textContent = PI_START_AUTO ? 'Auto-calculated from spool footage and part length.' : 'Enter manually.';
+            const multiplierGroup = document.getElementById('piMultiplierGroup');
+            if (multiplierGroup) multiplierGroup.style.display = (PI_START_AUTO || PI_MULTIPLIER_APPLIED) && partsFromSpool > 0 ? 'flex' : 'none';
+            const alert = document.getElementById('piAlert');
+            if (alert) {
+                if (yieldPercent > 100) {
+                    alert.textContent = 'Notice: Yield exceeds 100%. Actual production is higher than calculated start quantity.';
+                    alert.style.display = 'block';
+                } else {
+                    alert.style.display = 'none';
+                }
+            }
+            const warnings = [];
+            if (timeMins > 720) warnings.push('Time Worked exceeds 12 hours. Please verify.');
+            if (timeMins > 0 && endQty === 0 && startQty > 0) warnings.push('0 End Quantity entered. Did you produce nothing?');
+            const warningBox = document.getElementById('piSanityWarnings');
+            if (warningBox) {
+                warningBox.innerHTML = warnings.join('<br>');
+                warningBox.style.display = warnings.length ? 'block' : 'none';
+            }
+        }
+
+        function validatePiJob() {
+            const required = [
+                ['piDate', 'Date'],
+                ['piTimeWorked', 'Time worked'],
+                ['piItem', 'Item'],
+                ['piLot', 'Lot number'],
+                ['piSequence', 'Sequence'],
+                ['piStartQuantity', 'Start quantity'],
+                ['piEndQuantity', 'End quantity']
+            ];
+            for (const [id, label] of required) {
+                const el = document.getElementById(id);
+                if (!el || !String(el.value || '').trim()) {
+                    showToast(`${label} is required.`);
+                    if (el) el.focus();
+                    return false;
+                }
+            }
+            if (!isSixDigitItemNumber(getPiValue('piItem'))) {
+                showItemNumberError('piItem');
+                return false;
+            }
+            const sequence = getPiValue('piSequence');
+            if (isPiPullSequence(sequence)) {
+                if (!getPiValue('piPullingWraps')) {
+                    showToast('Pulling Wraps is required.');
+                    return false;
+                }
+                if (getCheckedValues('piPullingMethod').length === 0) {
+                    showToast('At least one Pulling Method is required.');
+                    return false;
+                }
+            }
+            if (isPiLowYield() && isPiInspectionSequence(sequence) && getCheckedValues('piInspectionPareto').length === 0) {
+                showToast('At least one Inspection Pareto is required for low-yield inspection jobs.');
+                return false;
+            }
+            if (isPiLowYield() && isPiPullSequence(sequence) && getCheckedValues('piPullingPareto').length === 0) {
+                showToast('At least one Pulling Pareto is required for low-yield pull jobs.');
+                return false;
+            }
+            return true;
+        }
+
+        function getPiJobPayload() {
+            return {
+                department: 'PI',
+                'Entry Type': 'Job',
+                'Associate Name': SESSION_USER.name,
+                'Date': getPiValue('piDate'),
+                'Time Worked': getPiNumber('piTimeWorked'),
+                'Item': getPiValue('piItem'),
+                'Lot #': getPiValue('piLot'),
+                'Start Quantity': getPiNumber('piStartQuantity'),
+                'End Quantity': getPiNumber('piEndQuantity'),
+                'Sequence': getPiValue('piSequence'),
+                'Footage': getPiNumber('piFootage') || '',
+                'Processing Length': getPiNumber('piProcessingLength') || '',
+                'Scrap Parts': PI_RESULTS.scrapParts,
+                'Scrap Rate %': Number(PI_RESULTS.scrapPercent.toFixed(1)),
+                'Re-Cuts': getPiNumber('piRecuts') || 0,
+                'Inspection Pareto': getCheckedValues('piInspectionPareto').join(', '),
+                'Pulling Pareto': getCheckedValues('piPullingPareto').join(', '),
+                'Pulling Wraps': getPiValue('piPullingWraps') || '',
+                'Pulling Method': getCheckedValues('piPullingMethod').join(', '),
+                'Comments': getPiValue('piComments')
+            };
+        }
+
+        async function submitPiEntry() {
+            if (PI_ENTRY_MODE === 'event') return submitPiEvent();
+            return submitPiJob();
+        }
+
+        async function submitPiJob() {
+            if (!beginSubmitLock('pi-job', ['piSubmitBtn'])) return;
+            updatePiCalculations();
+            if (!validatePiJob()) {
+                endSubmitLock('pi-job');
+                return;
+            }
+            const payload = getPiJobPayload();
+            showSubmittingOverlay('Please Wait', 'Submitting PI job...');
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-pi`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    updateSubmittingOverlay('Submission Failed', result.error || 'PI job could not be saved.', true);
+                    const retryBtn = document.getElementById('submittingRetryBtn');
+                    if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPiJob(); }; }
+                    return;
+                }
+                appendPiJxJEntry({
+                    submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    item: payload['Item'],
+                    lot: payload['Lot #'],
+                    sequence: payload['Sequence'],
+                    startQty: Number(payload['Start Quantity']) || 0,
+                    endQty: Number(payload['End Quantity']) || 0,
+                    timeWorked: Number(payload['Time Worked']) || 0,
+                    stdPph: PI_RESULTS.adjustedStandard || 0
+                });
+                const msg = result.simulated
+                    ? 'PI job simulated (writes disabled).'
+                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PI job simulated.' : 'PI job submitted.');
+                updateSubmittingOverlay('Saved!', msg);
+                resetPiForm(false);
+            } catch (error) {
+                updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+                const retryBtn = document.getElementById('submittingRetryBtn');
+                if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPiJob(); }; }
+            } finally {
+                endSubmitLock('pi-job');
+            }
+        }
+
+        async function submitPiEvent() {
+            if (!beginSubmitLock('pi-event', ['piSubmitBtn'])) return;
+            const eventName = getPiValue('piEvent');
+            const startTime = getPiValue('piEventStartTime');
+            const endTime = getPiValue('piEventEndTime');
+            if (!eventName) { endSubmitLock('pi-event'); return showToast('Event is required.'); }
+            if (!startTime || !endTime) { endSubmitLock('pi-event'); return showToast('Start and end time are required.'); }
+            const duration = calcEventMinutes(startTime, endTime);
+            if (duration <= 0) { endSubmitLock('pi-event'); return showToast('End time must be after start time.'); }
+
+            const payload = {
+                department: 'PI',
+                'Entry Type': 'Event',
+                'Associate Name': SESSION_USER.name,
+                'Date': getPiValue('piDate') || getLocalDate(),
+                'Time Worked': duration,
+                'Event': eventName,
+                'Comments': getPiValue('piComments')
+            };
+
+            showSubmittingOverlay('Please Wait', 'Submitting PI event...');
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-pi`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    updateSubmittingOverlay('Submission Failed', result.error || 'PI event could not be saved.', true);
+                    const retryBtn = document.getElementById('submittingRetryBtn');
+                    if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPiEvent(); }; }
+                    return;
+                }
+                const msg = result.simulated
+                    ? 'PI event simulated (writes disabled).'
+                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PI event simulated.' : 'PI event submitted.');
+                updateSubmittingOverlay('Saved!', msg);
+                ['piEvent', 'piEventStartTime', 'piEventEndTime', 'piComments'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+                updatePiEventDuration();
+            } catch (error) {
+                updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+                const retryBtn = document.getElementById('submittingRetryBtn');
+                if (retryBtn) { retryBtn.style.display = 'inline-block'; retryBtn.onclick = () => { hideSubmittingOverlay(); submitPiEvent(); }; }
+            } finally {
+                endSubmitLock('pi-event');
+            }
+        }
+
+        function resetPiForm(clearDate = true) {
+            ['piItem', 'piLot', 'piSequence', 'piTimeWorked', 'piFootage', 'piProcessingLength', 'piStartQuantity', 'piEndQuantity', 'piRecuts', 'piPullingWraps', 'piComments', 'piEvent', 'piEventStartTime', 'piEventEndTime'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            PI_START_AUTO = false;
+            PI_START_MANUAL_OVERRIDE = false;
+            PI_MULTIPLIER_APPLIED = false;
+            const multiplierInput = document.getElementById('piMultiplierInput');
+            if (multiplierInput) multiplierInput.value = '1';
+            const resetBtn = document.getElementById('piMultiplierResetBtn');
+            if (resetBtn) resetBtn.style.display = 'none';
+            const startInput = document.getElementById('piStartQuantity');
+            if (startInput) startInput.readOnly = false;
+            document.querySelectorAll('#ptfePortal input[type="checkbox"]').forEach(input => { input.checked = false; });
+            if (clearDate) document.getElementById('piDate').value = getLocalDate();
+            setPiEntryMode('job');
+            updatePiCalculations();
+        }
+
+        function setPiEntryMode(mode) {
+            PI_ENTRY_MODE = mode === 'event' ? 'event' : 'job';
+            document.getElementById('piJobModeBtn')?.classList.toggle('active', PI_ENTRY_MODE === 'job');
+            document.getElementById('piEventModeBtn')?.classList.toggle('active', PI_ENTRY_MODE === 'event');
+            setPiDisplay('piJobFields', PI_ENTRY_MODE === 'job' ? 'block' : 'none');
+            setPiDisplay('piEventFields', PI_ENTRY_MODE === 'event' ? 'block' : 'none');
+            setPiDisplay('piResultsCard', PI_ENTRY_MODE === 'job' ? 'block' : 'none');
+            if (PI_ENTRY_MODE === 'event') {
+                const startInput = document.getElementById('piEventStartTime');
+                if (startInput && !startInput.value) {
+                    const now = new Date();
+                    startInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                }
+            }
+            updatePiCalculations();
+        }
+
+        function updatePiEventDuration() {
+            const mins = calcEventMinutes(getPiValue('piEventStartTime'), getPiValue('piEventEndTime'));
+            const durEl = document.getElementById('piEventDurationDisplay');
+            if (durEl) durEl.textContent = mins > 0 ? `Duration: ${mins} min` : '';
+        }
+
+        function initPiJxJ() {
+            const today = getLocalDate();
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            if (!jxj || jxj.date !== today || jxj.associate !== SESSION_USER.name) {
+                jxj = { date: today, associate: SESSION_USER.name, tabs: {} };
+                PI_JXJ_TABS.forEach(tab => { jxj.tabs[tab] = []; });
+                localStorage.setItem(PI_JXJ_KEY, JSON.stringify(jxj));
+            }
+            renderPiJxJ(PI_JXJ_ACTIVE_TAB);
+        }
+
+        function appendPiJxJEntry(entry) {
+            const mapping = PI_JXJ_CELL_MAP[entry.sequence];
+            if (!mapping) return;
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs) return;
+            const timeMins = Number(entry.timeWorked) || 0;
+            const endQty = Number(entry.endQty) || 0;
+            const stdPph = Number(entry.stdPph) || 0;
+            const actualPph = timeMins > 0 ? Math.round((endQty / timeMins) * 60 * 10) / 10 : 0;
+            const oe = stdPph > 0 ? Math.round((actualPph / stdPph) * 1000) / 10 : 0;
+            if (!jxj.tabs[mapping.cell]) jxj.tabs[mapping.cell] = [];
+            jxj.tabs[mapping.cell].push({
+                slot: `${mapping.prefix} ${jxj.tabs[mapping.cell].length + 1}`,
+                item: entry.item || '',
+                lot: entry.lot || '',
+                stdPph,
+                actualPph,
+                oe,
+                timeMins,
+                startQty: Number(entry.startQty) || 0,
+                endQty,
+                lossReason: '',
+                submittedAt: entry.submittedAt || ''
+            });
+            localStorage.setItem(PI_JXJ_KEY, JSON.stringify(jxj));
+            renderPiJxJ(PI_JXJ_ACTIVE_TAB);
+        }
+
+        function renderPiJxJ(cellName) {
+            PI_JXJ_ACTIVE_TAB = cellName;
+            document.querySelectorAll('#piJxjTabs .ptfe-jxj-tab').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.cell === cellName);
+            });
+            const wrap = document.getElementById('piJxjTableWrap');
+            if (!wrap) return;
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            const jobs = (jxj && jxj.tabs && jxj.tabs[cellName]) ? jxj.tabs[cellName] : [];
+            if (jobs.length === 0) {
+                wrap.innerHTML = `<div class="ptfe-jxj-empty">No jobs logged for ${cellName} yet.</div>`;
+                return;
+            }
+            const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
+            const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
+            const shiftActualPph = totalMins > 0 ? Math.round((totalEndQty / totalMins) * 60 * 10) / 10 : 0;
+            const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
+            const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
+            const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
+            const oeHtml = (oe) => {
+                if (oe >= 85) return `<span class="ptfe-jxj-oe-good">${oe.toFixed(1)}% OK</span>`;
+                if (oe >= 70) return `<span class="ptfe-jxj-oe-warn">${oe.toFixed(1)}%</span>`;
+                return `<span class="ptfe-jxj-oe-bad">${oe.toFixed(1)}%</span>`;
+            };
+            const rows = jobs.map((j, idx) => `
+                <tr>
+                    <td style="white-space:nowrap; font-weight:600;">${j.slot}</td>
+                    <td style="font-family:monospace;">${j.item || '-'}</td>
+                    <td>${j.stdPph || '-'}</td>
+                    <td>${j.actualPph || '-'}</td>
+                    <td>${oeHtml(j.oe)}</td>
+                    <td style="white-space:nowrap;">${j.timeMins}m</td>
+                    <td><input class="ptfe-jxj-loss-input" type="text" placeholder="Loss reason..." value="${(j.lossReason || '').replace(/"/g, '&quot;')}" onblur="savePiJxJLossReason('${cellName}', ${idx}, this.value)"></td>
+                </tr>`).join('');
+            wrap.innerHTML = `
+                <table class="ptfe-jxj-table">
+                    <thead><tr><th>Slot</th><th>Item</th><th>Std PPH</th><th>Act PPH</th><th>OE %</th><th>Time</th><th>Loss Reason</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                    <tfoot><tr class="ptfe-jxj-summary-row"><td colspan="2">SHIFT SUMMARY</td><td>${shiftStdPph}</td><td>${shiftActualPph}</td><td>${oeHtml(shiftOe)}</td><td>${totalMins}m</td><td></td></tr></tfoot>
+                </table>`;
+        }
+
+        function switchPiJxJTab(cellName) {
+            renderPiJxJ(cellName);
+        }
+
+        function savePiJxJLossReason(cellName, idx, value) {
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs || !jxj.tabs[cellName] || !jxj.tabs[cellName][idx]) return;
+            jxj.tabs[cellName][idx].lossReason = value;
+            localStorage.setItem(PI_JXJ_KEY, JSON.stringify(jxj));
+        }
+
+        function confirmPiEndShift() {
+            const overlay = document.getElementById('modalOverlay');
+            if (!overlay) return;
+            document.getElementById('modalTitle').textContent = 'End Shift';
+            document.getElementById('modalText').textContent = "Submit this shift's PI job log to Smartsheet and sign out?";
+            const bodyEl = document.getElementById('modalBody');
+            if (bodyEl) {
+                bodyEl.innerHTML = `<div style="margin-top:10px;"><label style="font-size:12px; color:var(--subtext); font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">Countermeasures taken this shift (optional)</label><textarea id="piJxjCountermeasures" class="input" style="margin-top:6px; text-align:left; height:80px; font-weight:normal; font-size:13px;" placeholder="Describe any countermeasures taken..."></textarea></div>`;
+            }
+            const btnCancel = document.getElementById('modalCancel');
+            if (btnCancel) btnCancel.style.display = 'inline-block';
+            overlay.style.display = 'flex';
+            document.getElementById('modalConfirm').onclick = () => {
+                overlay.style.display = 'none';
+                const cm = document.getElementById('piJxjCountermeasures')?.value?.trim() || '';
+                if (bodyEl) bodyEl.innerHTML = '';
+                performPiEndShift(cm);
+            };
+            if (btnCancel) btnCancel.onclick = () => {
+                overlay.style.display = 'none';
+                if (bodyEl) bodyEl.innerHTML = '';
+            };
+        }
+
+        async function performPiEndShift(countermeasures) {
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            if (!jxj || !jxj.tabs) {
+                performLogout();
+                return;
+            }
+            const rows = [];
+            const workDate = jxj.date || getLocalDate();
+            const associate = jxj.associate || SESSION_USER.name;
+            for (const cell of PI_JXJ_TABS) {
+                const jobs = jxj.tabs[cell] || [];
+                if (jobs.length === 0) continue;
+                jobs.forEach(j => {
+                    rows.push({
+                        'Row ID': `${associate}-${cell}-${workDate}-${j.slot}`,
+                        'Work Date': workDate,
+                        'Associate Name': associate,
+                        'Cell': cell,
+                        'Job Slot': j.slot,
+                        'Row Type': 'Job',
+                        'Item Number': j.item || '',
+                        'Lot Number': j.lot || '',
+                        'Std PPH': j.stdPph || '',
+                        'Actual PPH': j.actualPph || '',
+                        'OE %': j.oe || '',
+                        'Time (Min)': j.timeMins || '',
+                        'Start Qty': j.startQty ?? '',
+                        'End Qty': j.endQty ?? '',
+                        'Loss Reason': j.lossReason || '',
+                        'Countermeasures': '',
+                        'Submitted At': j.submittedAt || ''
+                    });
+                });
+                const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
+                const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
+                const shiftActualPph = totalMins > 0 ? Math.round((totalEndQty / totalMins) * 60 * 10) / 10 : 0;
+                const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
+                const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
+                const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
+                rows.push({
+                    'Row ID': `${associate}-${cell}-${workDate}-Summary`,
+                    'Work Date': workDate,
+                    'Associate Name': associate,
+                    'Cell': cell,
+                    'Job Slot': 'Summary',
+                    'Row Type': 'Summary',
+                    'Std PPH': shiftStdPph || '',
+                    'Actual PPH': shiftActualPph || '',
+                    'OE %': shiftOe || '',
+                    'Time (Min)': totalMins || '',
+                    'Countermeasures': countermeasures || '',
+                    'Submitted At': new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+            }
+            if (rows.length === 0) {
+                performLogout();
+                return;
+            }
+            showSubmittingOverlay('Please Wait', 'Submitting PI shift data to Smartsheet...');
+            try {
+                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-pi-jxj`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rows)
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    updateSubmittingOverlay('Submission Failed', result.error || 'PI JxJ shift could not be saved.', true);
+                    const retryBtn = document.getElementById('submittingRetryBtn');
+                    if (retryBtn) retryBtn.onclick = () => { hideSubmittingOverlay(); performPiEndShift(countermeasures); };
+                    if (retryBtn) retryBtn.style.display = 'inline-block';
+                    return;
+                }
+                localStorage.removeItem(PI_JXJ_KEY);
+                updateSubmittingOverlay('Shift Submitted!', result.message || 'PI shift data saved. Signing out...');
+                setTimeout(() => performLogout(), 1500);
+            } catch (error) {
+                updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
+                const retryBtn = document.getElementById('submittingRetryBtn');
+                if (retryBtn) {
+                    retryBtn.style.display = 'inline-block';
+                    retryBtn.onclick = () => { hideSubmittingOverlay(); performPiEndShift(countermeasures); };
+                }
+            }
+        }
+
+        function initPiEnterNav() {
+            PI_NAV_SEQUENCE.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el || el.dataset.piNavBound) return;
+                el.dataset.piNavBound = '1';
+                el.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const idx = PI_NAV_SEQUENCE.indexOf(id);
+                        for (let i = idx + 1; i < PI_NAV_SEQUENCE.length; i++) {
+                            const next = document.getElementById(PI_NAV_SEQUENCE[i]);
+                            if (next && ptfeIsVisible(next) && !next.disabled) {
+                                next.focus();
+                                if (typeof next.select === 'function' && next.tagName !== 'SELECT') next.select();
+                                return;
+                            }
+                        }
+                        document.getElementById('piSubmitBtn')?.focus();
+                    }
+                });
+            });
+        }
+
+        async function initPiPortal() {
+            setDepartmentShell();
+            document.getElementById('plPortal').style.display = 'none';
+            document.getElementById('ptfePortal').style.display = 'block';
+            const adminBtn = document.getElementById('navAdminBtn');
+            if (adminBtn && SESSION_USER.role === 'Supervisor') adminBtn.style.display = 'inline-block';
+            renderPiPortalShell();
+            const userList = document.getElementById('navUserList');
+            if (userList) {
+                userList.innerHTML = `<span>${SESSION_USER.name} | Polyimide</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
+            }
+            const dateInput = document.getElementById('piDate');
+            if (dateInput) dateInput.value = getLocalDate();
+            const currentUser = document.getElementById('piCurrentUser');
+            if (currentUser) currentUser.textContent = `${SESSION_USER.name} | Polyimide`;
+
+            const today = getLocalDate();
+            let existingJxj = null;
+            try { existingJxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            if (existingJxj && (existingJxj.date !== today || existingJxj.associate !== SESSION_USER.name)) {
+                setTimeout(() => {
+                    customConfirm('Stale Shift Data', `Data from ${existingJxj.date} was found. Discard and start fresh?`, () => {
+                        localStorage.removeItem(PI_JXJ_KEY);
+                        initPiJxJ();
+                    });
+                }, 300);
+            } else {
+                initPiJxJ();
+            }
+
+            let result;
+            try {
+                const response = await fetch(`${API_BASE_URL}/config?dept=PI`);
+                result = await response.json();
+                if (!result.success) throw new Error(result.error || 'Failed to load PI config.');
+            } catch (error) {
+                console.error(error);
+                showToast(`Failed to load PI configuration: ${error.message}`);
+                return;
+            }
+
+            try {
+                PI_CONFIG = result.data;
+                buildPiStandardsIndex(PI_CONFIG.standards);
+                populateSelect('piSequence', PI_CONFIG.sequences || [], 'Select sequence...');
+                populateSelect('piEvent', PI_CONFIG.events || [], 'Select event...');
+                populateCheckboxes('piInspectionParetos', PI_CONFIG.inspectionParetos || [], 'piInspectionPareto');
+                populateCheckboxes('piPullingParetos', PI_CONFIG.pullingParetos || [], 'piPullingPareto');
+                populateCheckboxes('piPullingMethods', PI_CONFIG.pullingMethods || [], 'piPullingMethod');
+                setPiEntryMode('job');
+                updatePiCalculations();
+                initPiEnterNav();
+                showToast('PI data loaded from Smartsheet.');
+            } catch (error) {
+                console.error(error);
+                showToast(`PI config loaded, but page setup failed: ${error.message}`);
             }
         }
 
@@ -2726,7 +3726,39 @@
             if (t) { t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), duration); }
         }
 
+        function showItemNumberError(inputId) {
+            customConfirm('Action Required', 'Item number must be exactly six digits.', () => {
+                const input = document.getElementById(inputId);
+                if (input) input.focus();
+            }, true);
+        }
+
+        function isSixDigitItemNumber(value) {
+            return /^\d{6}$/.test(String(value || '').trim());
+        }
+
         let submittingOverlayHideTimer = null;
+        const activeSubmitLocks = new Map();
+
+        function beginSubmitLock(key, buttonIds = []) {
+            if (activeSubmitLocks.has(key)) {
+                showToast('Submission already in progress. Please wait.');
+                return false;
+            }
+            const lockedButtons = buttonIds
+                .map(id => document.getElementById(id))
+                .filter(Boolean)
+                .map(button => ({ button, wasDisabled: button.disabled }));
+            lockedButtons.forEach(({ button }) => { button.disabled = true; });
+            activeSubmitLocks.set(key, lockedButtons);
+            return true;
+        }
+
+        function endSubmitLock(key) {
+            const lockedButtons = activeSubmitLocks.get(key) || [];
+            lockedButtons.forEach(({ button, wasDisabled }) => { button.disabled = wasDisabled; });
+            activeSubmitLocks.delete(key);
+        }
 
         function showSubmittingOverlay(title, message) {
             if (submittingOverlayHideTimer) {
@@ -2765,6 +3797,8 @@
                 clearTimeout(submittingOverlayHideTimer);
                 submittingOverlayHideTimer = null;
             }
+            const retryBtn = document.getElementById('submittingRetryBtn');
+            if (retryBtn) { retryBtn.style.display = 'none'; retryBtn.onclick = null; }
             document.getElementById('submittingOverlay').style.display = 'none';
         }
 
@@ -2776,7 +3810,14 @@
             overlay.style.display = 'flex';
             const btnCancel = document.getElementById('modalCancel');
             if (btnCancel) btnCancel.style.display = hideCancel ? 'none' : 'inline-block';
-            document.getElementById('modalConfirm').onclick = () => { overlay.style.display = 'none'; callback(); };
+            document.getElementById('modalConfirm').onclick = () => {
+                const confirmBtn = document.getElementById('modalConfirm');
+                if (confirmBtn.disabled) return;
+                confirmBtn.disabled = true;
+                overlay.style.display = 'none';
+                callback();
+                setTimeout(() => { confirmBtn.disabled = false; }, 500);
+            };
             if (btnCancel) btnCancel.onclick = () => { overlay.style.display = 'none'; };
         }
 
@@ -2813,7 +3854,7 @@
             const selects = document.querySelectorAll('.rca-op-select');
             selects.forEach(sel => {
                 sel.innerHTML = '<option value="">Select operator...</option>';
-                ROSTER.forEach(name => {
+                [...ROSTER].sort((a, b) => a.localeCompare(b)).forEach(name => {
                     const opt = document.createElement('option');
                     opt.value = name; opt.textContent = name;
                     sel.appendChild(opt);
@@ -2977,7 +4018,7 @@
                 </div>
             `;            const sel = document.getElementById('addOpSelect');
             const opList = (typeof ASSOCIATES !== 'undefined' && ASSOCIATES.length > 0) ? ASSOCIATES : (typeof ROSTER !== 'undefined' ? ROSTER : []);
-            opList.filter(n => !state.activeUsers.includes(n)).forEach(n => {
+            opList.filter(n => !state.activeUsers.includes(n)).sort((a, b) => a.localeCompare(b)).forEach(n => {
                 const opt = document.createElement('option');
                 opt.value = n; opt.textContent = n;
                 sel.appendChild(opt);
@@ -3105,7 +4146,7 @@
             const sel = document.getElementById('sequenceInput');
             if (!sel) return;
             sel.innerHTML = '<option value="">Select Sequence...</option>';
-            PCD_SEQUENCES.forEach(seq => {
+            [...PCD_SEQUENCES].sort((a, b) => a.localeCompare(b)).forEach(seq => {
                 const opt = document.createElement('option');
                 opt.value = seq; opt.textContent = seq;
                 sel.appendChild(opt);
@@ -3165,7 +4206,7 @@
             const sel = document.getElementById('eventSelect');
             if (!sel) return;
             sel.innerHTML = '<option value="">Select Event...</option>';
-            EVENTS.forEach(ev => {
+            [...EVENTS].sort((a, b) => a.localeCompare(b)).forEach(ev => {
                 const opt = document.createElement('option');
                 opt.value = ev; opt.textContent = ev;
                 sel.appendChild(opt);
@@ -3897,6 +4938,7 @@
             const evM = calcEventMinutes(evS, evE);
             if (evM <= 0) return showToast("⚠️ End time must be after start time.");
             customConfirm("Log Event", `Bill ${evM}m to ${evT}?`, () => {
+                if (!beginSubmitLock('pl-event', ['btnSubmit', 'btnReset', 'modalConfirm'])) return;
                 (async () => {
                     showSubmittingOverlay('Please Wait', 'Submitting event to Smartsheet...');
                     const priorSequenceStartTime = state.sequenceStartTime;
@@ -3906,6 +4948,7 @@
                     if (!saved) {
                         state.sequenceStartTime = priorSequenceStartTime;
                         updateSubmittingOverlay('Submission Failed', 'Event could not be saved. Please try again.', true);
+                        endSubmitLock('pl-event');
                         return;
                     }
 
@@ -3946,6 +4989,7 @@
                     setEntryMode('Job');
                     updateSubmittingOverlay('Saved!', 'Event submitted successfully.');
                     showToast("Event Logged.");
+                    endSubmitLock('pl-event');
                 })();
             });
         }
@@ -4057,6 +5101,10 @@
 
         function handleSubmitJob() {
             if (!validateShiftSetup()) return;
+            if (!isSixDigitItemNumber(state.itemNumber)) {
+                showItemNumberError('itemNumber');
+                return;
+            }
             const rd = Object.values(state.defects || {}).reduce((a, b) => a + b, 0);
             const sq = (state.totalGood || 0) + rd;
             const yieldVal = sq > 0 ? ((state.totalGood || 0) / sq) : 1;
@@ -4069,15 +5117,20 @@
                 : warning + "Send Job to Smartsheet?";
                 
             customConfirm("Submit Job", promptMsg, () => {
+                if (!beginSubmitLock('pl-job', ['btnSubmit', 'btnReset', 'modalConfirm'])) return;
                 (async () => {
-                    showSubmittingOverlay('Please Wait', 'Submitting to Smartsheet...');
-                    const saved = await submitToSmartsheet("Job", "", 0, op);
-                    if (!saved) {
-                        updateSubmittingOverlay('Submission Failed', 'Data could not be saved. Please try again.', true);
-                        return;
+                    try {
+                        showSubmittingOverlay('Please Wait', 'Submitting to Smartsheet...');
+                        const saved = await submitToSmartsheet("Job", "", 0, op);
+                        if (!saved) {
+                            updateSubmittingOverlay('Submission Failed', 'Data could not be saved. Please try again.', true);
+                            return;
+                        }
+                        updateSubmittingOverlay('Saved!', 'Data submitted successfully.');
+                        handleNewLot(op);
+                    } finally {
+                        endSubmitLock('pl-job');
                     }
-                    updateSubmittingOverlay('Saved!', 'Data submitted successfully.');
-                    handleNewLot(op);
                 })();
             });
         }
@@ -4606,6 +5659,7 @@
                         localStorage.removeItem(PTFE_JXJ_KEY);
                         showToast('🔒 Supervisor Reset — PTFE tracker cleared.');
                     } else if (SESSION_DEPT === 'PI') {
+                        localStorage.removeItem(PI_JXJ_KEY);
                         showToast('🔒 Supervisor Reset — PI portal cleared.');
                     } else {
                         localStorage.removeItem(SHIFT_KEY);
@@ -4622,6 +5676,11 @@
         window.onload = function () {
             if (SESSION_DEPT === 'PTFE') {
                 initPtfePortal();
+                setInterval(updateClock, 1000);
+                return;
+            }
+            if (SESSION_DEPT === 'PI') {
+                initPiPortal();
                 setInterval(updateClock, 1000);
                 return;
             }
@@ -4654,7 +5713,7 @@
             const nInp = document.getElementById('handoverNotes'); if (nInp) nInp.oninput = (e) => { state.handoverNotes = e.target.value; e.target.classList.remove('input-error'); save(); };
             const nsnInp = document.getElementById('nextShiftNoteInput'); if (nsnInp) nsnInp.oninput = (e) => { state.nextShiftNote = e.target.value; save(); };
             const lInp = document.getElementById('lotNumber'); if (lInp) lInp.oninput = (e) => { state.lotNumber = e.target.value; save(); };
-            const iInp = document.getElementById('itemNumber'); if (iInp) iInp.oninput = (e) => { state.itemNumber = e.target.value; save(); };
+            const iInp = document.getElementById('itemNumber'); if (iInp) iInp.oninput = (e) => { e.target.value = e.target.value.replace(/[^0-9]/g, ''); state.itemNumber = e.target.value; save(); };
             const eS = document.getElementById('eventSelect'); if (eS) eS.onchange = (e) => { state.eventData.type = e.target.value; save(); };
             const eT = document.getElementById('eventStartTimeRef'); if (eT) eT.onchange = (e) => { state.eventData.startTimeRef = e.target.value; state.eventData.exactStartMs = null; updateEventDuration(); save(); };
             const eE = document.getElementById('eventEndTimeRef'); if (eE) eE.onchange = (e) => { state.eventData.endTimeRef = e.target.value; updateEventDuration(); save(); };

@@ -1,4 +1,4 @@
-const { fetchConfigData } = require('../lib/config');
+const { fetchConfigData, normalizeDept } = require('../lib/config');
 
 module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -7,7 +7,10 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const data = await fetchConfigData();
+        const dept = normalizeDept(req.query?.dept || 'PL');
+        const data = await fetchConfigData(null, dept, {
+            includeSupplemental: req.query?.scope !== 'login'
+        });
         return res.status(200).json({ success: true, data });
     } catch (error) {
         console.error('Error fetching master config:', error.response?.data || error.message);
