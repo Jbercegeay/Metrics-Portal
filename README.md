@@ -95,10 +95,24 @@ So the current deployment path is the Express app in `server.js`.
 - `public/admin-ptfe.html`: PTFE admin panel.
 - `public/admin-pi.html`: Polyimide admin panel.
 - `public/admin-test.html`: Local test-supervisor shortcut for PL/PTFE admin validation and PI portal validation.
+- `public/changelog.html`: Browser-facing release notes linked from the portal.
+- `CHANGELOG.md`: Canonical release notes and versioning policy.
 - `api/config.js`: Serverless-style compatibility handler. The current production deployment uses `server.js`.
 - `Brainstorming/`: Planning, implementation specs, and future roadmap notes.
 - `docs/`: SOP/training documents.
 - `scripts/`: One-off utilities.
+
+## Release Versioning
+
+The first formal multi-department production baseline is `v1.0.0`.
+
+Use semantic versioning:
+
+- Major versions for new department rollouts, major workflow changes, or breaking Smartsheet/config changes.
+- Minor versions for new features, new admin tools, new reports, or meaningful operator/supervisor workflow improvements.
+- Patch versions for bug fixes, wording fixes, validation fixes, and low-risk production corrections.
+
+Do not update the changelog for every commit. Add entries to `CHANGELOG.md` under `Unreleased` when a change affects production users, admin behavior, Smartsheet mappings, validation, reporting, deployment, or supportability. Move those entries into a dated version when the change is approved for release/deployment.
 
 ## Validation
 

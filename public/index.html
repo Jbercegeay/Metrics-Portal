@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Precision Liner Production Control - V2.5.0</title>
+    <title>Metrics Portal - v1.0.0</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -984,8 +984,8 @@
         <header
             style="margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; display: flex; justify-content: space-between; align-items: start;">
             <div>
-                <h1>Precision Liner PCD Portal</h1>
-                <div class="subtitle">Advanced Systems Analysis & Control | V2.5.0</div>
+                <h1>Precision Liner Production Portal</h1>
+                <div class="subtitle">Job & Event Entry | v1.0.0</div>
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                 <div class="theme-control">
@@ -1002,6 +1002,8 @@
                 <div
                     style="font-size: 13px; color: var(--text); font-weight: bold; display: flex; align-items: center; gap: 8px;">
                     <div id="navUserList" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end;"></div>
+                    <button onclick="window.location.href='/changelog.html'"
+                        style="background:transparent; border:1px solid var(--accent); color:var(--accent); border-radius:4px; padding:3px 8px; cursor:pointer; font-size:11px; margin-left:10px;">Changelog</button>
                     <button id="navAdminBtn" onclick="goToAdmin()"
                         style="display:none; background:transparent; border:1px solid #f59e0b; color:#f59e0b; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:11px; margin-left:10px;">Admin</button>
                 </div>
@@ -1327,6 +1329,7 @@
         </div>
 
         <div id="ptfePortal" style="display:none;">
+            <div id="ptfeKpiContainer"></div>
             <div class="mode-toggle">
                 <button id="ptfeJobModeBtn" class="mode-btn active" onclick="setPtfeEntryMode('job')">Job Entry</button>
                 <button id="ptfeEventModeBtn" class="mode-btn" onclick="setPtfeEntryMode('event')">Event Entry</button>
@@ -1690,13 +1693,13 @@
         function setDepartmentShell() {
             const title = document.querySelector('header h1');
             const subtitle = document.querySelector('header .subtitle');
-            if (SESSION_DEPT === 'PTFE') {
-                if (title) title.textContent = 'PTFE Production Portal';
-                if (subtitle) subtitle.textContent = 'Job & Event Entry | Phase 1';
-            } else if (SESSION_DEPT === 'PI') {
-                if (title) title.textContent = 'Polyimide Production Portal';
-                if (subtitle) subtitle.textContent = 'Job & Event Entry | Phase 1';
-            }
+            const departmentTitles = {
+                PL: 'Precision Liner Production Portal',
+                PTFE: 'PTFE Production Portal',
+                PI: 'Polyimide Production Portal'
+            };
+            if (title) title.textContent = departmentTitles[SESSION_DEPT] || departmentTitles.PL;
+            if (subtitle) subtitle.textContent = 'Job & Event Entry | v1.0.0';
         }
 
         function populateSelect(selectId, items, placeholder, valueKey = 'name', labelKey = 'name') {
@@ -2271,8 +2274,12 @@
                 baseStandard,
                 adjustedStandard,
                 targetQty,
-                sequenceOe
+                sequenceOe,
+                startQuantity: startQty,
+                endQuantity: endQty,
+                timeMins
             };
+            updateDepartmentKpiBoard('ptfeKpiContainer', PTFE_RESULTS, PTFE_ENTRY_MODE);
 
             const pullFields = document.getElementById('ptfePullFields');
             const spoolFields = document.getElementById('ptfeSpoolFields');
@@ -2660,6 +2667,7 @@
             if (portal.dataset.departmentShell === 'PI' && document.getElementById('piSequence')) return;
             portal.dataset.departmentShell = 'PI';
             portal.innerHTML = `
+                <div id="piKpiContainer"></div>
                 <div class="mode-toggle">
                     <button id="piJobModeBtn" class="mode-btn active" onclick="setPiEntryMode('job')">Job Entry</button>
                     <button id="piEventModeBtn" class="mode-btn" onclick="setPiEntryMode('event')">Event Entry</button>
@@ -2973,8 +2981,12 @@
                 baseStandard,
                 adjustedStandard,
                 targetQty,
-                sequenceOe
+                sequenceOe,
+                startQuantity: startQty,
+                endQuantity: endQty,
+                timeMins
             };
+            updateDepartmentKpiBoard('piKpiContainer', PI_RESULTS, PI_ENTRY_MODE);
 
             setPiDisplay('piPullFields', showPull ? 'block' : 'none');
             setPiDisplay('piSpoolFields', showPull ? 'block' : 'none');
@@ -4323,6 +4335,27 @@
                 <div class="kpi-card" style="border-color:var(--accent);"><span class="kpi-lab">Overall OEE</span><span class="kpi-val" style="color:var(--accent-2)">${metrics.oee.toFixed(1)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
                 <div class="kpi-card" style="border-color:var(--warn);"><span class="kpi-lab">Good Parts</span><span class="kpi-val" style="color:var(--warn)">${metrics.good}</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">LOTS</span></div>
             </div>`;
+        }
+
+        function buildDepartmentKpiMetrics(results, mode) {
+            const isJobMode = mode === 'job';
+            const good = isJobMode ? Math.max(0, Math.round(Number(results?.endQuantity || 0))) : 0;
+            const hasTime = isJobMode && Number(results?.timeMins || 0) > 0;
+            const hasStandard = isJobMode && Number(results?.adjustedStandard || 0) > 0;
+            const hasQuantity = isJobMode && Number(results?.startQuantity || 0) > 0;
+            const a = isJobMode ? 1 : 0;
+            const p = hasTime && hasStandard ? Math.max(0, Number(results.sequenceOe || 0) / 100) : 0;
+            const q = hasQuantity ? Math.max(0, Number(results.yieldPercent || 0) / 100) : 1;
+            const oee = (Math.max(0, a) * Math.max(0, p) * Math.max(0, q)) * 100;
+            return { a, p, q, oee, good, bad: Math.max(0, Math.round(Number(results?.scrapParts || 0))), deductions: 0 };
+        }
+
+        function updateDepartmentKpiBoard(containerId, results, mode) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const metrics = buildDepartmentKpiMetrics(results, mode);
+            const subtext = mode === 'event' ? 'EVENT' : 'JOB';
+            container.innerHTML = buildKpiRowHTML(`${containerId}Row`, '', subtext, metrics, '');
         }
 
         function calculateOEE() {

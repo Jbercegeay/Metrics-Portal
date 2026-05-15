@@ -108,6 +108,15 @@
             display: none;
             font-weight: bold;
         }
+
+        .footer-link {
+            display: inline-block;
+            margin-top: 18px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+        }
     </style>
 </head>
 
@@ -142,6 +151,7 @@
         </div>
 
         <button class="btn" id="loginBtn" onclick="handleLogin()">Login</button>
+        <a class="footer-link" href="/changelog.html">View changelog</a>
     </div>
 
     <div class="card" id="setupForm" style="display: none;">
@@ -161,6 +171,7 @@
         </div>
 
         <button class="btn" onclick="handleSetup()">Save & Login</button>
+        <a class="footer-link" href="/changelog.html">View changelog</a>
     </div>
 
     <div id="toast"></div>

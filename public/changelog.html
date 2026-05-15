@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changelog | Metrics Portal</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --accent: #38bdf8;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, sans-serif;
+            line-height: 1.55;
+        }
+
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 28px 20px 56px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 18px;
+            margin-bottom: 24px;
+        }
+
+        h1, h2, h3 {
+            color: var(--accent);
+            margin-top: 0;
+        }
+
+        h1 {
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            border-top: 1px solid var(--border);
+            padding-top: 22px;
+            margin-top: 28px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        .btn {
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            text-decoration: none;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        ul {
+            padding-left: 22px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        code {
+            background: #0b1220;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <header>
+            <div>
+                <h1>Metrics Portal Changelog</h1>
+                <div class="subtitle">Current production release: v1.0.0</div>
+            </div>
+            <nav class="nav">
+                <a class="btn" href="/">Back to Portal</a>
+                <a class="btn" href="/login.html">Login</a>
+            </nav>
+        </header>
+
+        <section class="panel">
+            <h2>Release Policy</h2>
+            <p>This changelog is updated for production-facing releases, not every commit. New production work should be recorded under <code>Unreleased</code>, then moved into a dated version when the release is approved and deployed.</p>
+            <ul>
+                <li><strong>Major:</strong> new department rollouts, major workflow changes, or breaking Smartsheet/config changes.</li>
+                <li><strong>Minor:</strong> new features, new admin tools, new reports, or meaningful workflow improvements.</li>
+                <li><strong>Patch:</strong> bug fixes, wording fixes, validation fixes, and low-risk production corrections.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Unreleased</h2>
+            <h3>Added</h3>
+            <ul>
+                <li>Added the top KPI board to PTFE and Polyimide so all three department portals show the same Availability, Performance, Quality, Overall OE/OEE, and Good Parts layout.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>v1.0.0 - 2026-05-15</h2>
+
+            <h3>Added</h3>
+            <ul>
+                <li>Formal production baseline for the multi-department Metrics Portal.</li>
+                <li>Polyimide production portal with job entry, event entry, standards lookup, quality checks, and Job x Job tracker support.</li>
+                <li>Polyimide admin portal for associates, schedules, sequences, events, pareto lists, items, and PPH standards.</li>
+                <li>Department-aware admin routing for Precision Liner, PTFE, and Polyimide supervisors.</li>
+                <li>Read-only PI Smartsheet environment validator via <code>npm run validate:pi</code>.</li>
+                <li>Browser-accessible changelog page linked from the portal and admin pages.</li>
+            </ul>
+
+            <h3>Changed</h3>
+            <ul>
+                <li>Expanded shared Smartsheet config loading for PL, PTFE, and PI department-specific sheets.</li>
+                <li>Updated login/admin routing so supervisors land in the correct department admin portal.</li>
+                <li>Enabled PI Master Log and PI Job x Job mapping support, including live sheet aliases for <code>OE Pct</code> and <code>Time Min</code>.</li>
+                <li>Updated visible portal release label to <code>v1.0.0</code>.</li>
+            </ul>
+
+            <h3>Fixed</h3>
+            <ul>
+                <li>Replaced garbled admin delete-button text with readable <code>Delete</code> labels.</li>
+                <li>Replaced garbled admin cell placeholder text with <code>None</code>.</li>
+                <li>Added six-digit item number validation across PL, PTFE, and PI submission paths.</li>
+                <li>Added backend item number validation as a safety net for Master Log and Job x Job submissions.</li>
+            </ul>
+
+            <h3>Validation</h3>
+            <ul>
+                <li>Ran <code>node --check server.js</code>.</li>
+                <li>Parsed <code>public/index.html</code> inline scripts successfully.</li>
+                <li>Ran <code>npm run validate:pi</code>.</li>
+                <li>Completed test-account submission flows for PI and PTFE in the browser.</li>
+                <li>Verified PL test-account submission path through the local API.</li>
+            </ul>
+        </section>
+    </main>
+</body>
+
+</html>
