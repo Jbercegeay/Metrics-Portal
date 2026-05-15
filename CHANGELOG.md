@@ -12,7 +12,9 @@ Changelog entries are not required for every commit. Add entries under `Unreleas
 
 ## Unreleased
 
-- No pending release notes.
+### Added
+
+- Started the multi-associate kiosk workspace rollout for Precision Liner with a prominent active-associate banner, open-work badges, per-associate submit labels, and detailed submit confirmations.
 
 ## v1.1.0 - 2026-05-15
 

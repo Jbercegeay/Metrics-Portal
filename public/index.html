@@ -706,6 +706,56 @@
             opacity: 1;
         }
 
+        .active-operator-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 14px 16px;
+            background: rgba(56, 189, 248, 0.12);
+            border: 1px solid var(--accent);
+            border-left: 6px solid var(--accent-2);
+            border-radius: 12px;
+            box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+        }
+
+        .active-operator-name {
+            color: var(--accent);
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0;
+        }
+
+        .active-operator-detail {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .workspace-status {
+            color: var(--warn);
+            font-size: 12px;
+            font-weight: 800;
+            text-align: right;
+            text-transform: uppercase;
+        }
+
+        .workspace-badge {
+            display: inline-block;
+            margin-left: 7px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: rgba(245, 158, 11, 0.18);
+            color: var(--warn);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            font-size: 10px;
+            font-weight: 900;
+            vertical-align: middle;
+        }
+
         /* Spool Check QC Section */
         .spool-check-section {
             display: none;
@@ -1027,6 +1077,14 @@
 
         <!-- KPI bars are dynamically rendered by calculateOEE() -->
         <div id="kpiContainer"></div>
+
+        <div id="activeOperatorBanner" class="active-operator-banner">
+            <div>
+                <div class="active-operator-detail">Active associate workspace</div>
+                <div class="active-operator-name" id="activeOperatorName">No associate selected</div>
+            </div>
+            <div class="workspace-status" id="activeWorkspaceStatus">No open job</div>
+        </div>
 
         <div class="mode-toggle">
             <button id="btnModeJob" class="mode-btn active" onclick="setEntryMode('Job')">Job Entry</button>
@@ -3635,10 +3693,45 @@
                 endTime: state.endTime,
                 billedMins: state.billedMins || 0,
                 rca: JSON.parse(JSON.stringify(state.rca)),
+                eventData: JSON.parse(JSON.stringify(state.eventData || {})),
                 seqGood: JSON.parse(JSON.stringify(state.seqGood || {})),
                 seqDefects: JSON.parse(JSON.stringify(state.seqDefects || {})),
                 seqMinsAtLotStart: JSON.parse(JSON.stringify(state.seqMinsAtLotStart || {}))
             };
+        }
+
+        function workspaceDefectTotal(ws) {
+            return Object.values(ws?.defects || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+        }
+
+        function workspaceHasOpenWork(ws) {
+            if (!ws) return false;
+            return Boolean(
+                ws.sequence ||
+                ws.lotNumber ||
+                ws.itemNumber ||
+                (Number(ws.totalGood) || 0) > 0 ||
+                workspaceDefectTotal(ws) > 0 ||
+                (ws.handoverNotes || '').trim()
+            );
+        }
+
+        function getWorkspaceForOperator(op) {
+            if (!op) return null;
+            if (op === state.selectedOperator) return getActiveWorkspaceSnapshot();
+            return (state.workspaces && state.workspaces[op]) ? state.workspaces[op] : null;
+        }
+
+        function getWorkspaceSummary(ws) {
+            if (!ws || !workspaceHasOpenWork(ws)) return 'No open job';
+            const parts = [];
+            if (ws.sequence) parts.push(ws.sequence);
+            if (ws.lotNumber) parts.push(`Lot ${ws.lotNumber}`);
+            if (ws.itemNumber) parts.push(`Item ${ws.itemNumber}`);
+            const good = Number(ws.totalGood) || 0;
+            const defects = workspaceDefectTotal(ws);
+            if (good || defects) parts.push(`${good} good / ${defects} defects`);
+            return parts.join(' | ') || 'Open workspace';
         }
 
         /** Helper to apply a workspace object to the active production state */
@@ -3658,6 +3751,7 @@
             state.endTime = ws.endTime || "";
             state.billedMins = ws.billedMins || 0;
             state.rca = ws.rca || { ptfeHead: "", ptfeOps: "", etchOps: "", tecoHead: "", tecoOps: "", pebaxHead: "", pebaxOps: "", commentStatus: "No" };
+            state.eventData = ws.eventData ? JSON.parse(JSON.stringify(ws.eventData)) : { type: "", startTimeRef: "", endTimeRef: "", exactStartMs: null };
             state.seqGood = ws.seqGood ? JSON.parse(JSON.stringify(ws.seqGood)) : {};
             state.seqDefects = ws.seqDefects ? JSON.parse(JSON.stringify(ws.seqDefects)) : {};
             state.seqMinsAtLotStart = ws.seqMinsAtLotStart ? JSON.parse(JSON.stringify(ws.seqMinsAtLotStart)) : {};
@@ -3880,43 +3974,38 @@
             if (!container) return;
             container.innerHTML = '';
 
-            // Ensure kiosk state exists
-            if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
             const user = JSON.parse(localStorage.getItem('currentUser')) || {};
 
-            // On first load only, ensure the logged-in user is in the list.
-            // Do NOT re-add users who have been explicitly removed via End Shift.
+            if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
+            if (!state.workspaces) state.workspaces = {};
+
             if (user.name && state.activeUsers.length === 0) {
                 state.activeUsers.unshift(user.name);
             }
             if (!state.selectedOperator || !state.activeUsers.includes(state.selectedOperator)) {
                 state.selectedOperator = state.activeUsers[0] || '';
             }
-            // Keep state.associate in sync for backward compat
             state.associate = state.selectedOperator;
 
-            // Update header to reflect all active users
             const navUserList = document.getElementById('navUserList');
             if (navUserList) {
                 navUserList.innerHTML = '';
                 state.activeUsers.forEach(op => {
                     const pill = document.createElement('div');
-                    pill.style.cssText = "display:flex; align-items:center; gap:8px; background:var(--soft-fill); padding:5px 12px; border-radius:12px; border:1px solid var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.15);";
+                    pill.style.cssText = "display:flex; align-items:center; gap:8px; background:var(--soft-fill); padding:5px 12px; border-radius:12px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.15);";
 
                     const span = document.createElement('span');
                     span.style.cssText = "color:var(--text); font-size:13px;";
                     span.textContent = op;
-                    if (op === user.name && user.role) {
-                        span.textContent += ` (${user.role})`;
-                    }
-                    
+                    if (op === user.name && user.role) span.textContent += ` (${user.role})`;
+
                     const btn = document.createElement('button');
                     btn.textContent = 'Logout';
-                    btn.style.cssText = "background:transparent; border:none; color:#ef4444; border-radius:4px; cursor:pointer; font-size:11px; padding:0; text-transform:uppercase; font-weight:bold; transition: opacity 0.2s;";
+                    btn.style.cssText = "background:transparent; border:none; color:#ef4444; border-radius:4px; cursor:pointer; font-size:11px; padding:0; text-transform:uppercase; font-weight:bold; transition:opacity 0.2s;";
                     btn.onmouseover = () => btn.style.opacity = '0.7';
                     btn.onmouseout = () => btn.style.opacity = '1';
                     btn.onclick = () => handleUserLogout(op);
-                    
+
                     pill.appendChild(span);
                     pill.appendChild(btn);
                     navUserList.appendChild(pill);
@@ -3925,25 +4014,40 @@
 
             state.activeUsers.forEach(name => {
                 const btn = document.createElement('button');
+                const ws = getWorkspaceForOperator(name);
                 btn.className = 'kiosk-btn' + (name === state.selectedOperator ? ' active' : '');
-                btn.innerHTML = name;
-                // All operators can have a remove/end-shift button
+                btn.innerHTML = `${name}${workspaceHasOpenWork(ws) ? '<span class="workspace-badge">Open</span>' : ''}`;
+                btn.title = getWorkspaceSummary(ws);
+
                 const rm = document.createElement('button');
                 rm.className = 'kiosk-remove-btn';
-                rm.innerHTML = '✕';
-                rm.title = 'Remove from station';
-                rm.onclick = (e) => { e.stopPropagation(); removeKioskUser(name); };
+                rm.textContent = 'x';
+                rm.title = 'Submit/logout this associate';
+                rm.onclick = (e) => { e.stopPropagation(); handleUserLogout(name); };
                 btn.appendChild(rm);
                 btn.onclick = () => selectKioskOperator(name);
                 container.appendChild(btn);
             });
 
-            // "+ Add Operator" button
             const addBtn = document.createElement('button');
             addBtn.className = 'kiosk-add-btn';
             addBtn.textContent = '+ Add Operator';
             addBtn.onclick = () => showAddOperatorModal();
             container.appendChild(addBtn);
+            updateActiveOperatorUI();
+        }
+
+        function updateActiveOperatorUI() {
+            const op = state.selectedOperator || state.associate || '';
+            const nameEl = document.getElementById('activeOperatorName');
+            const statusEl = document.getElementById('activeWorkspaceStatus');
+            const submitBtn = document.getElementById('btnSubmit');
+            const banner = document.getElementById('activeOperatorBanner');
+            const ws = getWorkspaceForOperator(op);
+            if (nameEl) nameEl.textContent = op ? `Entering data for ${op}` : 'No associate selected';
+            if (statusEl) statusEl.textContent = getWorkspaceSummary(ws);
+            if (submitBtn) submitBtn.textContent = op ? `Submit Job for ${op}` : 'Submit Job';
+            if (banner) banner.style.display = op ? 'flex' : 'none';
         }
 
         function selectKioskOperator(name) {
@@ -4498,6 +4602,7 @@
                     <td class="mono" style="padding: 10px;">${sumMins}</td>
                 </tr>`;
             }
+            updateActiveOperatorUI();
         }
 
         function syncUIToState() {
@@ -5145,11 +5250,24 @@
             const operatorCount = (state.activeUsers || []).length;
             const extraInfo = ""; // Removed multi-row warning
             const op = state.selectedOperator;
+            if (!op) {
+                showToast("âš ï¸ Select an associate before submitting.");
+                return;
+            }
+            const detailLines = [
+                `Associate: ${op}`,
+                `Sequence: ${state.sequence || 'Not selected'}`,
+                `Lot: ${state.lotNumber || 'Not entered'}`,
+                `Item: ${state.itemNumber || 'Not entered'}`,
+                `Good Parts: ${state.totalGood || 0}`,
+                `Defects: ${rd}`,
+                `Time Worked: ${state.timeWorked || 0} min`
+            ].join('\n');
             const promptMsg = isTestAccount(op)
-                ? warning + "Simulate Job submission (Training Mode)?" 
-                : warning + "Send Job to Smartsheet?";
+                ? `${warning}Simulate Job submission for ${op} (Training Mode)?\n\n${detailLines}`
+                : `${warning}Send Job to Smartsheet for ${op}?\n\n${detailLines}`;
                 
-            customConfirm("Submit Job", promptMsg, () => {
+            customConfirm(`Submit Job for ${op}`, promptMsg, () => {
                 if (!beginSubmitLock('pl-job', ['btnSubmit', 'btnReset', 'modalConfirm'])) return;
                 (async () => {
                     try {
