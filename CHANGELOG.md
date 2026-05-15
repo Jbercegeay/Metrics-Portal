@@ -12,6 +12,10 @@ Changelog entries are not required for every commit. Add entries under `Unreleas
 
 ## Unreleased
 
+- No pending release notes.
+
+## v1.1.0 - 2026-05-15
+
 ### Added
 
 - Added the top KPI board to PTFE and Polyimide so all three department portals show the same Availability, Performance, Quality, Overall OE/OEE, and Good Parts layout.
