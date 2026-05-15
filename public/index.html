@@ -4552,36 +4552,16 @@
             const container = document.getElementById('kpiContainer');
             if (!container) return;
 
-            // Deduplicate activeUsers as a safety net
-            const activeOps = [...new Set(state.activeUsers || [])];
-            const headcount = Math.max(1, activeOps.length);
-
-            // Gather per-operator data
-            const opData = [];
-            activeOps.forEach(op => {
-                let ws = (state.workspaces && state.workspaces[op]) ? state.workspaces[op] : null;
-                if (op === state.selectedOperator || !ws) ws = getActiveWorkspaceSnapshot();
-                const metrics = computeOperatorOEE(ws, op);
-                opData.push({ name: op, metrics, ws });
-            });
-
-            let html = '';
-
-            if (headcount <= 1) {
-                // Single operator — render classic single bar (no name label needed)
-                const m = opData.length > 0 ? opData[0].metrics : { a: 1, p: 0, q: 1, oee: 0, good: 0, bad: 0 };
-                // Add shift-level historical good parts
-                m.good += (state.shiftTotalGood || 0);
-                html = buildKpiRowHTML('kpiRow', '', 'SHIFT', m, '');
-            } else {
-                // Multi-operator — render one row per operator (no combined row)
-                opData.forEach(od => {
-                    const m = { ...od.metrics };
-                    html += buildKpiRowHTML('kpi_' + od.name.replace(/\s/g, '_'), od.name, 'INDIVIDUAL', m, '');
-                });
+            const op = state.selectedOperator || state.associate || '';
+            if (!op) {
+                container.innerHTML = '';
+                return;
             }
 
-            container.innerHTML = html;
+            const ws = getWorkspaceForOperator(op) || getActiveWorkspaceSnapshot();
+            const metrics = computeOperatorOEE(ws, op);
+            metrics.good += (op === state.selectedOperator ? (state.shiftTotalGood || 0) : 0);
+            container.innerHTML = buildKpiRowHTML('kpiRow', `${op} Workspace`, 'SELECTED ASSOCIATE', metrics, '');
         }
 
         function render() {
