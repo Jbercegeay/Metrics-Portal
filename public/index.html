@@ -4016,7 +4016,7 @@
             document.getElementById('ptfePortal').style.display = 'block';
             const userList = document.getElementById('navUserList');
             if (userList) {
-                userList.innerHTML = `<span>${SESSION_USER.name} | ${SESSION_USER.department || SESSION_DEPT}</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
+                userList.innerHTML = `<span>${SESSION_USER.name} | ${SESSION_USER.department || SESSION_DEPT}</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Exit Without Submitting</button>`;
             }
             const portal = document.getElementById('ptfePortal');
             if (portal) {
