@@ -33,6 +33,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Clarified PTFE/Polyimide station Logout behavior so full portal logout clears workstation state, while End Shift remains an active-associate-only action.
 - Renamed the PTFE/Polyimide top exit action to Exit Without Submitting and made it discard only the active associate's local workspace/tracker before transferring the kiosk when others remain.
 - Added a PTFE/Polyimide End Shift guard that blocks shift closeout when the active associate still has unsent data in the current entry form.
+- Updated Precision Liner's top associate action to Exit Without Submitting so it discards only the selected local workspace instead of submitting data under the older Logout flow.
 
 ## v1.1.0 - 2026-05-15
 

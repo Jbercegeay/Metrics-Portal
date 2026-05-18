@@ -4396,11 +4396,11 @@
                     if (op === user.name && user.role) span.textContent += ` (${user.role})`;
 
                     const btn = document.createElement('button');
-                    btn.textContent = 'Logout';
+                    btn.textContent = 'Exit Without Submitting';
                     btn.style.cssText = "background:transparent; border:none; color:#ef4444; border-radius:4px; cursor:pointer; font-size:11px; padding:0; text-transform:uppercase; font-weight:bold; transition:opacity 0.2s;";
                     btn.onmouseover = () => btn.style.opacity = '0.7';
                     btn.onmouseout = () => btn.style.opacity = '1';
-                    btn.onclick = () => handleUserLogout(op);
+                    btn.onclick = () => confirmPlExitWithoutSubmitting(op);
 
                     pill.appendChild(span);
                     pill.appendChild(btn);
@@ -4418,8 +4418,8 @@
                 const rm = document.createElement('button');
                 rm.className = 'kiosk-remove-btn';
                 rm.textContent = 'x';
-                rm.title = 'Submit/logout this associate';
-                rm.onclick = (e) => { e.stopPropagation(); handleUserLogout(name); };
+                rm.title = 'Exit without submitting this associate';
+                rm.onclick = (e) => { e.stopPropagation(); confirmPlExitWithoutSubmitting(name); };
                 btn.appendChild(rm);
                 btn.onclick = () => selectKioskOperator(name);
                 container.appendChild(btn);
@@ -4487,6 +4487,51 @@
 
             save();
             initKioskBar();
+        }
+
+        function confirmPlExitWithoutSubmitting(op) {
+            if (!op) return;
+            const remainingCount = state.activeUsers.filter(name => name !== op).length;
+            const message = remainingCount > 0
+                ? `${op}'s local workspace will be discarded without submitting to Smartsheet. The kiosk will stay open for the remaining associate.`
+                : `${op}'s local workspace will be discarded without submitting to Smartsheet, then this kiosk will return to login.`;
+            customConfirm('Exit Without Submitting', message, () => completePlExitWithoutSubmitting(op));
+        }
+
+        function completePlExitWithoutSubmitting(op) {
+            if (!op) return;
+            const wasSelected = state.selectedOperator === op;
+            if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
+            if (!state.workspaces) state.workspaces = {};
+
+            delete state.workspaces[op];
+            state.activeUsers = state.activeUsers.filter(name => name !== op);
+            releaseKioskLock(op, 'PL');
+
+            const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+            if (currentUser.name === op && state.activeUsers.length > 0) {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    ...currentUser,
+                    name: state.activeUsers[0],
+                    role: currentUser.role || 'Associate'
+                }));
+            }
+
+            if (state.activeUsers.length === 0) {
+                performLogout();
+                return;
+            }
+
+            if (wasSelected) {
+                state.selectedOperator = '';
+                state.associate = '';
+                selectKioskOperator(state.activeUsers[0]);
+            } else {
+                save();
+                initKioskBar();
+                updateActiveOperatorUI();
+            }
+            showToast(`${op} exited without submitting. Station transferred.`);
         }
 
         function removeKioskUser(name) {
