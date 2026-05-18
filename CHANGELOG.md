@@ -8,9 +8,9 @@ This project uses semantic versioning:
 - `MINOR` changes for new features, new admin tools, new reports, or meaningful operator/supervisor workflow improvements.
 - `PATCH` changes for bug fixes, wording fixes, validation fixes, and low-risk production corrections.
 
-Changelog entries are not required for every commit. Add entries under `Unreleased` when a change affects production users, admin behavior, Smartsheet mappings, validation, reporting, deployment, or supportability. Move `Unreleased` entries into a dated version when the change is approved for release/deployment.
+Changelog entries are not required for every commit. Add entries under `Testing` when a change affects production users, admin behavior, Smartsheet mappings, validation, reporting, deployment, or supportability and is available for validation. Move `Testing` entries into a dated version when the change is approved for production release.
 
-## Unreleased
+## v1.2.0 Testing
 
 ### Added
 
