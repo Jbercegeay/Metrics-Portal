@@ -1681,6 +1681,33 @@
         const isTestAccount = (name) => TEST_ACCOUNTS.includes(name);
         const SESSION_USER = JSON.parse(localStorage.getItem('currentUser')) || {};
         const SESSION_DEPT = SESSION_USER.departmentKey || 'PL';
+        const KIOSK_ID_KEY = 'metrics_portal_kiosk_id';
+
+        function getKioskId() {
+            let kioskId = localStorage.getItem(KIOSK_ID_KEY);
+            if (!kioskId) {
+                kioskId = (crypto.randomUUID ? crypto.randomUUID() : `kiosk-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+                localStorage.setItem(KIOSK_ID_KEY, kioskId);
+            }
+            return kioskId;
+        }
+
+        function releaseKioskLock(username, department = SESSION_DEPT) {
+            if (!username) return;
+            const payload = JSON.stringify({ username, department, kioskId: getKioskId() });
+            try {
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/kiosk-lock/release', new Blob([payload], { type: 'application/json' }));
+                    return;
+                }
+            } catch (error) {}
+            fetch('/api/kiosk-lock/release', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: payload,
+                keepalive: true
+            }).catch(() => {});
+        }
         const PORTAL_THEMES = ['precision', 'light', 'dark', 'high-contrast'];
 
         let SEQUENCE_GOALS = {};
@@ -2009,6 +2036,7 @@
         function completeDepartmentAssociateShift(dept) {
             const data = getDepartmentWorkspaceState(dept);
             const departing = data.activeAssociate || SESSION_USER.name;
+            releaseKioskLock(departing, dept);
             data.associates = data.associates.filter(name => name !== departing);
             if (data.workspaces) delete data.workspaces[departing];
             if (dept === 'PTFE') {
@@ -2104,7 +2132,7 @@
                 if (!username) return showToast('Select an associate.');
                 if (!password) return showToast('Enter their password.');
                 try {
-                    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, department: dept }) });
+                    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, department: dept, kioskId: getKioskId() }) });
                     const result = await res.json();
                     if (!result.success) return showToast(result.error || 'Invalid password.');
                     const nextData = getDepartmentWorkspaceState(dept);
@@ -4573,7 +4601,7 @@
                                 const setupRes = await fetch(`${API_BASE_URL}/setup-password`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ username: name, newPassword: p1 })
+                                    body: JSON.stringify({ username: name, newPassword: p1, department: 'PL', kioskId: getKioskId() })
                                 });
                                 const setupData = await setupRes.json();
                                 if (setupData.success) {
@@ -4601,7 +4629,7 @@
                         const res = await fetchWithTimeout(`${API_BASE_URL}/login`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username: name, password: pass })
+                            body: JSON.stringify({ username: name, password: pass, department: 'PL', kioskId: getKioskId() })
                         }, 15000);
                         const result = await res.json();
                         if (result.success && !result.requireSetup) {
@@ -4612,6 +4640,8 @@
                             showToast(`${name} joined the station!`);
                         } else if (result.requireSetup) {
                             window.location.href = '/login.html?setup=' + encodeURIComponent(name);
+                        } else if (result.error) {
+                            showToast(result.error);
                         } else {
                             showToast('❌ Invalid password.');
                         }
@@ -5444,6 +5474,7 @@
                     state.rca = createInitialState().rca;
 
                     if (state.workspaces) delete state.workspaces[currentUser];
+                    releaseKioskLock(currentUser, 'PL');
 
                     // Remove current operator and move to the next or clear station
                     const remaining = state.activeUsers.filter(u => u !== currentUser);
@@ -5882,6 +5913,7 @@
                     hideSubmittingOverlay();
 
                     if (state.workspaces) delete state.workspaces[op];
+                    releaseKioskLock(op, 'PL');
 
                     // If they are the primary local storage user, pass ownership
                     const lsUser = JSON.parse(localStorage.getItem('currentUser')) || {};
@@ -5922,6 +5954,16 @@
         }
 
         function performLogout() {
+            try {
+                if (SESSION_DEPT === 'PL' && Array.isArray(state.activeUsers)) {
+                    state.activeUsers.forEach(name => releaseKioskLock(name, 'PL'));
+                } else if (SESSION_DEPT === 'PTFE' || SESSION_DEPT === 'PI') {
+                    const data = getDepartmentWorkspaceState(SESSION_DEPT);
+                    (data.associates || [SESSION_USER.name]).forEach(name => releaseKioskLock(name, SESSION_DEPT));
+                } else {
+                    releaseKioskLock(SESSION_USER.name, SESSION_DEPT);
+                }
+            } catch (error) {}
             if (SESSION_DEPT === 'PTFE') {
                 clearLocalStorageKeysStartingWith(PTFE_JXJ_KEY);
                 localStorage.removeItem(DEPARTMENT_WORKSPACE_STORAGE_KEYS.PTFE);

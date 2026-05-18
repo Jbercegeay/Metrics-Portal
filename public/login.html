@@ -186,6 +186,16 @@
         let pendingSetupDepartment = 'PL';
         let associatesData = [];
         let associateLoadRequestId = 0;
+        const KIOSK_ID_KEY = 'metrics_portal_kiosk_id';
+
+        function getKioskId() {
+            let kioskId = localStorage.getItem(KIOSK_ID_KEY);
+            if (!kioskId) {
+                kioskId = (crypto.randomUUID ? crypto.randomUUID() : `kiosk-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+                localStorage.setItem(KIOSK_ID_KEY, kioskId);
+            }
+            return kioskId;
+        }
 
         // Catch setup redirect from kiosk
         const urlParams = new URLSearchParams(window.location.search);
@@ -351,7 +361,7 @@
                     res = await fetch('/api/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password: password || "setup_init", department }),
+                        body: JSON.stringify({ username, password: password || "setup_init", department, kioskId: getKioskId() }),
                         signal: controller.signal
                     });
                 } finally {
@@ -407,7 +417,7 @@
                 const res = await fetch('/api/setup-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: pendingSetupUsername, newPassword: p1, department: pendingSetupDepartment })
+                    body: JSON.stringify({ username: pendingSetupUsername, newPassword: p1, department: pendingSetupDepartment, kioskId: getKioskId() })
                 });
                 const data = await res.json();
 

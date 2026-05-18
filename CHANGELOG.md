@@ -16,6 +16,7 @@ Changelog entries are not required for every commit. Add entries under `Unreleas
 
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
+- Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.
 
 ### Changed
 

@@ -252,6 +252,66 @@ const TEST_ACCOUNT_DETAILS = {
     'test-pi-super': { departmentKey: 'PI',   department: 'Polyimide',      role: 'Supervisor' }
 };
 
+const KIOSK_LOCK_TTL_MS = Number(process.env.KIOSK_LOCK_TTL_MS || 18 * 60 * 60 * 1000);
+const activeKioskLocks = new Map();
+
+function getKioskLockKey(dept, associate) {
+    return `${normalizeDept(dept)}::${String(associate || '').trim().toLowerCase()}`;
+}
+
+function getKioskLabel(kioskId) {
+    const text = String(kioskId || '').trim();
+    return text ? `kiosk ${text.slice(-6)}` : 'another kiosk';
+}
+
+function pruneKioskLocks(now = Date.now()) {
+    for (const [key, lock] of activeKioskLocks.entries()) {
+        if ((now - lock.updatedAt) > KIOSK_LOCK_TTL_MS) {
+            activeKioskLocks.delete(key);
+        }
+    }
+}
+
+function reserveKioskLock({ dept, associate, kioskId, role }) {
+    const departmentKey = normalizeDept(dept);
+    const associateName = String(associate || '').trim();
+    const kiosk = String(kioskId || '').trim();
+    if (!associateName || !kiosk) return { ok: true };
+    if (role === 'Supervisor' || TEST_ACCOUNTS.includes(associateName)) return { ok: true };
+
+    const now = Date.now();
+    pruneKioskLocks(now);
+    const key = getKioskLockKey(departmentKey, associateName);
+    const existing = activeKioskLocks.get(key);
+    if (existing && existing.kioskId !== kiosk) {
+        return {
+            ok: false,
+            error: `${associateName} is already signed in on ${getKioskLabel(existing.kioskId)}. End Shift or Exit Without Submitting there first, or ask a supervisor to release the stale session.`,
+            lock: existing
+        };
+    }
+
+    activeKioskLocks.set(key, {
+        dept: departmentKey,
+        associate: associateName,
+        kioskId: kiosk,
+        startedAt: existing?.startedAt || now,
+        updatedAt: now
+    });
+    return { ok: true };
+}
+
+function releaseKioskLock({ dept, associate, kioskId, force = false }) {
+    const associateName = String(associate || '').trim();
+    if (!associateName) return false;
+    const key = getKioskLockKey(dept, associateName);
+    const existing = activeKioskLocks.get(key);
+    if (!existing) return false;
+    if (!force && (!kioskId || existing.kioskId !== kioskId)) return false;
+    activeKioskLocks.delete(key);
+    return true;
+}
+
 async function getCachedConfigSheet(dept = 'PL') {
     const key = normalizeDept(dept);
     const now = Date.now();
@@ -554,7 +614,7 @@ app.post('/api/admin/config/delete', async (req, res) => {
 // 4. Authentication Endpoints
 app.post('/api/login', async (req, res) => {
     try {
-        const { username, password, department } = req.body;
+        const { username, password, department, kioskId } = req.body;
         if (!username) return res.status(400).json({ success: false, error: 'Username required' });
 
         const requestedDept = normalizeDept(department || TEST_ACCOUNT_DETAILS[username]?.departmentKey || 'PL');
@@ -566,6 +626,13 @@ app.post('/api/login', async (req, res) => {
             if (password !== 'trenton1') {
                 return res.json({ success: false, error: 'Incorrect password' });
             }
+            const lock = reserveKioskLock({
+                dept: testAccount.departmentKey,
+                associate: username,
+                kioskId,
+                role: testAccount.role
+            });
+            if (!lock.ok) return res.status(409).json({ success: false, error: lock.error, lock: lock.lock });
             const testResponse = {
                 success: true,
                 user: {
@@ -611,6 +678,13 @@ app.post('/api/login', async (req, res) => {
         // Compare hash
         const isMatch = await bcrypt.compare(password, pHash);
         if (isMatch) {
+            const lock = reserveKioskLock({
+                dept: departmentConfig.key,
+                associate: username,
+                kioskId,
+                role
+            });
+            if (!lock.ok) return res.status(409).json({ success: false, error: lock.error, lock: lock.lock });
             const response = {
                 success: true,
                 user: {
@@ -637,7 +711,7 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/setup-password', async (req, res) => {
     try {
-        const { username, newPassword, department } = req.body;
+        const { username, newPassword, department, kioskId } = req.body;
         if (!username || !newPassword) return res.status(400).json({ success: false, error: 'Missing parameters' });
         const requestedDept = normalizeDept(department || 'PL');
         const client = getClientForDept(requestedDept);
@@ -668,6 +742,13 @@ app.post('/api/setup-password', async (req, res) => {
 
         const role = getCellByTitle(targetRow, columnMap, 'Role') || 'Associate';
         const deptConfig = getDepartmentConfig(requestedDept);
+        const lock = reserveKioskLock({
+            dept: deptConfig.key,
+            associate: username,
+            kioskId,
+            role
+        });
+        if (!lock.ok) return res.status(409).json({ success: false, error: lock.error, lock: lock.lock });
         const setupResponse = {
             success: true,
             message: 'Password saved',
@@ -687,6 +768,20 @@ app.post('/api/setup-password', async (req, res) => {
     } catch (error) {
         console.error("Error setting password:", error);
         res.status(500).json({ success: false, error: 'Failed to update password' });
+    }
+});
+
+app.post('/api/kiosk-lock/release', (req, res) => {
+    try {
+        const { username, department, kioskId } = req.body || {};
+        const released = releaseKioskLock({
+            dept: department || 'PL',
+            associate: username,
+            kioskId
+        });
+        res.json({ success: true, released });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
     }
 });
 
@@ -719,6 +814,25 @@ app.post('/api/admin/reset-password', async (req, res) => {
     } catch (error) {
         console.error("Error resetting password:", error);
         res.status(500).json({ success: false, error: 'Failed to reset password' });
+    }
+});
+
+app.get('/api/admin/kiosk-locks', (req, res) => {
+    pruneKioskLocks();
+    res.json({ success: true, locks: [...activeKioskLocks.values()] });
+});
+
+app.post('/api/admin/kiosk-locks/release', (req, res) => {
+    try {
+        const { username, department } = req.body || {};
+        const released = releaseKioskLock({
+            dept: department || req.body?.dept || 'PL',
+            associate: username,
+            force: true
+        });
+        res.json({ success: true, released });
+    } catch (error) {
+        res.status(400).json({ success: false, error: error.message });
     }
 });
 
