@@ -896,7 +896,9 @@ async function submitPtfe(req, res) {
                 if (!Number.isNaN(parsed)) value = parsed;
             }
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
-                newRow.cells.push({ columnId: columnMap[title], value: value });
+                const cell = { columnId: columnMap[title], value: value };
+                if (title === 'Associate Name') cell.strict = false;
+                newRow.cells.push(cell);
                 submittedEntries.push([title, value]);
             }
         }
@@ -921,14 +923,16 @@ async function submitPtfe(req, res) {
         return res.json({ success: true, message: "Successfully logged PTFE data to Smartsheet.", data: response.data });
     } catch (error) {
         if (submissionKey) finishMasterLogSubmission(submissionKey, false);
-        console.error("Error submitting PTFE to Smartsheet:", error.response?.data || error.message);
+        const smartsheetError = error.response?.data;
+        console.error("Error submitting PTFE to Smartsheet:", smartsheetError || error.message);
         if (error.code === 'ECONNABORTED') {
             return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });
         }
         if (error.response?.status === 429) {
             return res.status(429).json({ success: false, error: 'Smartsheet is rate limited. Please wait a moment and try again.' });
         }
-        return res.status(500).json({ success: false, error: 'Failed to submit PTFE data.' });
+        const details = smartsheetError?.message ? `Failed to submit PTFE data: ${smartsheetError.message}` : 'Failed to submit PTFE data.';
+        return res.status(500).json({ success: false, error: details });
     }
 }
 
@@ -953,8 +957,7 @@ const PTFE_JOB_LOG_COLUMN_MAP = {
     'Start Qty':       2508607337041796,
     'End Qty':         7012206964412292,
     'Loss Reason':     1382707430199172,
-    'Countermeasures': 5886307057569668,
-    'Submitted At':    3634507243884420
+    'Countermeasures': 5886307057569668
 };
 
 app.post('/api/submit-ptfe-jxj', async (req, res) => {
@@ -984,7 +987,9 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
                     const parsed = Number(value);
                     if (!isNaN(parsed)) value = parsed;
                 }
-                newRow.cells.push({ columnId: colId, value });
+                const cell = { columnId: colId, value };
+                if (key === 'Associate Name') cell.strict = false;
+                newRow.cells.push(cell);
             }
             return newRow;
         }).filter(r => r.cells.length > 0);
@@ -992,10 +997,12 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
         const response = await getClientForDept('PTFE').post(`sheets/${PTFE_JOB_LOG_SHEET_ID}/rows`, smartsheetRows);
         res.json({ success: true, message: `Logged ${smartsheetRows.length} JxJ row(s).`, data: response.data });
     } catch (error) {
-        console.error('Error submitting PTFE JxJ:', error.response?.data || error.message);
+        const smartsheetError = error.response?.data;
+        console.error('Error submitting PTFE JxJ:', smartsheetError || error.message);
         if (error.code === 'ECONNABORTED') return res.status(504).json({ success: false, error: 'Smartsheet timed out.' });
         if (error.response?.status === 429) return res.status(429).json({ success: false, error: 'Rate limited.' });
-        res.status(500).json({ success: false, error: 'Failed to submit PTFE JxJ data.' });
+        const details = smartsheetError?.message ? `Failed to submit PTFE JxJ data: ${smartsheetError.message}` : 'Failed to submit PTFE JxJ data.';
+        res.status(500).json({ success: false, error: details });
     }
 });
 
@@ -1097,7 +1104,9 @@ async function submitPi(req, res) {
                 if (!Number.isNaN(parsed)) value = parsed;
             }
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
-                newRow.cells.push({ columnId: columnMap[title], value: value });
+                const cell = { columnId: columnMap[title], value: value };
+                if (title === 'Associate Name') cell.strict = false;
+                newRow.cells.push(cell);
                 submittedEntries.push([title, value]);
             }
         }
@@ -1185,8 +1194,7 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
             { key: 'Start Qty', columns: ['Start Qty'], numeric: true },
             { key: 'End Qty', columns: ['End Qty'], numeric: true },
             { key: 'Loss Reason', columns: ['Loss Reason'] },
-            { key: 'Countermeasures', columns: ['Countermeasures'] },
-            { key: 'Submitted At', columns: ['Submitted At'] }
+            { key: 'Countermeasures', columns: ['Countermeasures'] }
         ];
         const missingColumns = writeFields
             .filter(field => !field.columns.some(column => columnMap[column]))
@@ -1205,7 +1213,9 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
                     const parsed = Number(value);
                     if (!isNaN(parsed)) value = parsed;
                 }
-                newRow.cells.push({ columnId: colId, value });
+                const cell = { columnId: colId, value };
+                if (field.key === 'Associate Name') cell.strict = false;
+                newRow.cells.push(cell);
             }
             return newRow;
         }).filter(r => r.cells.length > 0);
@@ -1213,10 +1223,12 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
         const response = await getClientForDept('PI').post(`sheets/${getRequiredEnv('DEPT_PI_JOB_LOG_SHEET_ID')}/rows`, smartsheetRows);
         res.json({ success: true, message: `Logged ${smartsheetRows.length} PI JxJ row(s).`, data: response.data });
     } catch (error) {
-        console.error('Error submitting PI JxJ:', error.response?.data || error.message);
+        const smartsheetError = error.response?.data;
+        console.error('Error submitting PI JxJ:', smartsheetError || error.message);
         if (error.code === 'ECONNABORTED') return res.status(504).json({ success: false, error: 'Smartsheet timed out.' });
         if (error.response?.status === 429) return res.status(429).json({ success: false, error: 'Rate limited.' });
-        res.status(500).json({ success: false, error: 'Failed to submit PI JxJ data.' });
+        const details = smartsheetError?.message ? `Failed to submit PI JxJ data: ${smartsheetError.message}` : 'Failed to submit PI JxJ data.';
+        res.status(500).json({ success: false, error: details });
     }
 });
 

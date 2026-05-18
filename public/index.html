@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Metrics Portal - v1.1.0</title>
+    <title>Metrics Portal - v1.2.0</title>
     <style>
         :root {
             --bg: #0f172a;
@@ -998,10 +998,15 @@
         .ptfe-jxj-tab { flex:1; border:none; padding:10px 6px; background:transparent; color:var(--subtext); font-size:12px; font-weight:600; cursor:pointer; transition:background 0.15s; text-align:center; }
         .ptfe-jxj-tab.active { background:var(--accent); color:#000; }
         .ptfe-jxj-tab:hover:not(.active) { background:rgba(255,255,255,0.04); color:var(--text); }
+        .ptfe-jxj-tab-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; margin-left:5px; padding:0 5px; border-radius:999px; background:rgba(148,163,184,0.18); color:inherit; font-size:10px; font-weight:800; }
+        .ptfe-jxj-new-row { animation: jxjNewRowPulse 2.4s ease-out; }
+        @keyframes jxjNewRowPulse {
+            0% { background: rgba(34, 197, 94, 0.24); }
+            100% { background: transparent; }
+        }
         .ptfe-jxj-table { width:100%; border-collapse:collapse; font-size:13px; }
         .ptfe-jxj-table th { padding:8px 10px; text-align:left; color:var(--subtext); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border); }
         .ptfe-jxj-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top; }
-        .ptfe-jxj-summary-row td { background:rgba(255,255,255,0.04); font-weight:700; border-top:2px solid var(--border); }
         .ptfe-jxj-oe-good { color:var(--accent); }
         .ptfe-jxj-oe-warn { color:var(--warn); }
         .ptfe-jxj-oe-bad  { color:var(--danger); }
@@ -1066,7 +1071,7 @@
             style="margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 20px; display: flex; justify-content: space-between; align-items: start;">
             <div>
                 <h1>Precision Liner Production Portal</h1>
-                <div class="subtitle">Job & Event Entry | v1.1.0</div>
+                <div class="subtitle">Job & Event Entry | v1.2.0</div>
             </div>
             <div style="text-align: right; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                 <div class="theme-control">
@@ -1115,9 +1120,6 @@
             </div>
             <div id="kioskBarContainer" class="kiosk-bar"></div>
         </section>
-
-        <!-- KPI bars are dynamically rendered by calculateOEE() -->
-        <div id="kpiContainer"></div>
 
         <div id="activeOperatorBanner" class="active-operator-banner">
             <div>
@@ -1435,7 +1437,6 @@
                 </div>
                 <div id="ptfeWorkspaceRoster" class="kiosk-bar"></div>
             </section>
-            <div id="ptfeKpiContainer"></div>
             <div class="mode-toggle">
                 <button id="ptfeJobModeBtn" class="mode-btn active" onclick="setPtfeEntryMode('job')">Job Entry</button>
                 <button id="ptfeEventModeBtn" class="mode-btn" onclick="setPtfeEntryMode('event')">Event Entry</button>
@@ -1805,7 +1806,7 @@
                 PI: 'Polyimide Production Portal'
             };
             if (title) title.textContent = departmentTitles[SESSION_DEPT] || departmentTitles.PL;
-            if (subtitle) subtitle.textContent = 'Job & Event Entry | v1.1.0';
+            if (subtitle) subtitle.textContent = 'Job & Event Entry | v1.2.0';
         }
 
         function populateSelect(selectId, items, placeholder, valueKey = 'name', labelKey = 'name') {
@@ -1841,6 +1842,324 @@
 
         function getCheckedValues(name) {
             return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map((input) => input.value);
+        }
+
+
+        const DEPARTMENT_WORKSPACE_STORAGE_KEYS = {
+            PTFE: 'ptfe_multi_associate_workspaces_v1',
+            PI: 'pi_multi_associate_workspaces_v1'
+        };
+
+        const DEPARTMENT_WORKSPACE_FIELDS = {
+            PTFE: ['ptfeDate', 'ptfeItem', 'ptfeLot', 'ptfeSequence', 'ptfeFootage', 'ptfeProcessingLength', 'ptfePartUnit', 'ptfeStartQuantity', 'ptfeEndQuantity', 'ptfeTimeWorked', 'ptfeRecuts', 'ptfePullingWraps', 'ptfeComments', 'ptfeEvent', 'ptfeEventStartTime', 'ptfeEventEndTime', 'ptfeMultiplierInput'],
+            PI: ['piDate', 'piItem', 'piLot', 'piSequence', 'piFootage', 'piProcessingLength', 'piPartUnit', 'piStartQuantity', 'piEndQuantity', 'piTimeWorked', 'piRecuts', 'piPullingWraps', 'piComments', 'piEvent', 'piEventStartTime', 'piEventEndTime', 'piMultiplierInput']
+        };
+
+        const DEPARTMENT_WORKSPACE_CHECKS = {
+            PTFE: ['ptfeInspectionPareto', 'ptfePullingPareto', 'ptfePullingMethod'],
+            PI: ['piInspectionPareto', 'piPullingPareto', 'piPullingMethod']
+        };
+
+        const DEPARTMENT_TEST_ASSOCIATES = { PTFE: 'test-ptfe', PI: 'test-pi' };
+        const departmentWorkspaceAutosaveBound = {};
+
+        function sanitizeWorkspaceKey(value) {
+            return String(value || '').trim().replace(/[^A-Za-z0-9_-]+/g, '_') || 'unknown';
+        }
+
+        function getDepartmentWorkspaceState(dept) {
+            const key = DEPARTMENT_WORKSPACE_STORAGE_KEYS[dept];
+            let data = null;
+            try { data = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+            if (!data || typeof data !== 'object') data = {};
+            if (!Array.isArray(data.associates)) data.associates = [];
+            if (!data.workspaces || typeof data.workspaces !== 'object') data.workspaces = {};
+            if (!data.activeAssociate) data.activeAssociate = SESSION_USER.name;
+            return data;
+        }
+
+        function saveDepartmentWorkspaceState(dept, data) {
+            localStorage.setItem(DEPARTMENT_WORKSPACE_STORAGE_KEYS[dept], JSON.stringify(data));
+        }
+
+        function getDepartmentActiveAssociate(dept) {
+            const data = getDepartmentWorkspaceState(dept);
+            return data.activeAssociate || SESSION_USER.name;
+        }
+
+        function getDeptActiveAssociate() {
+            if (SESSION_DEPT === 'PTFE' || SESSION_DEPT === 'PI') return getDepartmentActiveAssociate(SESSION_DEPT);
+            return state.selectedOperator || state.associate || SESSION_USER.name;
+        }
+
+        function captureDepartmentWorkspace(dept) {
+            const fields = {};
+            (DEPARTMENT_WORKSPACE_FIELDS[dept] || []).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) fields[id] = el.value || '';
+            });
+            const checks = {};
+            (DEPARTMENT_WORKSPACE_CHECKS[dept] || []).forEach(name => {
+                checks[name] = getCheckedValues(name);
+            });
+            return { fields, checks };
+        }
+
+        function applyDepartmentWorkspace(dept, workspace = {}) {
+            const fields = workspace.fields || {};
+            (DEPARTMENT_WORKSPACE_FIELDS[dept] || []).forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (Object.prototype.hasOwnProperty.call(fields, id)) el.value = fields[id] || '';
+                else if (id.endsWith('Date')) el.value = getLocalDate();
+                else if (id.endsWith('PartUnit')) el.value = 'in';
+                else if (id.endsWith('MultiplierInput')) el.value = '1';
+                else el.value = '';
+            });
+            const checks = workspace.checks || {};
+            (DEPARTMENT_WORKSPACE_CHECKS[dept] || []).forEach(name => {
+                const selected = new Set(checks[name] || []);
+                document.querySelectorAll('input[name="' + name + '"]').forEach(input => { input.checked = selected.has(input.value); });
+            });
+        }
+
+        function departmentWorkspaceHasOpenWork(workspace) {
+            const fields = workspace?.fields || {};
+            const checks = workspace?.checks || {};
+            const meaningfulFields = Object.entries(fields).some(([id, value]) => {
+                const text = String(value || '').trim();
+                if (!text) return false;
+                if (id.endsWith('Date')) return false;
+                if (id.endsWith('PartUnit') && text === 'in') return false;
+                if (id.endsWith('MultiplierInput') && text === '1') return false;
+                return true;
+            });
+            const meaningfulChecks = Object.values(checks).some(values => Array.isArray(values) && values.length > 0);
+            return meaningfulFields || meaningfulChecks;
+        }
+
+        function getDepartmentWorkspaceSummary(workspace) {
+            if (!departmentWorkspaceHasOpenWork(workspace)) return 'No open job';
+            const fields = workspace.fields || {};
+            const prefix = Object.keys(fields).some(id => id.startsWith('pi')) ? 'pi' : 'ptfe';
+            const parts = [];
+            if (fields[prefix + 'Sequence']) parts.push(fields[prefix + 'Sequence']);
+            if (fields[prefix + 'Lot']) parts.push('Lot ' + fields[prefix + 'Lot']);
+            if (fields[prefix + 'Item']) parts.push('Item ' + fields[prefix + 'Item']);
+            if (fields[prefix + 'EndQuantity']) parts.push(fields[prefix + 'EndQuantity'] + ' good');
+            return parts.join(' | ') || 'Open workspace';
+        }
+
+        function getDepartmentConfigAssociates(dept) {
+            const config = dept === 'PTFE' ? PTFE_CONFIG : PI_CONFIG;
+            const names = (config?.associates || []).map(a => a.name).filter(Boolean);
+            const testName = DEPARTMENT_TEST_ASSOCIATES[dept];
+            if (testName && !names.includes(testName)) names.push(testName);
+            return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+        }
+
+        function renderDepartmentWorkspacePanel(dept) {
+            const containerId = dept === 'PTFE' ? 'ptfeWorkspaceRoster' : 'piWorkspaceRoster';
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const data = getDepartmentWorkspaceState(dept);
+            if (SESSION_USER.name && data.associates.length === 0) data.associates.unshift(SESSION_USER.name);
+            if (!data.activeAssociate || !data.associates.includes(data.activeAssociate)) data.activeAssociate = data.associates[0] || SESSION_USER.name;
+            saveDepartmentWorkspaceState(dept, data);
+            container.innerHTML = '';
+            data.associates.forEach(name => {
+                const button = document.createElement('button');
+                const workspace = data.workspaces[name] || {};
+                button.className = 'kiosk-btn' + (name === data.activeAssociate ? ' active' : '');
+                button.innerHTML = name + (departmentWorkspaceHasOpenWork(workspace) ? '<span class="workspace-badge">Open</span>' : '') + (name === data.activeAssociate ? '<span class="workspace-badge">Active</span>' : '');
+                button.title = getDepartmentWorkspaceSummary(workspace);
+                button.onclick = () => switchDepartmentAssociate(dept, name);
+                container.appendChild(button);
+            });
+            const addBtn = document.createElement('button');
+            addBtn.className = 'kiosk-add-btn';
+            addBtn.textContent = '+ Add Associate';
+            addBtn.onclick = () => showDepartmentAddAssociateModal(dept);
+            container.appendChild(addBtn);
+            updateDepartmentAssociateLabels(dept);
+        }
+
+        function saveActiveDepartmentWorkspace(dept) {
+            const data = getDepartmentWorkspaceState(dept);
+            if (!data.activeAssociate) data.activeAssociate = SESSION_USER.name;
+            data.workspaces[data.activeAssociate] = captureDepartmentWorkspace(dept);
+            saveDepartmentWorkspaceState(dept, data);
+            return data;
+        }
+
+        function switchDepartmentAssociate(dept, name) {
+            const data = saveActiveDepartmentWorkspace(dept);
+            data.activeAssociate = name;
+            if (!data.associates.includes(name)) data.associates.push(name);
+            saveDepartmentWorkspaceState(dept, data);
+            applyDepartmentWorkspace(dept, data.workspaces[name] || {});
+            if (dept === 'PTFE') {
+                initPtfeJxJ(); setPtfeEntryMode(PTFE_ENTRY_MODE || 'job'); updatePtfeCalculations();
+            } else {
+                initPiJxJ(); setPiEntryMode(PI_ENTRY_MODE || 'job'); updatePiCalculations();
+            }
+            renderDepartmentWorkspacePanel(dept);
+        }
+
+        function completeDepartmentAssociateShift(dept) {
+            const data = getDepartmentWorkspaceState(dept);
+            const departing = data.activeAssociate || SESSION_USER.name;
+            data.associates = data.associates.filter(name => name !== departing);
+            if (data.workspaces) delete data.workspaces[departing];
+            if (dept === 'PTFE') {
+                localStorage.removeItem(PTFE_JXJ_KEY + '_' + sanitizeWorkspaceKey(departing));
+            } else {
+                localStorage.removeItem(PI_JXJ_KEY + '_' + sanitizeWorkspaceKey(departing));
+            }
+
+            if (data.associates.length === 0) {
+                saveDepartmentWorkspaceState(dept, data);
+                performLogout();
+                return;
+            }
+
+            data.activeAssociate = data.associates[0];
+            saveDepartmentWorkspaceState(dept, data);
+            const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+            if (currentUser.name === departing) {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    ...currentUser,
+                    name: data.activeAssociate,
+                    role: currentUser.role || 'Associate'
+                }));
+            }
+            applyDepartmentWorkspace(dept, data.workspaces[data.activeAssociate] || {});
+            if (dept === 'PTFE') {
+                initPtfeJxJ();
+                setPtfeEntryMode('job');
+                updatePtfeCalculations();
+            } else {
+                initPiJxJ();
+                setPiEntryMode('job');
+                updatePiCalculations();
+            }
+            renderDepartmentWorkspacePanel(dept);
+            showToast(departing + ' signed out. Station transferred to ' + data.activeAssociate + '.');
+        }
+
+        function confirmDepartmentExitWithoutSubmitting(dept) {
+            const data = getDepartmentWorkspaceState(dept);
+            const departing = data.activeAssociate || SESSION_USER.name;
+            const remainingCount = data.associates.filter(name => name !== departing).length;
+            const message = remainingCount > 0
+                ? `${departing}'s local workspace and Job x Job tracker will be discarded without submitting to Smartsheet. The kiosk will stay open for the remaining associate.`
+                : `${departing}'s local workspace and Job x Job tracker will be discarded without submitting to Smartsheet, then this kiosk will return to login.`;
+            customConfirm('Exit Without Submitting', message, () => completeDepartmentAssociateShift(dept));
+        }
+
+        function hasOpenDepartmentEntry(dept) {
+            return departmentWorkspaceHasOpenWork(captureDepartmentWorkspace(dept));
+        }
+
+        function warnOpenDepartmentEntryBeforeEndShift(dept) {
+            const label = dept === 'PTFE' ? 'PTFE' : 'Polyimide';
+            customConfirm(
+                'Open Job Not Submitted',
+                `${label} still has data in the current entry form. Submit the current job/event to Smartsheet first, or use Reset/Exit Without Submitting if this entry should be discarded. End Shift only submits rows already added to the Job x Job tracker.`,
+                () => {},
+                true
+            );
+        }
+
+        function updateDepartmentAssociateLabels(dept) {
+            const name = getDepartmentActiveAssociate(dept);
+            const label = dept === 'PTFE' ? 'PTFE' : 'Polyimide';
+            const currentUser = document.getElementById(dept === 'PTFE' ? 'ptfeCurrentUser' : 'piCurrentUser');
+            if (currentUser) currentUser.textContent = 'Entering data for ' + name + ' | ' + label;
+            const submitBtn = document.getElementById(dept === 'PTFE' ? 'ptfeSubmitBtn' : 'piSubmitBtn');
+            if (submitBtn) submitBtn.textContent = 'Submit to Smartsheet for ' + name;
+        }
+
+        async function showDepartmentAddAssociateModal(dept) {
+            const data = saveActiveDepartmentWorkspace(dept);
+            const label = dept === 'PTFE' ? 'PTFE' : 'Polyimide';
+            const overlay = document.getElementById('modalOverlay');
+            if (!overlay) return;
+            document.getElementById('modalTitle').textContent = 'Add ' + label + ' Associate';
+            document.getElementById('modalText').textContent = 'Select an associate and enter their password to join this workstation.';
+            const body = document.getElementById('modalBody');
+            body.innerHTML = '<div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;"><select id="deptAddAssociateSelect" class="custom-select" style="padding:10px; font-size:14px; text-align:left;"><option value="">Select Associate...</option></select><input type="password" id="deptAddAssociatePassword" class="input" placeholder="Password" style="padding:10px; font-size:14px; text-align:left;"></div>';
+            const select = document.getElementById('deptAddAssociateSelect');
+            getDepartmentConfigAssociates(dept).filter(name => !data.associates.includes(name)).forEach(name => {
+                const opt = document.createElement('option'); opt.value = name; opt.textContent = name; select.appendChild(opt);
+            });
+            overlay.style.display = 'flex';
+            const confirmBtn = document.getElementById('modalConfirm');
+            const cancelBtn = document.getElementById('modalCancel');
+            if (cancelBtn) cancelBtn.style.display = 'inline-block';
+            confirmBtn.textContent = 'Add Associate';
+            confirmBtn.onclick = async () => {
+                const username = select.value;
+                const password = document.getElementById('deptAddAssociatePassword').value;
+                if (!username) return showToast('Select an associate.');
+                if (!password) return showToast('Enter their password.');
+                try {
+                    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, department: dept }) });
+                    const result = await res.json();
+                    if (!result.success) return showToast(result.error || 'Invalid password.');
+                    const nextData = getDepartmentWorkspaceState(dept);
+                    if (!nextData.associates.includes(username)) nextData.associates.push(username);
+                    if (!nextData.workspaces[username]) nextData.workspaces[username] = {};
+                    saveDepartmentWorkspaceState(dept, nextData);
+                    overlay.style.display = 'none';
+                    switchDepartmentAssociate(dept, username);
+                    showToast(username + ' joined this workstation.');
+                } catch (error) {
+                    showToast('Network error adding associate.');
+                }
+            };
+            if (cancelBtn) cancelBtn.onclick = () => { overlay.style.display = 'none'; };
+        }
+
+        function bindDepartmentWorkspaceAutosave(dept) {
+            if (departmentWorkspaceAutosaveBound[dept]) return;
+            const root = document.getElementById('ptfePortal');
+            if (!root) return;
+            const prefix = dept === 'PTFE' ? 'ptfe' : 'pi';
+            ['input', 'change'].forEach(eventName => {
+                root.addEventListener(eventName, (event) => {
+                    const target = event.target;
+                    if (!target || (!target.id && !target.name)) return;
+                    const isDeptField = (target.id || '').startsWith(prefix) || (target.name || '').startsWith(prefix);
+                    if (!isDeptField) return;
+                    saveActiveDepartmentWorkspace(dept);
+                    renderDepartmentWorkspacePanel(dept);
+                });
+            });
+            departmentWorkspaceAutosaveBound[dept] = true;
+        }
+
+        function getPtfeActiveAssociate() { return getDepartmentActiveAssociate('PTFE'); }
+        function getPiActiveAssociate() { return getDepartmentActiveAssociate('PI'); }
+        function getPtfeJxJStorageKey() { return PTFE_JXJ_KEY + '_' + sanitizeWorkspaceKey(getPtfeActiveAssociate()); }
+        function getPiJxJStorageKey() { return PI_JXJ_KEY + '_' + sanitizeWorkspaceKey(getPiActiveAssociate()); }
+
+        function clearLocalStorageKeysStartingWith(prefix) {
+            Object.keys(localStorage)
+                .filter(key => key === prefix || key.startsWith(prefix + '_'))
+                .forEach(key => localStorage.removeItem(key));
+        }
+
+        function updateJxJTabCounts(containerId, tabs, jxj, labels = {}) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            tabs.forEach(tab => {
+                const button = container.querySelector(`.ptfe-jxj-tab[data-cell="${tab}"]`);
+                if (!button) return;
+                const count = (jxj?.tabs?.[tab] || []).length;
+                const label = labels[tab] || tab;
+                button.innerHTML = `${label}<span class="ptfe-jxj-tab-count">${count}</span>`;
+            });
         }
 
         function fmtPtfe(value, digits = 0) {
@@ -1932,26 +2251,30 @@
             'Shipping Mandrel':          { cell: 'Packaging',     prefix: 'Job' }
         };
         const PTFE_JXJ_TABS = ['Pull', 'Cut to Length', 'Inspection', 'Roll Cut', 'Packaging'];
+        const PTFE_JXJ_TAB_LABELS = { 'Cut to Length': 'CTL' };
         let PTFE_JXJ_ACTIVE_TAB = 'Pull';
 
         function initPtfeJxJ() {
             const today = getLocalDate();
+            const associate = getPtfeActiveAssociate();
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
-            if (!jxj || jxj.date !== today || jxj.associate !== SESSION_USER.name) {
+            try { jxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
+            if (!jxj || jxj.date !== today || jxj.associate !== associate) {
                 jxj = {
                     date: today,
-                    associate: SESSION_USER.name,
+                    associate,
                     tabs: {
                         'Pull': [],
                         'Cut to Length': [],
                         'Inspection': [],
                         'Roll Cut': [],
                         'Packaging': []
-                    }
+                    },
+                    activeTab: PTFE_JXJ_ACTIVE_TAB
                 };
-                localStorage.setItem(PTFE_JXJ_KEY, JSON.stringify(jxj));
+                localStorage.setItem(getPtfeJxJStorageKey(), JSON.stringify(jxj));
             }
+            PTFE_JXJ_ACTIVE_TAB = PTFE_JXJ_TABS.includes(jxj.activeTab) ? jxj.activeTab : 'Pull';
             renderPtfeJxJ(PTFE_JXJ_ACTIVE_TAB);
         }
 
@@ -1961,7 +2284,7 @@
             const { cell, prefix } = mapping;
 
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs) return;
 
             const timeMins = Number(entry.timeWorked) || 0;
@@ -1990,14 +2313,16 @@
 
             if (!jxj.tabs[cell]) jxj.tabs[cell] = [];
             jxj.tabs[cell].push(record);
-            localStorage.setItem(PTFE_JXJ_KEY, JSON.stringify(jxj));
-            renderPtfeJxJ(PTFE_JXJ_ACTIVE_TAB);
+            jxj.activeTab = cell;
+            jxj.lastAdded = { cell, slot, at: Date.now() };
+            localStorage.setItem(getPtfeJxJStorageKey(), JSON.stringify(jxj));
+            renderPtfeJxJ(cell);
         }
 
         function checkPtfeQualityAlert(item) {
             if (!item) return;
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs) return;
 
             const lowOeJobs = [];
@@ -2018,16 +2343,21 @@
 
         function renderPtfeJxJ(cellName) {
             PTFE_JXJ_ACTIVE_TAB = cellName;
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
+            if (jxj && PTFE_JXJ_TABS.includes(cellName)) {
+                jxj.activeTab = cellName;
+                localStorage.setItem(getPtfeJxJStorageKey(), JSON.stringify(jxj));
+            }
+            updateJxJTabCounts('ptfeJxjTabs', PTFE_JXJ_TABS, jxj, PTFE_JXJ_TAB_LABELS);
             // Update tab active state
-            document.querySelectorAll('.ptfe-jxj-tab').forEach(btn => {
+            document.querySelectorAll('#ptfeJxjTabs .ptfe-jxj-tab').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.cell === cellName);
             });
 
             const wrap = document.getElementById('ptfeJxjTableWrap');
             if (!wrap) return;
 
-            let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
             const jobs = (jxj && jxj.tabs && jxj.tabs[cellName]) ? jxj.tabs[cellName] : [];
 
             if (jobs.length === 0) {
@@ -2035,23 +2365,15 @@
                 return;
             }
 
-            // Shift summary calculations
-            const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
-            const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
-            const totalStartQty = jobs.reduce((s, j) => s + (j.startQty || 0), 0);
-            const shiftActualPph = totalMins > 0 ? Math.round(((totalEndQty) / totalMins) * 60 * 10) / 10 : 0;
-            const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
-            const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
-            const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
-
             function oeHtml(oe) {
                 if (oe >= 85) return `<span class="ptfe-jxj-oe-good">${oe.toFixed(1)}% ✓</span>`;
                 if (oe >= 70) return `<span class="ptfe-jxj-oe-warn">${oe.toFixed(1)}% ⚠</span>`;
                 return `<span class="ptfe-jxj-oe-bad">${oe.toFixed(1)}% ✕</span>`;
             }
 
+            const lastAdded = jxj?.lastAdded || {};
             const rows = jobs.map((j, idx) => `
-                <tr>
+                <tr class="${lastAdded.cell === cellName && lastAdded.slot === j.slot ? 'ptfe-jxj-new-row' : ''}">
                     <td style="white-space:nowrap; font-weight:600;">${j.slot}</td>
                     <td style="font-family:monospace;">${j.item || '—'}</td>
                     <td>${j.stdPph || '—'}</td>
@@ -2076,16 +2398,6 @@
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
-                    <tfoot>
-                        <tr class="ptfe-jxj-summary-row">
-                            <td colspan="2">SHIFT SUMMARY</td>
-                            <td>${shiftStdPph}</td>
-                            <td>${shiftActualPph}</td>
-                            <td>${oeHtml(shiftOe)}</td>
-                            <td>${totalMins}m</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
                 </table>`;
         }
 
@@ -2095,13 +2407,18 @@
 
         function savePtfeJxJLossReason(cellName, idx, value) {
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs || !jxj.tabs[cellName] || !jxj.tabs[cellName][idx]) return;
             jxj.tabs[cellName][idx].lossReason = value;
-            localStorage.setItem(PTFE_JXJ_KEY, JSON.stringify(jxj));
+            localStorage.setItem(getPtfeJxJStorageKey(), JSON.stringify(jxj));
         }
 
         function confirmPtfeEndShift() {
+            saveActiveDepartmentWorkspace('PTFE');
+            if (hasOpenDepartmentEntry('PTFE')) {
+                warnOpenDepartmentEntryBeforeEndShift('PTFE');
+                return;
+            }
             const overlay = document.getElementById('modalOverlay');
             if (!overlay) return;
             document.getElementById('modalTitle').textContent = 'End Shift';
@@ -2130,9 +2447,9 @@
 
         async function performPtfeEndShift(countermeasures) {
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs) {
-                performLogout();
+                completeDepartmentAssociateShift('PTFE');
                 return;
             }
 
@@ -2147,7 +2464,7 @@
                 // Job rows
                 jobs.forEach(j => {
                     rows.push({
-                        'Department': 'PI',
+                        'Department': 'PTFE',
                         'Row ID': `${associate}-${cell}-${workDate}-${j.slot}`,
                         'Work Date': workDate,
                         'Associate Name': associate,
@@ -2168,33 +2485,10 @@
                     });
                 });
 
-                // Summary row
-                const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
-                const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
-                const shiftActualPph = totalMins > 0 ? Math.round(((totalEndQty) / totalMins) * 60 * 10) / 10 : 0;
-                const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
-                const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
-                const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
-
-                rows.push({
-                    'Department': 'PI',
-                    'Row ID': `${associate}-${cell}-${workDate}-Summary`,
-                    'Work Date': workDate,
-                    'Associate Name': associate,
-                    'Cell': cell,
-                    'Job Slot': 'Summary',
-                    'Row Type': 'Summary',
-                    'Std PPH': shiftStdPph || '',
-                    'Actual PPH': shiftActualPph || '',
-                    'OE %': shiftOe || '',
-                    'Time (Min)': totalMins || '',
-                    'Countermeasures': countermeasures || '',
-                    'Submitted At': new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
             }
 
             if (rows.length === 0) {
-                performLogout();
+                completeDepartmentAssociateShift('PTFE');
                 return;
             }
 
@@ -2215,9 +2509,12 @@
                     }
                     return;
                 }
-                localStorage.removeItem(PTFE_JXJ_KEY);
+                localStorage.removeItem(getPtfeJxJStorageKey());
                 updateSubmittingOverlay('Shift Submitted!', result.message || 'Shift data saved. Signing out...');
-                setTimeout(() => performLogout(), 1500);
+                setTimeout(() => {
+                    hideSubmittingOverlay();
+                    completeDepartmentAssociateShift('PTFE');
+                }, 1500);
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
                 const retryBtn = document.getElementById('submittingRetryBtn');
@@ -2364,7 +2661,8 @@
             const item = getPtfeValue('ptfeItem');
             const standard = getPtfeStandard(item, sequence);
             const baseStandard = Number(standard.goodPphStd) || 0;
-            const associateRate = Number(PTFE_ASSOCIATE_RATES[SESSION_USER.name]) || 0;
+            const activeAssociateRate = Number(PTFE_ASSOCIATE_RATES[getPtfeActiveAssociate()]) || 0;
+            const associateRate = activeAssociateRate || (isTestAccount(getPtfeActiveAssociate()) ? 1 : 0);
             const adjustedStandard = baseStandard > 0 && associateRate > 0 ? baseStandard / associateRate : 0;
             const sequenceOe = adjustedStandard > 0 ? (pph / adjustedStandard) * 100 : 0;
             const targetQty = adjustedStandard > 0 ? Math.floor(timeHours * adjustedStandard) : 0;
@@ -2385,8 +2683,6 @@
                 endQuantity: endQty,
                 timeMins
             };
-            updateDepartmentKpiBoard('ptfeKpiContainer', PTFE_RESULTS, PTFE_ENTRY_MODE);
-
             const pullFields = document.getElementById('ptfePullFields');
             const spoolFields = document.getElementById('ptfeSpoolFields');
             const recutsField = document.getElementById('ptfeRecutsField');
@@ -2533,7 +2829,7 @@
             return {
                 department: 'PTFE',
                 'Entry Type': 'Job',
-                'Associate Name': SESSION_USER.name,
+                'Associate Name': getPtfeActiveAssociate(),
                 'Date': document.getElementById('ptfeDate').value,
                 'Time Worked': timeWorked,
                 'Item': item,
@@ -2583,7 +2879,7 @@
                 }
                 const jobSavedMsg = result.simulated
                     ? 'PTFE job simulated (writes disabled).'
-                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
+                    : (isTestAccount(getPtfeActiveAssociate()) ? 'Training-mode PTFE job simulated.' : 'PTFE job submitted.');
                 appendPtfeJxJEntry({
                     submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     item: payload['Item'],
@@ -2597,6 +2893,8 @@
                 checkPtfeQualityAlert(payload['Item']);
                 updateSubmittingOverlay('Saved!', jobSavedMsg);
                 resetPtfeForm(false);
+                saveActiveDepartmentWorkspace('PTFE');
+                renderDepartmentWorkspacePanel('PTFE');
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
                 const retryBtn = document.getElementById('submittingRetryBtn');
@@ -2619,7 +2917,7 @@
             const payload = {
                 department: 'PTFE',
                 'Entry Type': 'Event',
-                'Associate Name': SESSION_USER.name,
+                'Associate Name': getPtfeActiveAssociate(),
                 'Date': document.getElementById('ptfeDate').value || getLocalDate(),
                 'Time Worked': duration,
                 'Event': eventName,
@@ -2642,13 +2940,15 @@
                 }
                 const eventSavedMsg = result.simulated
                     ? 'PTFE event simulated (writes disabled).'
-                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
+                    : (isTestAccount(getPtfeActiveAssociate()) ? 'Training-mode PTFE event simulated.' : 'PTFE event submitted.');
                 updateSubmittingOverlay('Saved!', eventSavedMsg);
                 document.getElementById('ptfeEvent').value = '';
                 document.getElementById('ptfeEventStartTime').value = '';
                 document.getElementById('ptfeEventEndTime').value = '';
                 const ptfeDurEl = document.getElementById('ptfeEventDurationDisplay'); if (ptfeDurEl) ptfeDurEl.textContent = '';
                 document.getElementById('ptfeComments').value = '';
+                saveActiveDepartmentWorkspace('PTFE');
+                renderDepartmentWorkspacePanel('PTFE');
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
                 const retryBtn = document.getElementById('submittingRetryBtn');
@@ -2678,6 +2978,8 @@
             if (clearDate) document.getElementById('ptfeDate').value = getLocalDate();
             setPtfeEntryMode('job');
             updatePtfeCalculations();
+            saveActiveDepartmentWorkspace('PTFE');
+            renderDepartmentWorkspacePanel('PTFE');
         }
 
         async function initPtfePortal() {
@@ -2688,24 +2990,25 @@
             if (adminBtn && SESSION_USER.role === 'Supervisor') adminBtn.style.display = 'inline-block';
             const userList = document.getElementById('navUserList');
             if (userList) {
-                userList.innerHTML = `<span>${SESSION_USER.name} | PTFE</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
+                userList.innerHTML = `<span>${SESSION_USER.name} | PTFE</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="confirmDepartmentExitWithoutSubmitting('PTFE')">Exit Without Submitting</button>`;
             }
             const dateInput = document.getElementById('ptfeDate');
             if (dateInput) dateInput.value = getLocalDate();
             const currentUser = document.getElementById('ptfeCurrentUser');
             if (currentUser) currentUser.textContent = `${SESSION_USER.name} | ${SESSION_USER.department || 'PTFE'}`;
-            renderSingleAssociateWorkspacePanel('ptfeWorkspaceRoster', 'PTFE');
+            bindDepartmentWorkspaceAutosave('PTFE');
+            renderDepartmentWorkspacePanel('PTFE');
 
             // Stale JxJ state detection
             const today = getLocalDate();
             let existingJxj = null;
-            try { existingJxj = JSON.parse(localStorage.getItem(PTFE_JXJ_KEY)); } catch(e) {}
-            if (existingJxj && (existingJxj.date !== today || existingJxj.associate !== SESSION_USER.name)) {
+            try { existingJxj = JSON.parse(localStorage.getItem(getPtfeJxJStorageKey())); } catch(e) {}
+            if (existingJxj && (existingJxj.date !== today || existingJxj.associate !== getPtfeActiveAssociate())) {
                 setTimeout(() => {
                     customConfirm(
                         'Stale Shift Data',
                         `Data from ${existingJxj.date} was found. Discard and start fresh?`,
-                        () => { localStorage.removeItem(PTFE_JXJ_KEY); initPtfeJxJ(); }
+                        () => { localStorage.removeItem(getPtfeJxJStorageKey()); initPtfeJxJ(); }
                     );
                 }, 300);
             } else {
@@ -2725,11 +3028,17 @@
                 if (isTestAccount(SESSION_USER.name) && !PTFE_ASSOCIATE_RATES[SESSION_USER.name]) {
                     PTFE_ASSOCIATE_RATES[SESSION_USER.name] = 1;
                 }
+                if (isTestAccount(getPtfeActiveAssociate()) && !PTFE_ASSOCIATE_RATES[getPtfeActiveAssociate()]) {
+                    PTFE_ASSOCIATE_RATES[getPtfeActiveAssociate()] = 1;
+                }
                 populateSelect('ptfeSequence', PTFE_CONFIG.sequences || [], 'Select sequence...');
                 populateSelect('ptfeEvent', PTFE_CONFIG.events || [], 'Select event...');
                 populateCheckboxes('ptfeInspectionParetos', PTFE_CONFIG.inspectionParetos || [], 'ptfeInspectionPareto');
                 populateCheckboxes('ptfePullingParetos', PTFE_CONFIG.pullingParetos || [], 'ptfePullingPareto');
                 populateCheckboxes('ptfePullingMethods', PTFE_CONFIG.pullingMethods || [], 'ptfePullingMethod');
+                const ptfeWorkspaceState = getDepartmentWorkspaceState('PTFE');
+                applyDepartmentWorkspace('PTFE', ptfeWorkspaceState.workspaces[ptfeWorkspaceState.activeAssociate] || {});
+                renderDepartmentWorkspacePanel('PTFE');
                 setPtfeEntryMode('job');
                 updatePtfeCalculations();
                 initPtfeEnterNav();
@@ -2766,6 +3075,7 @@
             'Wrapping':               { cell: 'Packaging',     prefix: 'Job' }
         };
         const PI_JXJ_TABS = ['Pull', 'Cut to Length', 'Inspection', 'Roll Cut', 'Packaging'];
+        const PI_JXJ_TAB_LABELS = { 'Cut to Length': 'CTL' };
         let PI_JXJ_ACTIVE_TAB = 'Pull';
 
         function renderPiPortalShell() {
@@ -2783,7 +3093,6 @@
                     </div>
                     <div id="piWorkspaceRoster" class="kiosk-bar"></div>
                 </section>
-                <div id="piKpiContainer"></div>
                 <div class="mode-toggle">
                     <button id="piJobModeBtn" class="mode-btn active" onclick="setPiEntryMode('job')">Job Entry</button>
                     <button id="piEventModeBtn" class="mode-btn" onclick="setPiEntryMode('event')">Event Entry</button>
@@ -3102,8 +3411,6 @@
                 endQuantity: endQty,
                 timeMins
             };
-            updateDepartmentKpiBoard('piKpiContainer', PI_RESULTS, PI_ENTRY_MODE);
-
             setPiDisplay('piPullFields', showPull ? 'block' : 'none');
             setPiDisplay('piSpoolFields', showPull ? 'block' : 'none');
             setPiDisplay('piRecutsField', showRecuts ? 'block' : 'none');
@@ -3219,7 +3526,7 @@
             return {
                 department: 'PI',
                 'Entry Type': 'Job',
-                'Associate Name': SESSION_USER.name,
+                'Associate Name': getPiActiveAssociate(),
                 'Date': getPiValue('piDate'),
                 'Time Worked': getPiNumber('piTimeWorked'),
                 'Item': getPiValue('piItem'),
@@ -3279,9 +3586,11 @@
                 });
                 const msg = result.simulated
                     ? 'PI job simulated (writes disabled).'
-                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PI job simulated.' : 'PI job submitted.');
+                    : (isTestAccount(getPiActiveAssociate()) ? 'Training-mode PI job simulated.' : 'PI job submitted.');
                 updateSubmittingOverlay('Saved!', msg);
                 resetPiForm(false);
+                saveActiveDepartmentWorkspace('PI');
+                renderDepartmentWorkspacePanel('PI');
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
                 const retryBtn = document.getElementById('submittingRetryBtn');
@@ -3304,7 +3613,7 @@
             const payload = {
                 department: 'PI',
                 'Entry Type': 'Event',
-                'Associate Name': SESSION_USER.name,
+                'Associate Name': getPiActiveAssociate(),
                 'Date': getPiValue('piDate') || getLocalDate(),
                 'Time Worked': duration,
                 'Event': eventName,
@@ -3327,10 +3636,12 @@
                 }
                 const msg = result.simulated
                     ? 'PI event simulated (writes disabled).'
-                    : (isTestAccount(SESSION_USER.name) ? 'Training-mode PI event simulated.' : 'PI event submitted.');
+                    : (isTestAccount(getPiActiveAssociate()) ? 'Training-mode PI event simulated.' : 'PI event submitted.');
                 updateSubmittingOverlay('Saved!', msg);
                 ['piEvent', 'piEventStartTime', 'piEventEndTime', 'piComments'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
                 updatePiEventDuration();
+                saveActiveDepartmentWorkspace('PI');
+                renderDepartmentWorkspacePanel('PI');
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
                 const retryBtn = document.getElementById('submittingRetryBtn');
@@ -3358,6 +3669,8 @@
             if (clearDate) document.getElementById('piDate').value = getLocalDate();
             setPiEntryMode('job');
             updatePiCalculations();
+            saveActiveDepartmentWorkspace('PI');
+            renderDepartmentWorkspacePanel('PI');
         }
 
         function setPiEntryMode(mode) {
@@ -3385,13 +3698,15 @@
 
         function initPiJxJ() {
             const today = getLocalDate();
+            const associate = getPiActiveAssociate();
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
-            if (!jxj || jxj.date !== today || jxj.associate !== SESSION_USER.name) {
-                jxj = { date: today, associate: SESSION_USER.name, tabs: {} };
+            try { jxj = JSON.parse(localStorage.getItem(getPiJxJStorageKey())); } catch(e) {}
+            if (!jxj || jxj.date !== today || jxj.associate !== associate) {
+                jxj = { date: today, associate, tabs: {}, activeTab: PI_JXJ_ACTIVE_TAB };
                 PI_JXJ_TABS.forEach(tab => { jxj.tabs[tab] = []; });
-                localStorage.setItem(PI_JXJ_KEY, JSON.stringify(jxj));
+                localStorage.setItem(getPiJxJStorageKey(), JSON.stringify(jxj));
             }
+            PI_JXJ_ACTIVE_TAB = PI_JXJ_TABS.includes(jxj.activeTab) ? jxj.activeTab : 'Pull';
             renderPiJxJ(PI_JXJ_ACTIVE_TAB);
         }
 
@@ -3399,7 +3714,7 @@
             const mapping = PI_JXJ_CELL_MAP[entry.sequence];
             if (!mapping) return;
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPiJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs) return;
             const timeMins = Number(entry.timeWorked) || 0;
             const endQty = Number(entry.endQty) || 0;
@@ -3407,8 +3722,9 @@
             const actualPph = timeMins > 0 ? Math.round((endQty / timeMins) * 60 * 10) / 10 : 0;
             const oe = stdPph > 0 ? Math.round((actualPph / stdPph) * 1000) / 10 : 0;
             if (!jxj.tabs[mapping.cell]) jxj.tabs[mapping.cell] = [];
+            const slot = `${mapping.prefix} ${jxj.tabs[mapping.cell].length + 1}`;
             jxj.tabs[mapping.cell].push({
-                slot: `${mapping.prefix} ${jxj.tabs[mapping.cell].length + 1}`,
+                slot,
                 item: entry.item || '',
                 lot: entry.lot || '',
                 stdPph,
@@ -3420,37 +3736,39 @@
                 lossReason: '',
                 submittedAt: entry.submittedAt || ''
             });
-            localStorage.setItem(PI_JXJ_KEY, JSON.stringify(jxj));
-            renderPiJxJ(PI_JXJ_ACTIVE_TAB);
+            jxj.activeTab = mapping.cell;
+            jxj.lastAdded = { cell: mapping.cell, slot, at: Date.now() };
+            localStorage.setItem(getPiJxJStorageKey(), JSON.stringify(jxj));
+            renderPiJxJ(mapping.cell);
         }
 
         function renderPiJxJ(cellName) {
             PI_JXJ_ACTIVE_TAB = cellName;
+            let jxj = null;
+            try { jxj = JSON.parse(localStorage.getItem(getPiJxJStorageKey())); } catch(e) {}
+            if (jxj && PI_JXJ_TABS.includes(cellName)) {
+                jxj.activeTab = cellName;
+                localStorage.setItem(getPiJxJStorageKey(), JSON.stringify(jxj));
+            }
+            updateJxJTabCounts('piJxjTabs', PI_JXJ_TABS, jxj, PI_JXJ_TAB_LABELS);
             document.querySelectorAll('#piJxjTabs .ptfe-jxj-tab').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.cell === cellName);
             });
             const wrap = document.getElementById('piJxjTableWrap');
             if (!wrap) return;
-            let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
             const jobs = (jxj && jxj.tabs && jxj.tabs[cellName]) ? jxj.tabs[cellName] : [];
             if (jobs.length === 0) {
                 wrap.innerHTML = `<div class="ptfe-jxj-empty">No jobs logged for ${cellName} yet.</div>`;
                 return;
             }
-            const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
-            const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
-            const shiftActualPph = totalMins > 0 ? Math.round((totalEndQty / totalMins) * 60 * 10) / 10 : 0;
-            const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
-            const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
-            const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
             const oeHtml = (oe) => {
                 if (oe >= 85) return `<span class="ptfe-jxj-oe-good">${oe.toFixed(1)}% OK</span>`;
                 if (oe >= 70) return `<span class="ptfe-jxj-oe-warn">${oe.toFixed(1)}%</span>`;
                 return `<span class="ptfe-jxj-oe-bad">${oe.toFixed(1)}%</span>`;
             };
+            const lastAdded = jxj?.lastAdded || {};
             const rows = jobs.map((j, idx) => `
-                <tr>
+                <tr class="${lastAdded.cell === cellName && lastAdded.slot === j.slot ? 'ptfe-jxj-new-row' : ''}">
                     <td style="white-space:nowrap; font-weight:600;">${j.slot}</td>
                     <td style="font-family:monospace;">${j.item || '-'}</td>
                     <td>${j.stdPph || '-'}</td>
@@ -3463,7 +3781,6 @@
                 <table class="ptfe-jxj-table">
                     <thead><tr><th>Slot</th><th>Item</th><th>Std PPH</th><th>Act PPH</th><th>OE %</th><th>Time</th><th>Loss Reason</th></tr></thead>
                     <tbody>${rows}</tbody>
-                    <tfoot><tr class="ptfe-jxj-summary-row"><td colspan="2">SHIFT SUMMARY</td><td>${shiftStdPph}</td><td>${shiftActualPph}</td><td>${oeHtml(shiftOe)}</td><td>${totalMins}m</td><td></td></tr></tfoot>
                 </table>`;
         }
 
@@ -3473,13 +3790,18 @@
 
         function savePiJxJLossReason(cellName, idx, value) {
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPiJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs || !jxj.tabs[cellName] || !jxj.tabs[cellName][idx]) return;
             jxj.tabs[cellName][idx].lossReason = value;
-            localStorage.setItem(PI_JXJ_KEY, JSON.stringify(jxj));
+            localStorage.setItem(getPiJxJStorageKey(), JSON.stringify(jxj));
         }
 
         function confirmPiEndShift() {
+            saveActiveDepartmentWorkspace('PI');
+            if (hasOpenDepartmentEntry('PI')) {
+                warnOpenDepartmentEntryBeforeEndShift('PI');
+                return;
+            }
             const overlay = document.getElementById('modalOverlay');
             if (!overlay) return;
             document.getElementById('modalTitle').textContent = 'End Shift';
@@ -3505,9 +3827,9 @@
 
         async function performPiEndShift(countermeasures) {
             let jxj = null;
-            try { jxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
+            try { jxj = JSON.parse(localStorage.getItem(getPiJxJStorageKey())); } catch(e) {}
             if (!jxj || !jxj.tabs) {
-                performLogout();
+                completeDepartmentAssociateShift('PI');
                 return;
             }
             const rows = [];
@@ -3537,29 +3859,9 @@
                         'Submitted At': j.submittedAt || ''
                     });
                 });
-                const totalMins = jobs.reduce((s, j) => s + (j.timeMins || 0), 0);
-                const totalEndQty = jobs.reduce((s, j) => s + (j.endQty || 0), 0);
-                const shiftActualPph = totalMins > 0 ? Math.round((totalEndQty / totalMins) * 60 * 10) / 10 : 0;
-                const weightedStd = jobs.reduce((s, j) => s + ((j.stdPph || 0) * (j.timeMins || 0)), 0);
-                const shiftStdPph = totalMins > 0 ? Math.round((weightedStd / totalMins) * 10) / 10 : 0;
-                const shiftOe = shiftStdPph > 0 ? Math.round((shiftActualPph / shiftStdPph) * 1000) / 10 : 0;
-                rows.push({
-                    'Row ID': `${associate}-${cell}-${workDate}-Summary`,
-                    'Work Date': workDate,
-                    'Associate Name': associate,
-                    'Cell': cell,
-                    'Job Slot': 'Summary',
-                    'Row Type': 'Summary',
-                    'Std PPH': shiftStdPph || '',
-                    'Actual PPH': shiftActualPph || '',
-                    'OE %': shiftOe || '',
-                    'Time (Min)': totalMins || '',
-                    'Countermeasures': countermeasures || '',
-                    'Submitted At': new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                });
             }
             if (rows.length === 0) {
-                performLogout();
+                completeDepartmentAssociateShift('PI');
                 return;
             }
             showSubmittingOverlay('Please Wait', 'Submitting PI shift data to Smartsheet...');
@@ -3577,9 +3879,12 @@
                     if (retryBtn) retryBtn.style.display = 'inline-block';
                     return;
                 }
-                localStorage.removeItem(PI_JXJ_KEY);
+                localStorage.removeItem(getPiJxJStorageKey());
                 updateSubmittingOverlay('Shift Submitted!', result.message || 'PI shift data saved. Signing out...');
-                setTimeout(() => performLogout(), 1500);
+                setTimeout(() => {
+                    hideSubmittingOverlay();
+                    completeDepartmentAssociateShift('PI');
+                }, 1500);
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
                 const retryBtn = document.getElementById('submittingRetryBtn');
@@ -3622,21 +3927,22 @@
             renderPiPortalShell();
             const userList = document.getElementById('navUserList');
             if (userList) {
-                userList.innerHTML = `<span>${SESSION_USER.name} | Polyimide</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="performLogout()">Logout</button>`;
+                userList.innerHTML = `<span>${SESSION_USER.name} | Polyimide</span><button class="kiosk-remove-btn" style="font-size:11px; opacity:1;" onclick="confirmDepartmentExitWithoutSubmitting('PI')">Exit Without Submitting</button>`;
             }
             const dateInput = document.getElementById('piDate');
             if (dateInput) dateInput.value = getLocalDate();
             const currentUser = document.getElementById('piCurrentUser');
             if (currentUser) currentUser.textContent = `${SESSION_USER.name} | Polyimide`;
-            renderSingleAssociateWorkspacePanel('piWorkspaceRoster', 'Polyimide');
+            bindDepartmentWorkspaceAutosave('PI');
+            renderDepartmentWorkspacePanel('PI');
 
             const today = getLocalDate();
             let existingJxj = null;
-            try { existingJxj = JSON.parse(localStorage.getItem(PI_JXJ_KEY)); } catch(e) {}
-            if (existingJxj && (existingJxj.date !== today || existingJxj.associate !== SESSION_USER.name)) {
+            try { existingJxj = JSON.parse(localStorage.getItem(getPiJxJStorageKey())); } catch(e) {}
+            if (existingJxj && (existingJxj.date !== today || existingJxj.associate !== getPiActiveAssociate())) {
                 setTimeout(() => {
                     customConfirm('Stale Shift Data', `Data from ${existingJxj.date} was found. Discard and start fresh?`, () => {
-                        localStorage.removeItem(PI_JXJ_KEY);
+                        localStorage.removeItem(getPiJxJStorageKey());
                         initPiJxJ();
                     });
                 }, 300);
@@ -3663,6 +3969,9 @@
                 populateCheckboxes('piInspectionParetos', PI_CONFIG.inspectionParetos || [], 'piInspectionPareto');
                 populateCheckboxes('piPullingParetos', PI_CONFIG.pullingParetos || [], 'piPullingPareto');
                 populateCheckboxes('piPullingMethods', PI_CONFIG.pullingMethods || [], 'piPullingMethod');
+                const piWorkspaceState = getDepartmentWorkspaceState('PI');
+                applyDepartmentWorkspace('PI', piWorkspaceState.workspaces[piWorkspaceState.activeAssociate] || {});
+                renderDepartmentWorkspacePanel('PI');
                 setPiEntryMode('job');
                 updatePiCalculations();
                 initPiEnterNav();
@@ -4434,136 +4743,6 @@
             localStorage.setItem(SHIFT_KEY, JSON.stringify(state));
             render();
         }
-
-        /** Compute OEE metrics for a single operator workspace */
-        function computeOperatorOEE(ws, opName) {
-            let good = (ws.totalGood || 0);
-            let bad = Object.values(ws.seqDefects || {}).reduce((total, seqDefs) =>
-                total + Object.values(seqDefs || {}).reduce((a, b) => a + (b || 0), 0), 0);
-            // Fallback to legacy ws.defects for old sessions without seqDefects
-            if (bad === 0) bad = Object.values(ws.defects || {}).reduce((a, b) => a + (b || 0), 0);
-            let nonProdMins = 0;
-            let eventMins = 0;
-
-            NON_PRODUCTIVE_SEQUENCES.forEach(seq => {
-                const seqBuckets = (ws.pcdBySequence || {})[seq] || [];
-                seqBuckets.forEach(b => {
-                    if (b.good > 0 || b.bad > 0) nonProdMins += (b.actMins || 60);
-                });
-            });
-
-            // Sum event time from __events__ buckets for availability calculation
-            (ws.pcdBySequence['__events__'] || []).forEach(b => {
-                eventMins += b.seqMins || 0;
-            });
-
-            // Only downtime events reduce availability — non-productive sequence time
-            // does not; an operator working on support tasks is still available.
-            // nonProdMins affects performance (no goal rate) but not availability.
-            const deductions = eventMins;
-            const q = (good + bad) > 0 ? (good / (good + bad)) : 1;
-
-            const now = new Date();
-            const [sh, sm] = (ws.startTime || state.startTime || "05:00").split(':').map(Number);
-            const start = new Date(now); start.setHours(sh, sm, 0, 0);
-                if (start > new Date() && sh >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
-            const elapsedMinutes = Math.max(0, Math.floor((now - start) / 60000));
-            const a = elapsedMinutes > 0 ? Math.max(0, Math.min(1, (elapsedMinutes - deductions) / elapsedMinutes)) : 1;
-
-            let p = 0;
-            const assocSched = (opName && ASSOCIATE_SCHEDULES) ? ASSOCIATE_SCHEDULES[opName] : null;
-            if (assocSched && assocSched.Training) {
-                p = 1.0;
-            } else {
-                const seq = ws.sequence || state.sequence || '';
-                let activeGoalRate = 21;
-                if (SEQUENCE_GOALS[seq] && SEQUENCE_GOALS[seq] > 0) activeGoalRate = SEQUENCE_GOALS[seq];
-                const expectedParts = Math.max(0, (elapsedMinutes - deductions) * (activeGoalRate / 60));
-                p = expectedParts > 0 ? Math.min(1.2, good / expectedParts) : 0;
-            }
-            const oee = (Math.max(0, a) * Math.max(0, p) * Math.max(0, q)) * 100;
-            return { a, p, q, oee, good, bad, deductions };
-        }
-
-        /** Build a single KPI row HTML string */
-        function buildKpiRowHTML(id, label, subtext, metrics, accentBorder) {
-            const borderStyle = accentBorder ? 'border-color:' + accentBorder + ';' : '';
-            const nameTag = label ? `<div style="grid-column:1/-1;font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;padding-bottom:2px;border-bottom:1px solid var(--border);margin-bottom:-4px;display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-2);"></span>${label}</div>` : '';
-            return `
-            <div class="kpi-row" id="${id}" style="${borderStyle}">
-                ${nameTag}
-                <div class="kpi-card"><span class="kpi-lab">Availability</span><span class="kpi-val">${(Math.max(0, metrics.a) * 100).toFixed(0)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
-                <div class="kpi-card"><span class="kpi-lab">Performance</span><span class="kpi-val">${(Math.max(0, metrics.p) * 100).toFixed(0)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
-                <div class="kpi-card"><span class="kpi-lab">Quality</span><span class="kpi-val">${(Math.max(0, metrics.q) * 100).toFixed(0)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
-                <div class="kpi-card" style="border-color:var(--accent);"><span class="kpi-lab">Overall OEE</span><span class="kpi-val" style="color:var(--accent-2)">${metrics.oee.toFixed(1)}%</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">${subtext}</span></div>
-                <div class="kpi-card" style="border-color:var(--warn);"><span class="kpi-lab">Good Parts</span><span class="kpi-val" style="color:var(--warn)">${metrics.good}</span><span style="font-size:9px;color:#4b5563;margin-top:2px;display:block;">LOTS</span></div>
-            </div>`;
-        }
-
-        function buildDepartmentKpiMetrics(results, mode) {
-            const isJobMode = mode === 'job';
-            const good = isJobMode ? Math.max(0, Math.round(Number(results?.endQuantity || 0))) : 0;
-            const hasTime = isJobMode && Number(results?.timeMins || 0) > 0;
-            const hasStandard = isJobMode && Number(results?.adjustedStandard || 0) > 0;
-            const hasQuantity = isJobMode && Number(results?.startQuantity || 0) > 0;
-            const a = isJobMode ? 1 : 0;
-            const p = hasTime && hasStandard ? Math.max(0, Number(results.sequenceOe || 0) / 100) : 0;
-            const q = hasQuantity ? Math.max(0, Number(results.yieldPercent || 0) / 100) : 1;
-            const oee = (Math.max(0, a) * Math.max(0, p) * Math.max(0, q)) * 100;
-            return { a, p, q, oee, good, bad: Math.max(0, Math.round(Number(results?.scrapParts || 0))), deductions: 0 };
-        }
-
-        function updateDepartmentKpiBoard(containerId, results, mode) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            const metrics = buildDepartmentKpiMetrics(results, mode);
-            const subtext = mode === 'event' ? 'EVENT' : 'JOB';
-            container.innerHTML = buildKpiRowHTML(`${containerId}Row`, '', subtext, metrics, '');
-        }
-
-        function renderSingleAssociateWorkspacePanel(containerId, deptLabel) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            container.innerHTML = '';
-
-            const active = document.createElement('button');
-            active.className = 'kiosk-btn active';
-            active.innerHTML = `${SESSION_USER.name}<span class="workspace-badge">Active</span>`;
-            active.title = `${deptLabel} active associate workspace`;
-            container.appendChild(active);
-
-            const addBtn = document.createElement('button');
-            addBtn.className = 'kiosk-add-btn';
-            addBtn.textContent = '+ Add Associate';
-            addBtn.onclick = () => showDepartmentAssociateRoadmapModal(deptLabel);
-            container.appendChild(addBtn);
-        }
-
-        function showDepartmentAssociateRoadmapModal(deptLabel) {
-            customConfirm(
-                'Shared Workstation Rollout',
-                `${deptLabel} now has the associate workspace entry point. Full multi-associate independent workspaces will be added after the Precision Liner workflow is proven.`,
-                () => {},
-                true
-            );
-        }
-
-        function calculateOEE() {
-            const container = document.getElementById('kpiContainer');
-            if (!container) return;
-
-            const op = state.selectedOperator || state.associate || '';
-            if (!op) {
-                container.innerHTML = '';
-                return;
-            }
-
-            const ws = getWorkspaceForOperator(op) || getActiveWorkspaceSnapshot();
-            const metrics = computeOperatorOEE(ws, op);
-            metrics.good += (op === state.selectedOperator ? (state.shiftTotalGood || 0) : 0);
-            container.innerHTML = buildKpiRowHTML('kpiRow', `${op} Workspace`, 'SELECTED ASSOCIATE', metrics, '');
-        }
-
         function render() {
             ensurePcdState();
             applyPcdTabUI();
@@ -4824,7 +5003,7 @@
                 toggleLockout(isLockedOut);
             }
             updateEventDuration();
-            calculateOEE(); render();
+            render();
         }
 
         /** 5. EVENT HANDLERS & ACTIONS **/
@@ -5325,7 +5504,7 @@
                 `Sequence: ${state.sequence || 'Not selected'}`,
                 `Lot: ${state.lotNumber || 'Not entered'}`,
                 `Item: ${state.itemNumber || 'Not entered'}`,
-                `Good Parts: ${state.totalGood || 0}`,
+                `End Quantity: ${state.totalGood || 0}`,
                 `Defects: ${rd}`,
                 `Time Worked: ${state.timeWorked || 0} min`
             ].join('\n');
@@ -5743,6 +5922,13 @@
         }
 
         function performLogout() {
+            if (SESSION_DEPT === 'PTFE') {
+                clearLocalStorageKeysStartingWith(PTFE_JXJ_KEY);
+                localStorage.removeItem(DEPARTMENT_WORKSPACE_STORAGE_KEYS.PTFE);
+            } else if (SESSION_DEPT === 'PI') {
+                clearLocalStorageKeysStartingWith(PI_JXJ_KEY);
+                localStorage.removeItem(DEPARTMENT_WORKSPACE_STORAGE_KEYS.PI);
+            }
             localStorage.removeItem('currentUser');
             // Clear kiosk state so it doesn't leak to the next login session
             const data = localStorage.getItem(SHIFT_KEY);
@@ -5873,19 +6059,22 @@
                 const pin = prompt('Supervisor PIN required:');
                 if (pin === '2026') {
                     if (SESSION_DEPT === 'PTFE') {
-                        localStorage.removeItem(PTFE_JXJ_KEY);
-                        showToast('🔒 Supervisor Reset — PTFE tracker cleared.');
+                        clearLocalStorageKeysStartingWith(PTFE_JXJ_KEY);
+                        localStorage.removeItem(DEPARTMENT_WORKSPACE_STORAGE_KEYS.PTFE);
+                        showToast('Supervisor Reset - PTFE tracker cleared.');
                     } else if (SESSION_DEPT === 'PI') {
-                        localStorage.removeItem(PI_JXJ_KEY);
-                        showToast('🔒 Supervisor Reset — PI portal cleared.');
+                        clearLocalStorageKeysStartingWith(PI_JXJ_KEY);
+                        localStorage.removeItem(DEPARTMENT_WORKSPACE_STORAGE_KEYS.PI);
+                        showToast('Supervisor Reset - PI tracker cleared.');
                     } else {
                         localStorage.removeItem(SHIFT_KEY);
                         localStorage.removeItem('pcd_handover_note');
-                        showToast('🔒 Supervisor Reset — Portal cleared.');
+                        state = createInitialState();
+                        showToast('Supervisor Reset - Portal tracker cleared.');
                     }
                     setTimeout(() => location.reload(), 500);
                 } else if (pin !== null) {
-                    showToast('❌ Incorrect PIN.');
+                    showToast('Incorrect PIN.');
                 }
             }
         });

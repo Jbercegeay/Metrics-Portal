@@ -14,9 +14,24 @@ Changelog entries are not required for every commit. Add entries under `Unreleas
 
 ### Added
 
-- Started the multi-associate kiosk workspace rollout for Precision Liner with a prominent active-associate banner, open-work badges, per-associate submit labels, and detailed submit confirmations.
-- Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace entry panels for the shared-workstation rollout.
-- Scoped the Precision Liner KPI board to only the selected associate workspace.
+- Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
+- Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
+
+### Changed
+
+- Removed the live KPI/OEE banner from the department entry portals so production reporting can be handled through Smartsheet and Power BI instead of duplicated in the portal UI.
+
+### Fixed
+
+- Updated supervisor reset to clear the current multi-associate Job x Job tracker storage for PL, PTFE, and Polyimide.
+- Allowed shared-workstation associate names to submit to PTFE/PI Smartsheet logs even when the destination sheet's Associate Name column has strict picklist validation.
+- Improved PTFE/Polyimide Job x Job trackers so submissions jump to the matching sequence tab, tabs show job counts, and each associate remembers their active tracker tab.
+- Fixed PTFE/Polyimide Job x Job end-shift submission by no longer writing to Smartsheet's system-managed Submitted At column.
+- Updated PTFE/Polyimide End Shift so it signs out only the active associate and transfers the workstation to any remaining associate instead of returning the whole kiosk to login.
+- Removed Job x Job shift summary rows from the PTFE/Polyimide tracker UI and Smartsheet end-shift submissions.
+- Clarified PTFE/Polyimide station Logout behavior so full portal logout clears workstation state, while End Shift remains an active-associate-only action.
+- Renamed the PTFE/Polyimide top exit action to Exit Without Submitting and made it discard only the active associate's local workspace/tracker before transferring the kiosk when others remain.
+- Added a PTFE/Polyimide End Shift guard that blocks shift closeout when the active associate still has unsent data in the current entry form.
 
 ## v1.1.0 - 2026-05-15
 

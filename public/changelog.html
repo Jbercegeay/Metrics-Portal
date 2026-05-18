@@ -111,7 +111,7 @@
         <header>
             <div>
                 <h1>Metrics Portal Changelog</h1>
-                <div class="subtitle">Current production release: v1.1.0</div>
+                <div class="subtitle">Next release candidate: v1.2.0</div>
             </div>
             <nav class="nav">
                 <a class="btn" href="/">Back to Portal</a>
@@ -132,7 +132,18 @@
         <section>
             <h2>Unreleased</h2>
             <ul>
-                <li>No pending release notes.</li>
+                <li>Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.</li>
+                <li>Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.</li>
+                <li>Removed the live KPI/OEE banner from the department entry portals so production reporting can be handled through Smartsheet and Power BI instead of duplicated in the portal UI.</li>
+                <li>Updated supervisor reset to clear the current multi-associate Job x Job tracker storage for PL, PTFE, and Polyimide.</li>
+                <li>Allowed shared-workstation associate names to submit to PTFE/PI Smartsheet logs even when the destination sheet's Associate Name column has strict picklist validation.</li>
+                <li>Improved PTFE/Polyimide Job x Job trackers so submissions jump to the matching sequence tab, tabs show job counts, and each associate remembers their active tracker tab.</li>
+                <li>Fixed PTFE/Polyimide Job x Job end-shift submission by no longer writing to Smartsheet's system-managed Submitted At column.</li>
+                <li>Updated PTFE/Polyimide End Shift so it signs out only the active associate and transfers the workstation to any remaining associate instead of returning the whole kiosk to login.</li>
+                <li>Removed Job x Job shift summary rows from the PTFE/Polyimide tracker UI and Smartsheet end-shift submissions.</li>
+                <li>Clarified PTFE/Polyimide station Logout behavior so full portal logout clears workstation state, while End Shift remains an active-associate-only action.</li>
+                <li>Renamed the PTFE/Polyimide top exit action to Exit Without Submitting and made it discard only the active associate's local workspace/tracker before transferring the kiosk when others remain.</li>
+                <li>Added a PTFE/Polyimide End Shift guard that blocks shift closeout when the active associate still has unsent data in the current entry form.</li>
             </ul>
         </section>
 
