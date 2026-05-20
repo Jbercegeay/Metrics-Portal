@@ -50,6 +50,10 @@ function chunkArray(items, size = 400) {
     return chunks;
 }
 
+function isCellEmpty(cell) {
+    return !cell || cell.value === undefined || cell.value === null || cell.value === '';
+}
+
 const MASTER_LOG_DUPLICATE_WINDOW_MS = Number(process.env.MASTER_LOG_DUPLICATE_WINDOW_MS || 10 * 60 * 1000);
 const recentMasterLogSubmissions = new Map();
 
@@ -415,6 +419,14 @@ app.post('/api/admin/config/save', async (req, res) => {
             }
             const sheetRes = await deptClient.get(`sheets/${sheetId}`);
             const colMap = buildColumnMap(sheetRes.data);
+            const reusableRows = [];
+            if (type === 'standards') {
+                const columns = ['Item', 'Sequence', 'Good PPH Std', 'Total PPH Std'].map(title => colMap[title]).filter(Boolean);
+                reusableRows.push(...sheetRes.data.rows.filter(row => columns.every(columnId => isCellEmpty(row.cells.find(cell => cell.columnId === columnId)))));
+            } else if (type === 'items') {
+                const columns = ['Item', 'FG Length (in)', 'Product Family', 'Unit Of Measure'].map(title => colMap[title]).filter(Boolean);
+                reusableRows.push(...sheetRes.data.rows.filter(row => columns.every(columnId => isCellEmpty(row.cells.find(cell => cell.columnId === columnId)))));
+            }
 
             const toUpdate = [], toAdd = [];
             items.forEach(item => {
@@ -465,7 +477,12 @@ app.post('/api/admin/config/save', async (req, res) => {
                 if (item.id) {
                     toUpdate.push({ id: item.id, cells });
                 } else {
-                    toAdd.push({ toBottom: true, cells });
+                    const reusableRow = reusableRows.shift();
+                    if (reusableRow) {
+                        toUpdate.push({ id: reusableRow.id, cells });
+                    } else {
+                        toAdd.push({ toBottom: true, cells });
+                    }
                 }
             });
             for (const rows of chunkArray(toUpdate)) {
