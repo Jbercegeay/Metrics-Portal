@@ -34,6 +34,14 @@ function toSmartsheetWholeNumber(value, fallback = 0) {
     return Math.round(toSmartsheetNumber(value, fallback));
 }
 
+function smartsheetErrorMessage(error, fallback = 'Failed to save config data') {
+    const data = error.response?.data;
+    if (!data) return error.message || fallback;
+    const parts = [data.message, data.detail?.message, data.errorCode ? `Error ${data.errorCode}` : '']
+        .filter(Boolean);
+    return parts.join(' ') || fallback;
+}
+
 const MASTER_LOG_DUPLICATE_WINDOW_MS = Number(process.env.MASTER_LOG_DUPLICATE_WINDOW_MS || 10 * 60 * 1000);
 const recentMasterLogSubmissions = new Map();
 
@@ -433,14 +441,14 @@ app.post('/api/admin/config/save', async (req, res) => {
                     cells = [{ columnId: colMap['Pulling Method'], value: (item.name || '').trim() }].filter(c => c.columnId);
                 } else if (type === 'standards') {
                     cells = [
-                        { columnId: colMap['Item'],          value: (item.item || '').trim() },
-                        { columnId: colMap['Sequence'],      value: (item.sequence || '').trim() },
+                        { columnId: colMap['Item'],          value: (item.item || '').trim(), strict: false },
+                        { columnId: colMap['Sequence'],      value: (item.sequence || '').trim(), strict: false },
                         { columnId: colMap['Good PPH Std'],  value: toSmartsheetWholeNumber(item.goodPphStd) },
                         { columnId: colMap['Total PPH Std'], value: toSmartsheetWholeNumber(item.totalPphStd) }
                     ].filter(c => c.columnId);
                 } else if (type === 'items') {
                     cells = [
-                        { columnId: colMap['Item'],          value: (item.item || '').trim() },
+                        { columnId: colMap['Item'],          value: (item.item || '').trim(), strict: false },
                         { columnId: colMap['FG Length (in)'],value: toSmartsheetNumber(item.fgLength) },
                         { columnId: colMap['Product Family'],value: (item.productFamily || '').trim() },
                         { columnId: colMap['Unit Of Measure'],value: (item.unitOfMeasure || '').trim() }
@@ -533,7 +541,7 @@ app.post('/api/admin/config/save', async (req, res) => {
         res.json({ success: true, message: `Successfully saved ${type}` });
     } catch (error) {
         console.error("Error saving config:", error.response?.data || error.message);
-        res.status(500).json({ success: false, error: 'Failed to save config data' });
+        res.status(error.response?.status || 500).json({ success: false, error: smartsheetErrorMessage(error) });
     }
 });
 
