@@ -127,16 +127,6 @@
             flex: 1;
         }
 
-        .cell-editor {
-            display: grid;
-            gap: 6px;
-        }
-
-        .cell-editor select,
-        .cell-editor input {
-            width: 100%;
-        }
-
         .standard-group-row {
             background: #172033;
         }
@@ -429,26 +419,14 @@
             return configData.cellOptions.slice().sort(alphaCompare);
         }
 
-        function cellSelectOptions(selected) {
+        function cellOptions(selected) {
             const selectedCell = String(selected || '').trim();
-            return [
-                '<option value="">Select cell...</option>',
-                ...sortedCellOptions().map(c => `<option value="${esc(c)}" ${c === selectedCell ? 'selected' : ''}>${esc(c)}</option>`)
-            ].join('');
-        }
+            const choices = new Set(['', ...sortedCellOptions()]);
+            if (selectedCell) choices.add(selectedCell);
 
-        function selectCellOption(index, select) {
-            const value = select.value;
-            const input = document.getElementById(`cell-input-${index}`);
-            if (input) input.value = value;
-            upd('associates', index, 'Cell', value);
-        }
-
-        function typeCellOption(index, input) {
-            const value = input.value;
-            const select = document.getElementById(`cell-select-${index}`);
-            if (select) select.value = sortedCellOptions().includes(value) ? value : '';
-            upd('associates', index, 'Cell', value);
+            return Array.from(choices).sort(alphaCompare).map(c =>
+                `<option value="${esc(c)}" ${c === selectedCell ? 'selected' : ''}>${c || 'Select cell...'}</option>`
+            ).join('');
         }
 
         function renderAll() {
@@ -457,12 +435,9 @@
                 <tr>
                     <td><input type="text" value="${esc(a.name)}" onchange="upd('associates',${i},'name',this.value)"></td>
                     <td>
-                        <div class="cell-editor">
-                            <select id="cell-select-${i}" class="inline-select" onchange="selectCellOption(${i},this)">
-                                ${cellSelectOptions(a.Cell)}
-                            </select>
-                            <input id="cell-input-${i}" type="text" value="${esc(a.Cell)}" onchange="typeCellOption(${i},this)">
-                        </div>
+                        <select class="inline-select" onchange="upd('associates',${i},'Cell',this.value)">
+                            ${cellOptions(a.Cell)}
+                        </select>
                     </td>
                     <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.ScheduledMinutes)}" onchange="updWholeNumber('associates',${i},'ScheduledMinutes',this.value)"></td>
                     <td><input class="schedule-minutes" type="number" step="1" value="${wholeNumber(a.Mon)}" onchange="updWholeNumber('associates',${i},'Mon',this.value)"></td>
