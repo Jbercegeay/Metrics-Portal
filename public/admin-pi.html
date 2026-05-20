@@ -525,7 +525,7 @@
         function findInvalidStandardItem(items) {
             return items.find(item => {
                 const itemNumber = String(item.item || '').trim();
-                return itemNumber && !isSixDigitItemNumber(itemNumber);
+                return !item.id && itemNumber && !isSixDigitItemNumber(itemNumber);
             });
         }
 

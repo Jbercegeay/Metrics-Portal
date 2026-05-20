@@ -377,7 +377,7 @@ app.post('/api/admin/config/save', async (req, res) => {
             if (type === 'standards') {
                 const invalidStandard = (items || []).find(item => {
                     const itemNumber = String(item.item || '').trim();
-                    return itemNumber && !isSixDigitItemNumber(itemNumber);
+                    return !item.id && itemNumber && !isSixDigitItemNumber(itemNumber);
                 });
                 if (invalidStandard) {
                     return res.status(400).json({
