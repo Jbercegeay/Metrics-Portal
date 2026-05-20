@@ -596,6 +596,16 @@ app.post('/api/admin/config/delete', async (req, res) => {
             const sheetRes = await deptClient.get(`sheets/${sheetId}`);
             const colMap = buildColumnMap(sheetRes.data);
 
+            if (type === 'standards' || type === 'items') {
+                await deptClient.delete(`sheets/${sheetId}/rows`, {
+                    params: {
+                        ids: rowId,
+                        ignoreRowsNotFound: true
+                    }
+                });
+                return res.json({ success: true, message: 'Item deleted successfully' });
+            }
+
             let cells = [];
             if (type === 'associates') {
                 cells = ['Associate Name', 'Cell', 'Scheduled Minutes', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', 'Training?', 'Role', 'Password Hash']
