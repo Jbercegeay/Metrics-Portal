@@ -385,6 +385,12 @@
                 <button class="btn btn-sm" onclick="expandAllStandards()">Expand All</button>
                 <button class="btn btn-sm" onclick="collapseAllStandards()">Collapse All</button>
             </div>
+            <div id="standardsUnsavedNotice" style="display:none; margin:0 0 12px 0; padding:10px 12px; border:1px solid #f59e0b; border-radius:6px; background:#451a03; color:#fde68a;">
+                <div style="display:flex; gap:10px; align-items:center; justify-content:space-between;">
+                    <strong>Unsaved standards are waiting. Fill in the rows, then save before leaving this panel.</strong>
+                    <button class="btn btn-warn btn-sm" onclick="saveSection('standards')">Save Standards Now</button>
+                </div>
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -600,13 +606,18 @@
             });
 
             renderedStandardGroups = Array.from(groupsByItem.entries())
-                .map(([item, rows]) => ({ item, rows }))
+                .map(([item, rows]) => ({ item, rows, hasUnsaved: rows.some(({ standard }) => !standard.id) }))
                 .filter((group) => {
                     if (!term) return true;
                     return group.item.toLowerCase().includes(term)
                         || group.rows.some(({ standard }) => String(standard.sequence || '').toLowerCase().includes(term));
                 })
-                .sort((a, b) => a.item.localeCompare(b.item, undefined, { numeric: true, sensitivity: 'base' }));
+                .sort((a, b) => {
+                    if (a.hasUnsaved !== b.hasUnsaved) return a.hasUnsaved ? -1 : 1;
+                    return a.item.localeCompare(b.item, undefined, { numeric: true, sensitivity: 'base' });
+                });
+
+            updateStandardsSaveNotice();
 
             if (renderedStandardGroups.length === 0) {
                 document.getElementById('tb-standards').innerHTML = `
@@ -647,6 +658,12 @@
                     ${rows}
                 `;
             }).join('');
+        }
+
+        function updateStandardsSaveNotice() {
+            const notice = document.getElementById('standardsUnsavedNotice');
+            if (!notice) return;
+            notice.style.display = configData.standards.some(standard => !standard.id) ? 'block' : 'none';
         }
 
         // ── DATA HELPERS ───────────────────────────────────────────────────────
