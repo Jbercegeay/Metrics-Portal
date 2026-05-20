@@ -42,6 +42,14 @@ function smartsheetErrorMessage(error, fallback = 'Failed to save config data') 
     return parts.join(' ') || fallback;
 }
 
+function chunkArray(items, size = 400) {
+    const chunks = [];
+    for (let index = 0; index < items.length; index += size) {
+        chunks.push(items.slice(index, index + size));
+    }
+    return chunks;
+}
+
 const MASTER_LOG_DUPLICATE_WINDOW_MS = Number(process.env.MASTER_LOG_DUPLICATE_WINDOW_MS || 10 * 60 * 1000);
 const recentMasterLogSubmissions = new Map();
 
@@ -460,8 +468,12 @@ app.post('/api/admin/config/save', async (req, res) => {
                     toAdd.push({ toBottom: true, cells });
                 }
             });
-            if (toUpdate.length > 0) await deptClient.put(`sheets/${sheetId}/rows`, toUpdate);
-            if (toAdd.length > 0) await deptClient.post(`sheets/${sheetId}/rows`, toAdd);
+            for (const rows of chunkArray(toUpdate)) {
+                await deptClient.put(`sheets/${sheetId}/rows`, rows);
+            }
+            for (const rows of chunkArray(toAdd)) {
+                await deptClient.post(`sheets/${sheetId}/rows`, rows);
+            }
             return res.json({ success: true, message: `Successfully saved ${type}` });
         }
         // ── End PTFE branch ──────────────────────────────────────────────────────

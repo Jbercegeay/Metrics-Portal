@@ -506,7 +506,7 @@
         function findInvalidStandardItem(items) {
             return items.find(item => {
                 const itemNumber = String(item.item || '').trim();
-                return !item.id && itemNumber && !isSixDigitItemNumber(itemNumber);
+                return (!item.id || item._dirty) && itemNumber && !isSixDigitItemNumber(itemNumber);
             });
         }
 
@@ -748,6 +748,9 @@
 
         function upd(type, index, field, value) {
             configData[type][index][field] = value;
+            if (type === 'standards' || type === 'items') {
+                configData[type][index]._dirty = true;
+            }
             if ((type === 'items' && field === 'item') || (type === 'standards' && field === 'item')) {
                 showCrossReferenceReminder(type, String(value || '').trim());
             }
@@ -755,10 +758,16 @@
 
         function updWholeNumber(type, index, field, value) {
             configData[type][index][field] = wholeNumber(value);
+            if (type === 'standards' || type === 'items') {
+                configData[type][index]._dirty = true;
+            }
         }
 
         function updNumber(type, index, field, value) {
             configData[type][index][field] = numberValue(value);
+            if (type === 'standards' || type === 'items') {
+                configData[type][index]._dirty = true;
+            }
         }
 
         function updList(dataKey, index, field, value) {
@@ -926,29 +935,37 @@
         async function saveSection(type) {
             const dataKey = typeToDataKey(type);
             const items = configData[dataKey];
+            const saveChangedOnly = type === 'standards' || type === 'items';
+            const itemsToSave = saveChangedOnly
+                ? items.filter(item => !item.id || item._dirty)
+                : items;
             const showSaveProgress = type === 'standards';
             if (type === 'standards') {
-                const invalidStandard = findInvalidStandardItem(items);
+                const invalidStandard = findInvalidStandardItem(itemsToSave);
                 if (invalidStandard) {
                     showToast(`Cannot save standards: item ${invalidStandard.item} must be exactly six digits.`, true);
                     return;
                 }
             }
+            if (itemsToSave.length === 0) {
+                showToast(`No ${type} changes to save.`);
+                return;
+            }
             if (!confirmCrossReferenceSave(type)) return;
             if (showSaveProgress) {
-                showProgress('Saving Standards', `Saving ${items.length} standard row(s) to Smartsheet...`, 0, 1);
+                showProgress('Saving Standards', `Saving ${itemsToSave.length} changed standard row(s) to Smartsheet...`, 0, 1);
             }
             showToast(`Saving ${type}...`);
             try {
                 const res = await fetch('/api/admin/config/save', {
                     method: 'POST',
                     headers: ADMIN_HEADERS,
-                    body: JSON.stringify({ type, items, dept: DEPT })
+                    body: JSON.stringify({ type, items: itemsToSave, dept: DEPT })
                 });
                 const json = await res.json();
                 if (json.success) {
                     if (showSaveProgress) {
-                        showProgress('Save Complete', `Saved ${items.length} standard row(s).`, 1, 1);
+                        showProgress('Save Complete', `Saved ${itemsToSave.length} changed standard row(s).`, 1, 1);
                     }
                     showToast(`${type} saved successfully!`);
                     // Reload so IDs are populated for newly added rows
