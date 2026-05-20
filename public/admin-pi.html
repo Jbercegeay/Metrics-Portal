@@ -366,6 +366,24 @@
         let standardSearchTerm = '';
         let renderedStandardGroups = [];
         const DEPT = 'PI';
+        const PI_CELL_FALLBACK_OPTIONS = [
+            'Check Flush',
+            'CTL',
+            'Floater',
+            'Floater (1st shift)',
+            'Floater (2nd Shift)',
+            'Floater (3rd Shift)',
+            'Flushing',
+            'General',
+            'Inspection',
+            'Long Pull',
+            'Packaging',
+            'Pre-Assembly Table Pull',
+            'Pull',
+            'Roll Cut',
+            'Table Pull',
+            'Team Lead'
+        ];
 
         let configData = {
             associates:      [],
@@ -416,7 +434,14 @@
         }
 
         function sortedCellOptions() {
-            return configData.cellOptions.slice().sort(alphaCompare);
+            const associateCells = configData.associates
+                .map((associate) => String(associate.Cell || '').trim())
+                .filter(Boolean);
+            return Array.from(new Set([
+                ...configData.cellOptions,
+                ...associateCells,
+                ...PI_CELL_FALLBACK_OPTIONS
+            ])).sort(alphaCompare);
         }
 
         function cellOptions(selected) {
