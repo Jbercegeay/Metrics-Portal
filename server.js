@@ -51,7 +51,25 @@ function chunkArray(items, size = 400) {
 }
 
 function isCellEmpty(cell) {
-    return !cell || cell.value === undefined || cell.value === null || cell.value === '';
+    return !cell ||
+        ((cell.value === undefined || cell.value === null || cell.value === '') &&
+        !cell.displayValue &&
+        cell.objectValue === undefined);
+}
+
+function findFirstBlankRowBlock(rows, columnIds, neededRows) {
+    if (!neededRows || neededRows < 1) return [];
+    let run = [];
+    for (const row of rows) {
+        const isBlank = columnIds.every(columnId => isCellEmpty(row.cells.find(cell => cell.columnId === columnId)));
+        if (isBlank) {
+            run.push(row);
+            if (run.length >= neededRows) return run.slice(0, neededRows);
+        } else {
+            run = [];
+        }
+    }
+    return [];
 }
 
 const MASTER_LOG_DUPLICATE_WINDOW_MS = Number(process.env.MASTER_LOG_DUPLICATE_WINDOW_MS || 10 * 60 * 1000);
@@ -419,16 +437,14 @@ app.post('/api/admin/config/save', async (req, res) => {
             }
             const sheetRes = await deptClient.get(`sheets/${sheetId}`);
             const colMap = buildColumnMap(sheetRes.data);
-            const reusableRows = [];
+            let reusableColumns = [];
             if (type === 'standards') {
-                const columns = ['Item', 'Sequence', 'Good PPH Std', 'Total PPH Std'].map(title => colMap[title]).filter(Boolean);
-                reusableRows.push(...sheetRes.data.rows.filter(row => columns.every(columnId => isCellEmpty(row.cells.find(cell => cell.columnId === columnId)))));
+                reusableColumns = ['Item', 'Sequence', 'Good PPH Std', 'Total PPH Std'].map(title => colMap[title]).filter(Boolean);
             } else if (type === 'items') {
-                const columns = ['Item', 'FG Length (in)', 'Product Family', 'Unit Of Measure'].map(title => colMap[title]).filter(Boolean);
-                reusableRows.push(...sheetRes.data.rows.filter(row => columns.every(columnId => isCellEmpty(row.cells.find(cell => cell.columnId === columnId)))));
+                reusableColumns = ['Item', 'FG Length (in)', 'Product Family', 'Unit Of Measure'].map(title => colMap[title]).filter(Boolean);
             }
 
-            const toUpdate = [], toAdd = [];
+            const toUpdate = [], toAdd = [], pendingAdds = [];
             items.forEach(item => {
                 let cells = [];
                 if (type === 'associates') {
@@ -477,14 +493,21 @@ app.post('/api/admin/config/save', async (req, res) => {
                 if (item.id) {
                     toUpdate.push({ id: item.id, cells });
                 } else {
-                    const reusableRow = reusableRows.shift();
-                    if (reusableRow) {
-                        toUpdate.push({ id: reusableRow.id, cells });
-                    } else {
-                        toAdd.push({ toBottom: true, cells });
-                    }
+                    pendingAdds.push({ toBottom: true, cells });
                 }
             });
+            if (pendingAdds.length > 0 && reusableColumns.length > 0) {
+                const reusableBlock = findFirstBlankRowBlock(sheetRes.data.rows, reusableColumns, pendingAdds.length);
+                if (reusableBlock.length === pendingAdds.length) {
+                    pendingAdds.forEach((row, index) => {
+                        toUpdate.push({ id: reusableBlock[index].id, cells: row.cells });
+                    });
+                } else {
+                    toAdd.push(...pendingAdds);
+                }
+            } else {
+                toAdd.push(...pendingAdds);
+            }
             for (const rows of chunkArray(toUpdate)) {
                 await deptClient.put(`sheets/${sheetId}/rows`, rows);
             }
