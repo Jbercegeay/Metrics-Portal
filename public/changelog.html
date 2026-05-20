@@ -136,6 +136,9 @@
                 <li>Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.</li>
                 <li>Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.</li>
                 <li>Removed the live KPI/OEE banner from the department entry portals so production reporting can be handled through Smartsheet and Power BI instead of duplicated in the portal UI.</li>
+                <li>Improved PL, PTFE, and Polyimide admin panels so table rows and dropdown choices render alphabetically regardless of Smartsheet row order.</li>
+                <li>Added top Save buttons and top-insert behavior to admin panel Add actions so new blank rows are immediately editable without scrolling to the bottom of a table.</li>
+                <li>Updated PTFE and Polyimide PPH Standards admin workflows so supervisors can add a full item standard group from an item number and delete an entire item group at once.</li>
                 <li>Updated supervisor reset to clear the current multi-associate Job x Job tracker storage for PL, PTFE, and Polyimide.</li>
                 <li>Allowed shared-workstation associate names to submit to PTFE/PI Smartsheet logs even when the destination sheet's Associate Name column has strict picklist validation.</li>
                 <li>Improved PTFE/Polyimide Job x Job trackers so submissions jump to the matching sequence tab, tabs show job counts, and each associate remembers their active tracker tab.</li>
@@ -146,6 +149,7 @@
                 <li>Renamed the PTFE/Polyimide top exit action to Exit Without Submitting and made it discard only the active associate's local workspace/tracker before transferring the kiosk when others remain.</li>
                 <li>Added a PTFE/Polyimide End Shift guard that blocks shift closeout when the active associate still has unsent data in the current entry form.</li>
                 <li>Updated Precision Liner's top associate action to Exit Without Submitting so it discards only the selected local workspace instead of submitting data under the older Logout flow.</li>
+                <li>Updated Polyimide admin Cell dropdown handling so the Associate Schedule Cell list is populated from Smartsheet-backed values with a local fallback list for resilience.</li>
             </ul>
         </section>
 

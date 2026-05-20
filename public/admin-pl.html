@@ -159,7 +159,10 @@
         <div class="card" id="card-associates">
             <div class="flex-between">
                 <h2>Associates & Schedules</h2>
-                <button class="btn" onclick="addAssociate()">+ Add Associate</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="addAssociate()">+ Add Associate</button>
+                    <button class="btn" onclick="saveData('associates')">Save Associates</button>
+                </div>
             </div>
             <table>
                 <thead>
@@ -186,7 +189,10 @@
             <div class="card" id="card-sequences">
                 <div class="flex-between">
                     <h2>Sequences</h2>
-                    <button class="btn btn-sm" onclick="addSequence()">+ Add Sequence</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addSequence()">+ Add Sequence</button>
+                        <button class="btn btn-sm" onclick="saveData('sequences')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead>
@@ -204,7 +210,10 @@
             <div class="card" id="card-defects">
                 <div class="flex-between">
                     <h2>Defect Log Items</h2>
-                    <button class="btn btn-sm" onclick="addDefect()">+ Add Defect</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addDefect()">+ Add Defect</button>
+                        <button class="btn btn-sm" onclick="saveData('defects')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead>
@@ -221,7 +230,10 @@
             <div class="card" id="card-events">
                 <div class="flex-between">
                     <h2>Downtime Events</h2>
-                    <button class="btn btn-sm" onclick="addEvent()">+ Add Event</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addEvent()">+ Add Event</button>
+                        <button class="btn btn-sm" onclick="saveData('events')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead>
@@ -267,8 +279,8 @@
         function alphaCompare(a, b) {
             const left = String(a || '').trim();
             const right = String(b || '').trim();
-            if (!left && right) return 1;
-            if (left && !right) return -1;
+            if (!left && right) return -1;
+            if (left && !right) return 1;
             return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
         }
 
@@ -393,12 +405,12 @@
         }
 
         function addAssociate() {
-            configData.associates.push({ name: '', Mon: 0, Tue: 0, Wed: 0, Thur: 0, Fri: 0, Sat: 0, Sun: 0, Training: false, Role: 'Associate' });
+            configData.associates.unshift({ name: '', Mon: 0, Tue: 0, Wed: 0, Thur: 0, Fri: 0, Sat: 0, Sun: 0, Training: false, Role: 'Associate' });
             renderAll();
         }
-        function addSequence() { configData.sequences.push({ name: '', goal: 0 }); renderAll(); }
-        function addDefect() { configData.defects.push({ name: '' }); renderAll(); }
-        function addEvent() { configData.events.push({ name: '' }); renderAll(); }
+        function addSequence() { configData.sequences.unshift({ name: '', goal: 0 }); renderAll(); }
+        function addDefect() { configData.defects.unshift({ name: '' }); renderAll(); }
+        function addEvent() { configData.events.unshift({ name: '' }); renderAll(); }
 
         async function saveData(type) {
             showToast(`Saving ${type}...`);

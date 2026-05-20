@@ -199,7 +199,10 @@
         <div class="card" id="card-associates">
             <div class="flex-between">
                 <h2>Associates & Schedules</h2>
-                <button class="btn" onclick="addAssociate()">+ Add Associate</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="addAssociate()">+ Add Associate</button>
+                    <button class="btn" onclick="saveSection('associates')">Save Associates</button>
+                </div>
             </div>
             <table>
                 <thead>
@@ -229,7 +232,10 @@
             <div class="card" id="card-sequences">
                 <div class="flex-between">
                     <h2>Sequences</h2>
-                    <button class="btn btn-sm" onclick="addItem('sequences')">+ Add</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addItem('sequences')">+ Add</button>
+                        <button class="btn btn-sm" onclick="saveSection('sequences')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead>
@@ -247,7 +253,10 @@
             <div class="card" id="card-events">
                 <div class="flex-between">
                     <h2>Downtime Events</h2>
-                    <button class="btn btn-sm" onclick="addItem('events')">+ Add</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addItem('events')">+ Add</button>
+                        <button class="btn btn-sm" onclick="saveSection('events')">Save</button>
+                    </div>
                 </div>
                 <p class="section-note">Lunch, Break, and Bathroom are always included automatically.</p>
                 <table>
@@ -268,7 +277,10 @@
             <div class="card" id="card-inspectionPareto">
                 <div class="flex-between">
                     <h2>Inspection Pareto</h2>
-                    <button class="btn btn-sm" onclick="addItem('inspectionPareto')">+ Add</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addItem('inspectionPareto')">+ Add</button>
+                        <button class="btn btn-sm" onclick="saveSection('inspectionPareto')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead><tr><th>Category</th><th style="width:50px"></th></tr></thead>
@@ -281,7 +293,10 @@
             <div class="card" id="card-pullingPareto">
                 <div class="flex-between">
                     <h2>Pulling Pareto</h2>
-                    <button class="btn btn-sm" onclick="addItem('pullingPareto')">+ Add</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addItem('pullingPareto')">+ Add</button>
+                        <button class="btn btn-sm" onclick="saveSection('pullingPareto')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead><tr><th>Category</th><th style="width:50px"></th></tr></thead>
@@ -294,7 +309,10 @@
             <div class="card" id="card-pullingMethod">
                 <div class="flex-between">
                     <h2>Pulling Methods</h2>
-                    <button class="btn btn-sm" onclick="addItem('pullingMethod')">+ Add</button>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-sm" onclick="addItem('pullingMethod')">+ Add</button>
+                        <button class="btn btn-sm" onclick="saveSection('pullingMethod')">Save</button>
+                    </div>
                 </div>
                 <table>
                     <thead><tr><th>Method Name</th><th style="width:50px"></th></tr></thead>
@@ -308,7 +326,10 @@
         <div class="card" id="card-standards">
             <div class="flex-between">
                 <h2>PPH Standards</h2>
-                <button class="btn btn-sm" onclick="addStandard()">+ Add Standard</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-sm" onclick="addStandardItem()">+ Add Item Standards</button>
+                    <button class="btn btn-sm" onclick="saveSection('standards')">Save</button>
+                </div>
             </div>
             <p class="section-note">One row per Item + Sequence combination. These values drive the OE% calculation on the portal.</p>
             <div class="standards-tools">
@@ -335,7 +356,10 @@
         <div class="card" id="card-items">
             <div class="flex-between">
                 <h2>Items</h2>
-                <button class="btn btn-sm" onclick="addPtfeItem()">+ Add Item</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-sm" onclick="addPtfeItem()">+ Add Item</button>
+                    <button class="btn btn-sm" onclick="saveSection('items')">Save</button>
+                </div>
             </div>
             <p class="section-note">Items available for selection on the portal job entry form.</p>
             <table>
@@ -404,8 +428,8 @@
         function alphaCompare(a, b) {
             const left = String(a || '').trim();
             const right = String(b || '').trim();
-            if (!left && right) return 1;
-            if (left && !right) return -1;
+            if (!left && right) return -1;
+            if (left && !right) return 1;
             return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
         }
 
@@ -558,7 +582,12 @@
                                 <span class="standard-count">${group.rows.length} sequence${group.rows.length === 1 ? '' : 's'}</span>
                             </button>
                         </td>
-                        <td><button class="btn btn-sm" onclick="addStandard(${groupIndex})">+ Seq</button></td>
+                        <td>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn btn-sm" onclick="addStandard(${groupIndex})">+ Seq</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteStandardGroup(${groupIndex})">Delete Item</button>
+                            </div>
+                        </td>
                     </tr>
                     ${rows}
                 `;
@@ -598,25 +627,73 @@
 
         // ── ADD ROWS ───────────────────────────────────────────────────────────
         function addAssociate() {
-            configData.associates.push({ name: '', Cell: '', ScheduledMinutes: 0, Mon: 0, Tue: 0, Wed: 0, Thur: 0, Fri: 0, Sat: 0, Sun: 0, Training: false, Role: 'Associate' });
+            configData.associates.unshift({ name: '', Cell: '', ScheduledMinutes: 0, Mon: 0, Tue: 0, Wed: 0, Thur: 0, Fri: 0, Sat: 0, Sun: 0, Training: false, Role: 'Associate' });
             renderAll();
         }
 
         function addItem(type) {
-            if (type === 'sequences')       configData.sequences.push({ name: '' });
-            else if (type === 'events')     configData.events.push({ name: '' });
-            else if (type === 'inspectionPareto') configData.inspectionParetos.push({ name: '' });
-            else if (type === 'pullingPareto')    configData.pullingParetos.push({ name: '' });
-            else if (type === 'pullingMethod')    configData.pullingMethods.push({ name: '' });
+            if (type === 'sequences')       configData.sequences.unshift({ name: '' });
+            else if (type === 'events')     configData.events.unshift({ name: '' });
+            else if (type === 'inspectionPareto') configData.inspectionParetos.unshift({ name: '' });
+            else if (type === 'pullingPareto')    configData.pullingParetos.unshift({ name: '' });
+            else if (type === 'pullingMethod')    configData.pullingMethods.unshift({ name: '' });
+            renderAll();
+        }
+
+        function addStandardItem() {
+            const item = prompt('Enter item number for the new standard group:');
+            const itemNumber = String(item || '').trim();
+            if (!itemNumber) return;
+            const sequences = configData.sequences
+                .map(sequence => String(sequence.name || '').trim())
+                .filter(Boolean)
+                .sort(alphaCompare);
+            const rows = sequences.length > 0
+                ? sequences.map(sequence => ({ item: itemNumber, sequence, goodPphStd: 0, totalPphStd: 0 }))
+                : [{ item: itemNumber, sequence: '', goodPphStd: 0, totalPphStd: 0 }];
+            configData.standards.unshift(...rows);
+            expandedStandardItems.add(itemNumber);
+            standardSearchTerm = '';
+            const searchInput = document.getElementById('standardSearch');
+            if (searchInput) searchInput.value = '';
             renderAll();
         }
 
         function addStandard(groupIndex = null) {
             const group = Number.isInteger(groupIndex) ? renderedStandardGroups[groupIndex] : null;
+            if (!group) return addStandardItem();
             const item = group ? group.item : '';
-            configData.standards.push({ item: item === '(No Item)' ? '' : item, sequence: '', goodPphStd: 0, totalPphStd: 0 });
+            configData.standards.unshift({ item: item === '(No Item)' ? '' : item, sequence: '', goodPphStd: 0, totalPphStd: 0 });
             if (item) expandedStandardItems.add(item);
             renderAll();
+        }
+
+        async function deleteStandardGroup(groupIndex) {
+            const group = renderedStandardGroups[groupIndex];
+            if (!group) return;
+            if (!confirm(`Delete all standards for item ${group.item}?`)) return;
+            const indexes = group.rows.map(({ index }) => index).sort((a, b) => b - a);
+            showToast('Deleting item standards...');
+            try {
+                for (const index of indexes) {
+                    const standard = configData.standards[index];
+                    if (standard?.id) {
+                        const res = await fetch('/api/admin/config/delete', {
+                            method: 'POST',
+                            headers: ADMIN_HEADERS,
+                            body: JSON.stringify({ rowId: standard.id, type: 'standards', dept: DEPT })
+                        });
+                        const json = await res.json();
+                        if (!json.success) throw new Error(json.error || 'Delete failed');
+                    }
+                }
+                indexes.forEach(index => configData.standards.splice(index, 1));
+                expandedStandardItems.delete(group.item);
+                renderAll();
+                showToast('Item standards deleted.');
+            } catch (error) {
+                showToast('Failed to delete item standards: ' + error.message, true);
+            }
         }
 
         function toggleStandardGroup(groupIndex) {
@@ -643,7 +720,7 @@
         }
 
         function addPtfeItem() {
-            configData.items.push({ item: '', fgLength: 0, productFamily: '' });
+            configData.items.unshift({ item: '', fgLength: 0, productFamily: '' });
             renderAll();
         }
 

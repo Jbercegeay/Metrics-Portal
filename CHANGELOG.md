@@ -21,6 +21,9 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 ### Changed
 
 - Removed the live KPI/OEE banner from the department entry portals so production reporting can be handled through Smartsheet and Power BI instead of duplicated in the portal UI.
+- Improved PL, PTFE, and Polyimide admin panels so table rows and dropdown choices render alphabetically regardless of Smartsheet row order.
+- Added top Save buttons and top-insert behavior to admin panel Add actions so new blank rows are immediately editable without scrolling to the bottom of a table.
+- Updated PTFE and Polyimide PPH Standards admin workflows so supervisors can add a full item standard group from an item number and delete an entire item group at once.
 
 ### Fixed
 
@@ -34,6 +37,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Renamed the PTFE/Polyimide top exit action to Exit Without Submitting and made it discard only the active associate's local workspace/tracker before transferring the kiosk when others remain.
 - Added a PTFE/Polyimide End Shift guard that blocks shift closeout when the active associate still has unsent data in the current entry form.
 - Updated Precision Liner's top associate action to Exit Without Submitting so it discards only the selected local workspace instead of submitting data under the older Logout flow.
+- Updated Polyimide admin Cell dropdown handling so the Associate Schedule Cell list is populated from Smartsheet-backed values with a local fallback list for resilience.
 
 ## v1.1.0 - 2026-05-15
 
