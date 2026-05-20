@@ -401,6 +401,19 @@
         }
 
         // ── RENDER ─────────────────────────────────────────────────────────────
+        function alphaCompare(a, b) {
+            const left = String(a || '').trim();
+            const right = String(b || '').trim();
+            if (!left && right) return 1;
+            if (left && !right) return -1;
+            return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        function sortedEntries(arr, getLabel) {
+            return arr.map((item, index) => ({ item, index }))
+                .sort((a, b) => alphaCompare(getLabel(a.item), getLabel(b.item)));
+        }
+
         function cellOptions(selected) {
             const selectedCell = String(selected || '').trim();
             const choices = new Set(['', ...BASE_CELLS]);
@@ -410,14 +423,14 @@
             });
             if (selectedCell) choices.add(selectedCell);
 
-            return Array.from(choices).map(c =>
+            return Array.from(choices).sort(alphaCompare).map(c =>
                 `<option value="${esc(c)}" ${c === selectedCell ? 'selected' : ''}>${c || 'None'}</option>`
             ).join('');
         }
 
         function renderAll() {
             // Associates
-            document.getElementById('tb-associates').innerHTML = configData.associates.map((a, i) => `
+            document.getElementById('tb-associates').innerHTML = sortedEntries(configData.associates, item => item.name).map(({ item: a, index: i }) => `
                 <tr>
                     <td><input type="text" value="${esc(a.name)}" onchange="upd('associates',${i},'name',this.value)"></td>
                     <td>
@@ -450,7 +463,7 @@
             `).join('');
 
             // Sequences
-            document.getElementById('tb-sequences').innerHTML = configData.sequences.map((s, i) => `
+            document.getElementById('tb-sequences').innerHTML = sortedEntries(configData.sequences, item => item.name).map(({ item: s, index: i }) => `
                 <tr>
                     <td><input type="text" value="${esc(s.name)}" onchange="upd('sequences',${i},'name',this.value)"></td>
                     <td><button class="btn btn-danger btn-sm" onclick="deleteItem('sequences',${i})">Delete</button></td>
@@ -458,7 +471,7 @@
             `).join('');
 
             // Events
-            document.getElementById('tb-events').innerHTML = configData.events.map((e, i) => `
+            document.getElementById('tb-events').innerHTML = sortedEntries(configData.events, item => item.name).map(({ item: e, index: i }) => `
                 <tr>
                     <td><input type="text" value="${esc(e.name)}" onchange="upd('events',${i},'name',this.value)"></td>
                     <td>${e.id ? `<button class="btn btn-danger btn-sm" onclick="deleteItem('events',${i})">Delete</button>` : ''}</td>
@@ -473,7 +486,7 @@
             renderStandards();
 
             // Items
-            document.getElementById('tb-items').innerHTML = configData.items.map((it, i) => `
+            document.getElementById('tb-items').innerHTML = sortedEntries(configData.items, item => item.item).map(({ item: it, index: i }) => `
                 <tr>
                     <td><input type="text" value="${esc(it.item)}" onchange="upd('items',${i},'item',this.value)"></td>
                     <td><input type="number" value="${numberValue(it.fgLength)}" onchange="updNumber('items',${i},'fgLength',this.value)"></td>
@@ -490,7 +503,7 @@
             const dataKey = type === 'inspectionPareto'  ? 'inspectionParetos'
                           : type === 'pullingPareto'      ? 'pullingParetos'
                           : 'pullingMethods';
-            document.getElementById(`tb-${tbKey}`).innerHTML = arr.map((item, i) => `
+            document.getElementById(`tb-${tbKey}`).innerHTML = sortedEntries(arr, item => item.name).map(({ item, index: i }) => `
                 <tr>
                     <td><input type="text" value="${esc(item.name)}" onchange="updList('${dataKey}',${i},'name',this.value)"></td>
                     <td><button class="btn btn-danger btn-sm" onclick="deleteItem('${type}',${i})">Delete</button></td>

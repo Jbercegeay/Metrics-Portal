@@ -393,7 +393,7 @@ app.post('/api/admin/config/save', async (req, res) => {
                 if (type === 'associates') {
                     cells = [
                         { columnId: colMap['Associate Name'], value: item.name },
-                        { columnId: colMap['Cell'],           value: item.Cell || '' },
+                        { columnId: colMap['Cell'],           value: item.Cell || '', strict: false },
                         { columnId: colMap['Scheduled Minutes'], value: toSmartsheetWholeNumber(item.ScheduledMinutes) },
                         { columnId: colMap['Mon'],            value: toSmartsheetWholeNumber(item.Mon) },
                         { columnId: colMap['Tue'],            value: toSmartsheetWholeNumber(item.Tue) },

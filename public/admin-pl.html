@@ -264,10 +264,23 @@
         }
 
         // ------------- RENDERING -------------
+        function alphaCompare(a, b) {
+            const left = String(a || '').trim();
+            const right = String(b || '').trim();
+            if (!left && right) return 1;
+            if (left && !right) return -1;
+            return left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+        }
+
+        function sortedEntries(arr, getLabel) {
+            return arr.map((item, index) => ({ item, index }))
+                .sort((a, b) => alphaCompare(getLabel(a.item), getLabel(b.item)));
+        }
+
         function renderAll() {
             // Associates
             const tbAssoc = document.getElementById('tb-associates');
-            tbAssoc.innerHTML = configData.associates.map((a, i) => `
+            tbAssoc.innerHTML = sortedEntries(configData.associates, item => item.name).map(({ item: a, index: i }) => `
                 <tr>
                     <td><input type="text" value="${a.name}" onchange="update('associates', ${i}, 'name', this.value)"></td>
                     <td><input type="number" value="${a.Mon}" onchange="update('associates', ${i}, 'Mon', this.value)"></td>
@@ -293,7 +306,7 @@
 
             // Sequences
             const tbSeq = document.getElementById('tb-sequences');
-            tbSeq.innerHTML = configData.sequences.map((s, i) => `
+            tbSeq.innerHTML = sortedEntries(configData.sequences, item => item.name).map(({ item: s, index: i }) => `
                 <tr>
                     <td><input type="text" value="${s.name}" onchange="update('sequences', ${i}, 'name', this.value)"></td>
                     <td><input type="number" value="${s.goal}" onchange="update('sequences', ${i}, 'goal', this.value)"></td>
@@ -303,7 +316,7 @@
 
             // Defects
             const tbDef = document.getElementById('tb-defects');
-            tbDef.innerHTML = configData.defects.map((d, i) => `
+            tbDef.innerHTML = sortedEntries(configData.defects, item => item.name).map(({ item: d, index: i }) => `
                 <tr>
                     <td><input type="text" value="${d.name}" onchange="update('defects', ${i}, 'name', this.value)"></td>
                     <td><button class="btn btn-danger btn-sm" onclick="deleteItem('defects', ${i})">Delete</button></td>
@@ -312,7 +325,7 @@
 
             // Events
             const tbEv = document.getElementById('tb-events');
-            tbEv.innerHTML = configData.events.map((e, i) => `
+            tbEv.innerHTML = sortedEntries(configData.events, item => item.name).map(({ item: e, index: i }) => `
                 <tr>
                     <td><input type="text" value="${e.name}" onchange="update('events', ${i}, 'name', this.value)"></td>
                     <td><button class="btn btn-danger btn-sm" onclick="deleteItem('events', ${i})">Delete</button></td>
