@@ -374,6 +374,19 @@ app.post('/api/admin/config/save', async (req, res) => {
 
         // ── PTFE branch ─────────────────────────────────────────────────────────
         if (['PTFE', 'PI'].includes(dept)) {
+            if (type === 'standards') {
+                const invalidStandard = (items || []).find(item => {
+                    const itemNumber = String(item.item || '').trim();
+                    return itemNumber && !isSixDigitItemNumber(itemNumber);
+                });
+                if (invalidStandard) {
+                    return res.status(400).json({
+                        success: false,
+                        error: `Standards item ${invalidStandard.item} must be exactly six digits.`
+                    });
+                }
+            }
+
             const deptClient = getClientForDept(dept);
             const deptConfig = getDepartmentConfig(dept);
             let sheetId;

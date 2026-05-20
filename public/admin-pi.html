@@ -518,6 +518,71 @@
                 .sort((a, b) => alphaCompare(getLabel(a.item), getLabel(b.item)));
         }
 
+        function isSixDigitItemNumber(value) {
+            return /^\d{6}$/.test(String(value || '').trim());
+        }
+
+        function findInvalidStandardItem(items) {
+            return items.find(item => {
+                const itemNumber = String(item.item || '').trim();
+                return itemNumber && !isSixDigitItemNumber(itemNumber);
+            });
+        }
+
+        function itemNumbersFrom(items, key) {
+            return new Set(items
+                .map(item => String(item[key] || '').trim())
+                .filter(Boolean));
+        }
+
+        function standardsItemNumbers() {
+            return itemNumbersFrom(configData.standards, 'item');
+        }
+
+        function masterItemNumbers() {
+            return itemNumbersFrom(configData.items, 'item');
+        }
+
+        function missingItemMasterNumbers() {
+            const items = masterItemNumbers();
+            return Array.from(itemNumbersFrom(configData.standards.filter(standard => !standard.id), 'item'))
+                .filter(itemNumber => !items.has(itemNumber))
+                .sort(alphaCompare);
+        }
+
+        function missingStandardNumbers() {
+            const standards = standardsItemNumbers();
+            return Array.from(itemNumbersFrom(configData.items.filter(item => !item.id), 'item'))
+                .filter(itemNumber => !standards.has(itemNumber))
+                .sort(alphaCompare);
+        }
+
+        function showCrossReferenceReminder(type, itemNumber) {
+            if (!isSixDigitItemNumber(itemNumber)) return;
+            if (type === 'standards' && !masterItemNumbers().has(itemNumber)) {
+                showToast(`Reminder: add item ${itemNumber} to the Items table too.`, true);
+            }
+            if (type === 'items' && !standardsItemNumbers().has(itemNumber)) {
+                showToast(`Reminder: add PPH Standards for item ${itemNumber} too.`, true);
+            }
+        }
+
+        function confirmCrossReferenceSave(type) {
+            if (type === 'standards') {
+                const missing = missingItemMasterNumbers();
+                if (missing.length > 0) {
+                    return confirm(`Reminder: ${missing.length} standards item(s) are not in the Items table: ${missing.join(', ')}. Save standards anyway?`);
+                }
+            }
+            if (type === 'items') {
+                const missing = missingStandardNumbers();
+                if (missing.length > 0) {
+                    return confirm(`Reminder: ${missing.length} item(s) do not have PPH Standards yet: ${missing.join(', ')}. Save items anyway?`);
+                }
+            }
+            return true;
+        }
+
         function sortedCellOptions() {
             const associateCells = configData.associates
                 .map((associate) => String(associate.Cell || '').trim())
@@ -710,6 +775,9 @@
 
         function upd(type, index, field, value) {
             configData[type][index][field] = value;
+            if ((type === 'items' && field === 'item') || (type === 'standards' && field === 'item')) {
+                showCrossReferenceReminder(type, String(value || '').trim());
+            }
         }
 
         function updWholeNumber(type, index, field, value) {
@@ -740,9 +808,13 @@
         }
 
         function addStandardItem() {
-            const item = prompt('Enter item number for the new standard group:');
+            const item = prompt('Enter the six-digit item number for the new standard group:');
             const itemNumber = String(item || '').trim();
             if (!itemNumber) return;
+            if (!isSixDigitItemNumber(itemNumber)) {
+                showToast('Item number must be exactly six digits.', true);
+                return;
+            }
             const sequences = configData.sequences
                 .map(sequence => String(sequence.name || '').trim())
                 .filter(Boolean)
@@ -756,6 +828,7 @@
             const searchInput = document.getElementById('standardSearch');
             if (searchInput) searchInput.value = '';
             renderAll();
+            showCrossReferenceReminder('standards', itemNumber);
         }
 
         function addStandard(groupIndex = null) {
@@ -881,6 +954,14 @@
             const dataKey = typeToDataKey(type);
             const items = configData[dataKey];
             const showSaveProgress = type === 'standards';
+            if (type === 'standards') {
+                const invalidStandard = findInvalidStandardItem(items);
+                if (invalidStandard) {
+                    showToast(`Cannot save standards: item ${invalidStandard.item} must be exactly six digits.`, true);
+                    return;
+                }
+            }
+            if (!confirmCrossReferenceSave(type)) return;
             if (showSaveProgress) {
                 showProgress('Saving Standards', `Saving ${items.length} standard row(s) to Smartsheet...`, 0, 1);
             }
