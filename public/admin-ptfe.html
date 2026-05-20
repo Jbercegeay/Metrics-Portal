@@ -110,6 +110,54 @@
 
         #toast.error { background: #ef4444; }
 
+        .progress-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.72);
+            z-index: 2000;
+        }
+
+        .progress-modal.active { display: flex; }
+
+        .progress-dialog {
+            width: min(420px, calc(100vw - 40px));
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 18px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+        }
+
+        .progress-title {
+            color: var(--accent);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .progress-message {
+            color: #cbd5e1;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .progress-track {
+            height: 12px;
+            background: #0b1220;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.2s ease;
+        }
+
         .section-note {
             font-size: 13px;
             color: #94a3b8;
@@ -378,6 +426,13 @@
     </div>
 
     <div id="toast">Saved!</div>
+    <div id="progressModal" class="progress-modal">
+        <div class="progress-dialog">
+            <div id="progressTitle" class="progress-title">Working...</div>
+            <div id="progressMessage" class="progress-message">Please wait.</div>
+            <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+        </div>
+    </div>
 
     <script>
         const ADMIN_HEADERS = {
@@ -673,7 +728,9 @@
             if (!group) return;
             if (!confirm(`Delete all standards for item ${group.item}?`)) return;
             const indexes = group.rows.map(({ index }) => index).sort((a, b) => b - a);
-            showToast('Deleting item standards...');
+            const total = indexes.length;
+            let completed = 0;
+            showProgress('Deleting Item Standards', `Deleting 0 of ${total} row(s) for ${group.item}...`, completed, total);
             try {
                 for (const index of indexes) {
                     const standard = configData.standards[index];
@@ -686,12 +743,17 @@
                         const json = await res.json();
                         if (!json.success) throw new Error(json.error || 'Delete failed');
                     }
+                    completed++;
+                    showProgress('Deleting Item Standards', `Deleting ${completed} of ${total} row(s) for ${group.item}...`, completed, total);
                 }
                 indexes.forEach(index => configData.standards.splice(index, 1));
                 expandedStandardItems.delete(group.item);
                 renderAll();
+                showProgress('Delete Complete', `Deleted ${total} row(s) for ${group.item}.`, total, total);
+                setTimeout(hideProgress, 650);
                 showToast('Item standards deleted.');
             } catch (error) {
+                hideProgress();
                 showToast('Failed to delete item standards: ' + error.message, true);
             }
         }
@@ -774,6 +836,10 @@
         async function saveSection(type) {
             const dataKey = typeToDataKey(type);
             const items = configData[dataKey];
+            const showSaveProgress = type === 'standards';
+            if (showSaveProgress) {
+                showProgress('Saving Standards', `Saving ${items.length} standard row(s) to Smartsheet...`, 0, 1);
+            }
             showToast(`Saving ${type}...`);
             try {
                 const res = await fetch('/api/admin/config/save', {
@@ -783,13 +849,19 @@
                 });
                 const json = await res.json();
                 if (json.success) {
+                    if (showSaveProgress) {
+                        showProgress('Save Complete', `Saved ${items.length} standard row(s).`, 1, 1);
+                    }
                     showToast(`${type} saved successfully!`);
                     // Reload so IDs are populated for newly added rows
                     await loadData();
+                    if (showSaveProgress) setTimeout(hideProgress, 650);
                 } else {
+                    if (showSaveProgress) hideProgress();
                     showToast('Failed to save: ' + (json.error || ''), true);
                 }
             } catch (e) {
+                if (showSaveProgress) hideProgress();
                 showToast('Error saving: ' + e.message, true);
             }
         }
@@ -825,6 +897,19 @@
             el.className = isError ? 'error' : '';
             el.style.display = 'block';
             setTimeout(() => el.style.display = 'none', 3000);
+        }
+
+        function showProgress(title, message, current = 0, total = 1) {
+            const modal = document.getElementById('progressModal');
+            const fill = document.getElementById('progressFill');
+            document.getElementById('progressTitle').textContent = title;
+            document.getElementById('progressMessage').textContent = message;
+            fill.style.width = `${Math.min(100, Math.round((current / Math.max(total, 1)) * 100))}%`;
+            modal.classList.add('active');
+        }
+
+        function hideProgress() {
+            document.getElementById('progressModal').classList.remove('active');
         }
 
         window.onload = loadData;
