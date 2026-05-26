@@ -34,6 +34,31 @@ function toSmartsheetWholeNumber(value, fallback = 0) {
     return Math.round(toSmartsheetNumber(value, fallback));
 }
 
+const MASTER_LOG_NUMERIC_TITLES = new Set([
+    'Item',
+    'Item Number',
+    'Time worked (Min)',
+    'Time Worked',
+    'Start Quantity',
+    'End Quantity',
+    'Footage',
+    'Processing Length',
+    'Scrap Parts',
+    'Scrap Rate %',
+    'Re-Cuts',
+    'Pulling Wraps'
+]);
+
+function parseMasterLogCellValue(title, value) {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    if (MASTER_LOG_NUMERIC_TITLES.has(title) && typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return value;
+}
+
 function smartsheetErrorMessage(error, fallback = 'Failed to save config data') {
     const data = error.response?.data;
     if (!data) return error.message || fallback;
@@ -1088,10 +1113,7 @@ app.post('/api/submit', async (req, res) => {
         // Iterate through the payload and map to columns if it exists
         for (const [key, value] of Object.entries(data)) {
             if (COLUMN_MAP[key] && value !== undefined && value !== null && value !== '') {
-                let parsedValue = value;
-                // Smartsheet requires strict booleans for Checkbox columns, not strings.
-                if (value === 'true') parsedValue = true;
-                if (value === 'false') parsedValue = false;
+                const parsedValue = parseMasterLogCellValue(key, value);
 
                 newRow.cells.push({
                     columnId: COLUMN_MAP[key],
@@ -1214,24 +1236,9 @@ async function submitPtfe(req, res) {
         const columnMap = await getPtfeMasterLogColumnMap();
         const newRow = { toTop: true, cells: [] };
         const submittedEntries = [];
-        const numericTitles = new Set([
-            'Time Worked',
-            'Start Quantity',
-            'End Quantity',
-            'Footage',
-            'Processing Length',
-            'Scrap Parts',
-            'Scrap Rate %',
-            'Re-Cuts',
-            'Pulling Wraps'
-        ]);
 
         for (const title of PTFE_MASTER_LOG_WRITE_TITLES) {
-            let value = data[title];
-            if (numericTitles.has(title) && typeof value === 'string' && value.trim() !== '') {
-                const parsed = Number(value);
-                if (!Number.isNaN(parsed)) value = parsed;
-            }
+            const value = parseMasterLogCellValue(title, data[title]);
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
                 const cell = { columnId: columnMap[title], value: value };
                 if (title === 'Associate Name') cell.strict = false;
@@ -1436,24 +1443,9 @@ async function submitPi(req, res) {
         const columnMap = await getPiMasterLogColumnMap();
         const newRow = { toTop: true, cells: [] };
         const submittedEntries = [];
-        const numericTitles = new Set([
-            'Time Worked',
-            'Start Quantity',
-            'End Quantity',
-            'Footage',
-            'Processing Length',
-            'Scrap Parts',
-            'Scrap Rate %',
-            'Re-Cuts',
-            'Pulling Wraps'
-        ]);
 
         for (const title of PI_MASTER_LOG_WRITE_TITLES) {
-            let value = data[title];
-            if (numericTitles.has(title) && typeof value === 'string' && value.trim() !== '') {
-                const parsed = Number(value);
-                if (!Number.isNaN(parsed)) value = parsed;
-            }
+            const value = parseMasterLogCellValue(title, data[title]);
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
                 const cell = { columnId: columnMap[title], value: value };
                 if (title === 'Associate Name') cell.strict = false;
