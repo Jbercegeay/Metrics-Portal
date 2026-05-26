@@ -55,7 +55,6 @@ $settings = New-ScheduledTaskSettingsSet `
     -AllowStartIfOnBatteries `
     -MultipleInstances IgnoreNew
 
-$principal = New-ScheduledTaskPrincipal -UserId $credential.UserName -LogonType Password -RunLevel Highest
 $description = 'Deletes duplicate Master Log rows daily by keeping the newest portal-written row in each exact-match cluster.'
 
 if ($PSCmdlet.ShouldProcess($TaskName, 'Register scheduled task')) {
@@ -64,9 +63,10 @@ if ($PSCmdlet.ShouldProcess($TaskName, 'Register scheduled task')) {
         -Action $action `
         -Trigger $trigger `
         -Settings $settings `
-        -Principal $principal `
-        -Description $description `
+        -User $credential.UserName `
         -Password ($credential.GetNetworkCredential().Password) `
+        -RunLevel Highest `
+        -Description $description `
         -Force | Out-Null
 
     Write-Host "Scheduled task registered: $TaskName"
