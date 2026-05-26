@@ -55,6 +55,8 @@ A manufacturing metrics portal for PrecisionLiner, PTFE, and future Polyimide pr
    DEPT_PI_MASTER_LOG_SHEET_ID=your_pi_master_log_sheet_id_here
    DEPT_PI_JOB_LOG_SHEET_ID=your_pi_job_log_sheet_id_here
 
+   PORTAL_USAGE_LOG_SHEET_ID=your_portal_usage_log_sheet_id_here
+
    # Safety: PTFE and PI submissions are simulated unless enabled.
    ALLOW_PTFE_MASTER_LOG_WRITES=false
    ALLOW_PI_MASTER_LOG_WRITES=false
@@ -134,4 +136,6 @@ Password for all test accounts: `trenton1`.
 - `npm test` is still a placeholder and should not be treated as validation.
 - PTFE writes are controlled by `ALLOW_PTFE_MASTER_LOG_WRITES`.
 - PI Master Log and PI Job x Job writes are controlled by `ALLOW_PI_MASTER_LOG_WRITES`; keep false until PI validation is approved and `DEPT_PI_JOB_LOG_SHEET_ID` exists.
+- Master Log rows written by this portal stamp `Submission Source` as `new metrics portal`.
+- `PORTAL_USAGE_LOG_SHEET_ID` enables login and submission usage logging in the Metrics Portal Usage Log sheet.
 - Keep `.env` local and out of commits.

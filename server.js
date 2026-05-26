@@ -147,6 +147,131 @@ function validateItemNumberPayload(data, keys = ['Item', 'Item Number']) {
     return true;
 }
 
+const SUBMISSION_SOURCE_COLUMN_TITLE = 'Submission Source';
+const SUBMISSION_SOURCE_VALUE = 'new metrics portal';
+const PORTAL_USAGE_LOG_SHEET_ID = process.env.PORTAL_USAGE_LOG_SHEET_ID || '';
+const PORTAL_USAGE_LOG_COLUMNS = [
+    { title: 'Timestamp', type: 'TEXT_NUMBER', primary: true },
+    { title: 'Event Type', type: 'TEXT_NUMBER' },
+    { title: 'Department', type: 'TEXT_NUMBER' },
+    { title: 'Associate Name', type: 'TEXT_NUMBER' },
+    { title: 'Role', type: 'TEXT_NUMBER' },
+    { title: 'Kiosk ID', type: 'TEXT_NUMBER' },
+    { title: 'Submission Source', type: 'TEXT_NUMBER' },
+    { title: 'Details', type: 'TEXT_NUMBER' }
+];
+const sheetColumnCache = new Map();
+let _portalUsageLogColumnMap = null;
+
+function getMasterLogSheetId(dept) {
+    const key = normalizeDept(dept);
+    if (key === 'PL') return MASTER_LOG_SHEET_ID;
+    return getRequiredEnv(`DEPT_${key}_MASTER_LOG_SHEET_ID`);
+}
+
+async function getOrCreateSheetColumn({ dept = 'PL', sheetId, title, type = 'TEXT_NUMBER' }) {
+    const key = `${normalizeDept(dept)}:${sheetId}:${title}`;
+    if (sheetColumnCache.has(key)) return sheetColumnCache.get(key);
+
+    const client = getClientForDept(dept);
+    const sheetRes = await client.get(`sheets/${sheetId}?include=columns`);
+    const columns = sheetRes.data.columns || [];
+    const existing = columns.find(column => column.title === title);
+    if (existing) {
+        sheetColumnCache.set(key, existing.id);
+        return existing.id;
+    }
+
+    const maxIndex = columns.length > 0 ? Math.max(...columns.map(column => column.index || 0)) : 0;
+    const createRes = await client.post(`sheets/${sheetId}/columns`, [{
+        title,
+        type,
+        index: maxIndex + 1
+    }]);
+    const newColumnId = createRes.data.result[0].id;
+    sheetColumnCache.set(key, newColumnId);
+    console.log(`Created Smartsheet column "${title}" on ${normalizeDept(dept)} sheet ${sheetId} (ID: ${newColumnId})`);
+    return newColumnId;
+}
+
+async function addSubmissionSourceCell(newRow, dept) {
+    const columnId = await getOrCreateSheetColumn({
+        dept,
+        sheetId: getMasterLogSheetId(dept),
+        title: SUBMISSION_SOURCE_COLUMN_TITLE
+    });
+    newRow.cells.push({
+        columnId,
+        value: SUBMISSION_SOURCE_VALUE
+    });
+}
+
+async function getPortalUsageLogColumnMap() {
+    if (!PORTAL_USAGE_LOG_SHEET_ID) return null;
+    if (_portalUsageLogColumnMap) return _portalUsageLogColumnMap;
+
+    const client = getClientForDept('PL');
+    const response = await client.get(`sheets/${PORTAL_USAGE_LOG_SHEET_ID}?include=columns`);
+    const existingMap = buildColumnMap(response.data);
+    const columns = response.data.columns || [];
+    const missingColumns = PORTAL_USAGE_LOG_COLUMNS.filter(column => !existingMap[column.title]);
+
+    if (missingColumns.length > 0) {
+        const maxIndex = columns.length > 0 ? Math.max(...columns.map(column => column.index || 0)) : 0;
+        const createRes = await client.post(`sheets/${PORTAL_USAGE_LOG_SHEET_ID}/columns`, missingColumns.map((column, index) => ({
+            title: column.title,
+            type: column.type,
+            index: maxIndex + index + 1
+        })));
+        for (const column of createRes.data.result || []) {
+            existingMap[column.title] = column.id;
+        }
+    }
+
+    _portalUsageLogColumnMap = existingMap;
+    return _portalUsageLogColumnMap;
+}
+
+function logPortalUsage(event) {
+    if (!PORTAL_USAGE_LOG_SHEET_ID) return;
+    recordPortalUsage(event).catch(error => {
+        console.warn('[Portal Usage Log] Failed to record event:', error.response?.data || error.message);
+    });
+}
+
+async function recordPortalUsage(event) {
+    const columnMap = await getPortalUsageLogColumnMap();
+    if (!columnMap) return;
+
+    const values = {
+        Timestamp: new Date().toISOString(),
+        'Event Type': event.eventType,
+        Department: event.department ? normalizeDept(event.department) : '',
+        'Associate Name': event.associateName || '',
+        Role: event.role || '',
+        'Kiosk ID': event.kioskId || '',
+        'Submission Source': SUBMISSION_SOURCE_VALUE,
+        Details: event.details || ''
+    };
+
+    const cells = [];
+    for (const column of PORTAL_USAGE_LOG_COLUMNS) {
+        const value = values[column.title];
+        if (columnMap[column.title] && value !== undefined && value !== null && value !== '') {
+            cells.push({
+                columnId: columnMap[column.title],
+                value
+            });
+        }
+    }
+    if (cells.length === 0) return;
+
+    await getClientForDept('PL').post(`sheets/${PORTAL_USAGE_LOG_SHEET_ID}/rows`, [{
+        toTop: true,
+        cells
+    }]);
+}
+
 // Middleware
 app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',') }));
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off — HTML files use inline scripts
@@ -782,6 +907,13 @@ app.post('/api/login', async (req, res) => {
                 adminSessions.set(token, { name: username, deptKey: departmentConfig.key, expires: Date.now() + 8 * 60 * 60 * 1000 });
                 response.adminToken = token;
             }
+            logPortalUsage({
+                eventType: 'login_success',
+                department: departmentConfig.key,
+                associateName: username,
+                role,
+                kioskId
+            });
             res.json(response);
         } else {
             res.json({ success: false, error: 'Incorrect password' });
@@ -980,9 +1112,17 @@ app.post('/api/submit', async (req, res) => {
             });
         }
 
+        await addSubmissionSourceCell(newRow, 'PL');
+
         // Send the payload to the Master Log Sheet
         const response = await smartsheetApi.post(`sheets/${MASTER_LOG_SHEET_ID}/rows`, [newRow]);
         finishMasterLogSubmission(submissionKey, true);
+        logPortalUsage({
+            eventType: 'master_log_submit',
+            department: 'PL',
+            associateName: data['Associate Name'],
+            details: data['Entry Type'] || data.Sequence || ''
+        });
 
         res.json({ success: true, message: "Successfully logged data to Smartsheet.", data: response.data });
 
@@ -1115,8 +1255,16 @@ async function submitPtfe(req, res) {
             });
         }
 
+        await addSubmissionSourceCell(newRow, 'PTFE');
+
         const response = await getClientForDept('PTFE').post(`sheets/${getRequiredEnv('DEPT_PTFE_MASTER_LOG_SHEET_ID')}/rows`, [newRow]);
         finishMasterLogSubmission(submissionKey, true);
+        logPortalUsage({
+            eventType: 'master_log_submit',
+            department: 'PTFE',
+            associateName: data['Associate Name'],
+            details: data['Entry Type'] || data.Sequence || ''
+        });
         return res.json({ success: true, message: "Successfully logged PTFE data to Smartsheet.", data: response.data });
     } catch (error) {
         if (submissionKey) finishMasterLogSubmission(submissionKey, false);
@@ -1192,6 +1340,12 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
         }).filter(r => r.cells.length > 0);
 
         const response = await getClientForDept('PTFE').post(`sheets/${PTFE_JOB_LOG_SHEET_ID}/rows`, smartsheetRows);
+        logPortalUsage({
+            eventType: 'jxj_submit',
+            department: 'PTFE',
+            associateName: rows[0]['Associate Name'],
+            details: `Rows: ${smartsheetRows.length}`
+        });
         res.json({ success: true, message: `Logged ${smartsheetRows.length} JxJ row(s).`, data: response.data });
     } catch (error) {
         const smartsheetError = error.response?.data;
@@ -1323,8 +1477,16 @@ async function submitPi(req, res) {
             });
         }
 
+        await addSubmissionSourceCell(newRow, 'PI');
+
         const response = await getClientForDept('PI').post(`sheets/${getRequiredEnv('DEPT_PI_MASTER_LOG_SHEET_ID')}/rows`, [newRow]);
         finishMasterLogSubmission(submissionKey, true);
+        logPortalUsage({
+            eventType: 'master_log_submit',
+            department: 'PI',
+            associateName: data['Associate Name'],
+            details: data['Entry Type'] || data.Sequence || ''
+        });
         return res.json({ success: true, message: "Successfully logged PI data to Smartsheet.", data: response.data });
     } catch (error) {
         if (submissionKey) finishMasterLogSubmission(submissionKey, false);
@@ -1418,6 +1580,12 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
         }).filter(r => r.cells.length > 0);
 
         const response = await getClientForDept('PI').post(`sheets/${getRequiredEnv('DEPT_PI_JOB_LOG_SHEET_ID')}/rows`, smartsheetRows);
+        logPortalUsage({
+            eventType: 'jxj_submit',
+            department: 'PI',
+            associateName: rows[0]['Associate Name'],
+            details: `Rows: ${smartsheetRows.length}`
+        });
         res.json({ success: true, message: `Logged ${smartsheetRows.length} PI JxJ row(s).`, data: response.data });
     } catch (error) {
         const smartsheetError = error.response?.data;
@@ -1475,6 +1643,12 @@ app.post('/api/submit-pcd', async (req, res) => {
         });
 
         const response = await smartsheetApi.post(`sheets/${HOUR_BY_HOUR_SHEET_ID}/rows`, smartsheetRows);
+        logPortalUsage({
+            eventType: 'pcd_submit',
+            department: 'PL',
+            associateName: rows[0]?.['Associate Name'],
+            details: `Rows: ${smartsheetRows.length}`
+        });
 
         res.json({ success: true, message: `Successfully logged ${smartsheetRows.length} PCD row(s).`, data: response.data });
 
