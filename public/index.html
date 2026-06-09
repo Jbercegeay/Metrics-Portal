@@ -1954,12 +1954,21 @@
         function departmentWorkspaceHasOpenWork(workspace) {
             const fields = workspace?.fields || {};
             const checks = workspace?.checks || {};
+            const hasEventDraft = (prefix) => {
+                const eventName = String(fields[prefix + 'Event'] || '').trim();
+                const eventEnd = String(fields[prefix + 'EventEndTime'] || '').trim();
+                return Boolean(eventName || eventEnd);
+            };
             const meaningfulFields = Object.entries(fields).some(([id, value]) => {
                 const text = String(value || '').trim();
                 if (!text) return false;
                 if (id.endsWith('Date')) return false;
                 if (id.endsWith('PartUnit') && text === 'in') return false;
                 if (id.endsWith('MultiplierInput') && text === '1') return false;
+                if (id.endsWith('EventStartTime')) {
+                    const prefix = id.startsWith('pi') ? 'pi' : 'ptfe';
+                    return hasEventDraft(prefix);
+                }
                 return true;
             });
             const meaningfulChecks = Object.values(checks).some(values => Array.isArray(values) && values.length > 0);

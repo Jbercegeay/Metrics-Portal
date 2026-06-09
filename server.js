@@ -49,6 +49,23 @@ const MASTER_LOG_NUMERIC_TITLES = new Set([
     'Pulling Wraps'
 ]);
 
+const MASTER_LOG_NON_STRICT_TITLES = new Set([
+    'Associate Name',
+    'Sequence',
+    'Inspection Pareto',
+    'Pulling Pareto',
+    'Pulling Method',
+    'Event'
+]);
+
+const MASTER_LOG_MULTI_PICKLIST_TITLES = new Set([
+    'Inspection Pareto',
+    'Pulling Pareto',
+    'Pulling Method'
+]);
+
+const masterLogColumnTypeCache = new Map();
+
 function parseMasterLogCellValue(title, value) {
     if (value === 'true') return true;
     if (value === 'false') return false;
@@ -57,6 +74,46 @@ function parseMasterLogCellValue(title, value) {
         if (Number.isFinite(parsed)) return parsed;
     }
     return value;
+}
+
+function splitMasterLogMultiPicklistValue(value) {
+    if (Array.isArray(value)) return value.map(item => String(item || '').trim()).filter(Boolean);
+    return String(value || '')
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+async function getMasterLogColumnTypes(dept) {
+    const key = normalizeDept(dept);
+    if (masterLogColumnTypeCache.has(key)) return masterLogColumnTypeCache.get(key);
+
+    const response = await getClientForDept(key).get(`sheets/${getMasterLogSheetId(key)}?include=columns`);
+    const typesByTitle = (response.data.columns || []).reduce((map, column) => {
+        map[column.title] = column.type || '';
+        return map;
+    }, {});
+    masterLogColumnTypeCache.set(key, typesByTitle);
+    return typesByTitle;
+}
+
+function buildMasterLogCell(title, columnId, value, columnType = '') {
+    const cell = { columnId };
+    const isMultiPicklist = columnType === 'MULTI_PICKLIST' || MASTER_LOG_MULTI_PICKLIST_TITLES.has(title);
+    if (isMultiPicklist) {
+        const values = splitMasterLogMultiPicklistValue(value);
+        if (values.length === 0) return null;
+        cell.objectValue = {
+            objectType: 'MULTI_PICKLIST',
+            values
+        };
+        cell.strict = false;
+        return cell;
+    }
+
+    cell.value = value;
+    if (MASTER_LOG_NON_STRICT_TITLES.has(title)) cell.strict = false;
+    return cell;
 }
 
 function smartsheetErrorMessage(error, fallback = 'Failed to save config data') {
@@ -1102,6 +1159,7 @@ app.post('/api/submit', async (req, res) => {
 
         // Use module-level MASTER_LOG_COLUMN_MAP (includes dynamically created defect columns)
         const COLUMN_MAP = MASTER_LOG_COLUMN_MAP;
+        const columnTypes = await getMasterLogColumnTypes('PL');
 
         // Construct the row object for Smartsheet
         const newRow = {
@@ -1115,10 +1173,8 @@ app.post('/api/submit', async (req, res) => {
             if (COLUMN_MAP[key] && value !== undefined && value !== null && value !== '') {
                 const parsedValue = parseMasterLogCellValue(key, value);
 
-                newRow.cells.push({
-                    columnId: COLUMN_MAP[key],
-                    value: parsedValue
-                });
+                const cell = buildMasterLogCell(key, COLUMN_MAP[key], parsedValue, columnTypes[key]);
+                if (cell) newRow.cells.push(cell);
                 submittedEntries.push([key, parsedValue]);
             }
         }
@@ -1234,15 +1290,15 @@ async function submitPtfe(req, res) {
         }
 
         const columnMap = await getPtfeMasterLogColumnMap();
+        const columnTypes = await getMasterLogColumnTypes('PTFE');
         const newRow = { toTop: true, cells: [] };
         const submittedEntries = [];
 
         for (const title of PTFE_MASTER_LOG_WRITE_TITLES) {
             const value = parseMasterLogCellValue(title, data[title]);
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
-                const cell = { columnId: columnMap[title], value: value };
-                if (title === 'Associate Name') cell.strict = false;
-                newRow.cells.push(cell);
+                const cell = buildMasterLogCell(title, columnMap[title], value, columnTypes[title]);
+                if (cell) newRow.cells.push(cell);
                 submittedEntries.push([title, value]);
             }
         }
@@ -1449,15 +1505,15 @@ async function submitPi(req, res) {
         }
 
         const columnMap = await getPiMasterLogColumnMap();
+        const columnTypes = await getMasterLogColumnTypes('PI');
         const newRow = { toTop: true, cells: [] };
         const submittedEntries = [];
 
         for (const title of PI_MASTER_LOG_WRITE_TITLES) {
             const value = parseMasterLogCellValue(title, data[title]);
             if (columnMap[title] && value !== undefined && value !== null && value !== '') {
-                const cell = { columnId: columnMap[title], value: value };
-                if (title === 'Associate Name') cell.strict = false;
-                newRow.cells.push(cell);
+                const cell = buildMasterLogCell(title, columnMap[title], value, columnTypes[title]);
+                if (cell) newRow.cells.push(cell);
                 submittedEntries.push([title, value]);
             }
         }
