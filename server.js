@@ -1318,7 +1318,7 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
         if (!Array.isArray(rows) || rows.length === 0) {
             return res.status(400).json({ success: false, error: 'No rows provided.' });
         }
-        if (rows.some(row => !validateItemNumberPayload(row, ['Item Number']))) {
+        if (rows.some(row => row['Row Type'] !== 'Event' && !validateItemNumberPayload(row, ['Item Number']))) {
             return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
         }
         // Test account interception
@@ -1525,7 +1525,7 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
         if (invalidDeptRow) {
             return res.status(400).json({ success: false, error: 'Invalid department for PI JxJ submission.' });
         }
-        if (rows.some(row => !validateItemNumberPayload(row, ['Item Number']))) {
+        if (rows.some(row => row['Row Type'] !== 'Event' && !validateItemNumberPayload(row, ['Item Number']))) {
             return res.status(400).json({ success: false, error: 'Item number must be exactly six digits.' });
         }
 
