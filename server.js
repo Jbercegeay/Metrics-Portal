@@ -1329,10 +1329,18 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
         if (!isEnvTrue('ALLOW_PTFE_MASTER_LOG_WRITES')) {
             return res.json({ success: true, simulated: true, message: '[SAFE MODE] PTFE JxJ simulated.' });
         }
+        const columnMap = {
+            ...PTFE_JOB_LOG_COLUMN_MAP,
+            'Event': await getOrCreateSheetColumn({
+                dept: 'PTFE',
+                sheetId: PTFE_JOB_LOG_SHEET_ID,
+                title: 'Event'
+            })
+        };
         const numericCols = new Set(['Std PPH', 'Actual PPH', 'OE %', 'Time (Min)', 'Start Qty', 'End Qty']);
         const smartsheetRows = rows.map(row => {
             const newRow = { toTop: true, cells: [] };
-            for (const [key, colId] of Object.entries(PTFE_JOB_LOG_COLUMN_MAP)) {
+            for (const [key, colId] of Object.entries(columnMap)) {
                 let value = row[key];
                 if (value === undefined || value === null || value === '') continue;
                 if (numericCols.has(key) && typeof value === 'string') {
@@ -1340,7 +1348,7 @@ app.post('/api/submit-ptfe-jxj', async (req, res) => {
                     if (!isNaN(parsed)) value = parsed;
                 }
                 const cell = { columnId: colId, value };
-                if (key === 'Associate Name') cell.strict = false;
+                if (['Associate Name', 'Cell', 'Row Type'].includes(key)) cell.strict = false;
                 newRow.cells.push(cell);
             }
             return newRow;
@@ -1501,6 +1509,7 @@ async function getPiJobLogColumnMap() {
     if (_piJobLogColumnMap) return _piJobLogColumnMap;
     const client = getClientForDept('PI');
     const sheetId = getRequiredEnv('DEPT_PI_JOB_LOG_SHEET_ID');
+    await getOrCreateSheetColumn({ dept: 'PI', sheetId, title: 'Event' });
     const response = await client.get(`sheets/${sheetId}?include=columns`);
     _piJobLogColumnMap = buildColumnMap(response.data);
     return _piJobLogColumnMap;
@@ -1536,6 +1545,7 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
             { key: 'Cell', columns: ['Cell'] },
             { key: 'Job Slot', columns: ['Job Slot'] },
             { key: 'Row Type', columns: ['Row Type'] },
+            { key: 'Event', columns: ['Event'] },
             { key: 'Item Number', columns: ['Item Number'] },
             { key: 'Lot Number', columns: ['Lot Number'] },
             { key: 'Std PPH', columns: ['Std PPH'], numeric: true },
@@ -1565,7 +1575,7 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
                     if (!isNaN(parsed)) value = parsed;
                 }
                 const cell = { columnId: colId, value };
-                if (field.key === 'Associate Name') cell.strict = false;
+                if (['Associate Name', 'Cell', 'Row Type'].includes(field.key)) cell.strict = false;
                 newRow.cells.push(cell);
             }
             return newRow;
