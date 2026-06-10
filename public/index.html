@@ -4289,10 +4289,14 @@
                     hour: i + 1, seqMins: 0, eventNames: []
                 }));
             }
-            if (!PCD_SEQUENCES.includes(state.activePcdTab)) {
-                state.activePcdTab = 'Inspect';
+            if (PCD_SEQUENCES.length > 0 && !PCD_SEQUENCES.includes(state.activePcdTab)) {
+                state.activePcdTab = PCD_SEQUENCES.includes('Inspect') ? 'Inspect' : PCD_SEQUENCES[0];
             }
-            state.pcd = state.pcdBySequence[state.activePcdTab];
+            if (!state.activePcdTab) {
+                const firstSavedSequence = Object.keys(state.pcdBySequence).find(seq => seq !== '__events__');
+                state.activePcdTab = firstSavedSequence || 'Inspect';
+            }
+            state.pcd = state.pcdBySequence[state.activePcdTab] || [];
         }
 
         function applyPcdTabUI() {
@@ -6183,21 +6187,27 @@
                     state = { ...fresh, ...saved };
 
                     const loadedBySequence = (saved && typeof saved.pcdBySequence === 'object') ? saved.pcdBySequence : {};
-                    state.pcdBySequence = { ...fresh.pcdBySequence };
+                    state.pcdBySequence = Object.keys(loadedBySequence).length > 0
+                        ? JSON.parse(JSON.stringify(loadedBySequence))
+                        : { ...fresh.pcdBySequence };
                     PCD_SEQUENCES.forEach(seq => {
                         if (Array.isArray(loadedBySequence[seq])) {
-                            state.pcdBySequence[seq] = loadedBySequence[seq];
+                            state.pcdBySequence[seq] = JSON.parse(JSON.stringify(loadedBySequence[seq]));
+                        } else if (!Array.isArray(state.pcdBySequence[seq])) {
+                            state.pcdBySequence[seq] = createPcdBuckets(12, SEQUENCE_GOALS[seq]);
                         }
                     });
                     // Restore __events__ buckets (not in PCD_SEQUENCES so must be handled separately)
                     if (Array.isArray(loadedBySequence['__events__'])) {
-                        state.pcdBySequence['__events__'] = loadedBySequence['__events__'];
+                        state.pcdBySequence['__events__'] = JSON.parse(JSON.stringify(loadedBySequence['__events__']));
+                    } else if (!Array.isArray(state.pcdBySequence['__events__'])) {
+                        state.pcdBySequence['__events__'] = fresh.pcdBySequence['__events__'];
                     }
                     // Backward compatibility for old saves that only had state.pcd
                     if (Array.isArray(saved?.pcd) && !Array.isArray(loadedBySequence?.Inspect)) {
                         state.pcdBySequence.Inspect = saved.pcd;
                     }
-                    state.activePcdTab = PCD_SEQUENCES.includes(saved?.activePcdTab) ? saved.activePcdTab : 'Inspect';
+                    state.activePcdTab = saved?.activePcdTab || 'Inspect';
                     ensurePcdState();
                     state.shiftTotalGood = saved.shiftTotalGood || 0;
                     state.shiftTotalBad = saved.shiftTotalBad || 0;
