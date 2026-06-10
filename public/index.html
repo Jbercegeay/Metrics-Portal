@@ -4361,7 +4361,7 @@
             const lockedButtons = buttonIds
                 .map(id => document.getElementById(id))
                 .filter(Boolean)
-                .map(button => ({ button, wasDisabled: button.disabled }));
+                .map(button => ({ button, wasDisabled: button.id === 'modalConfirm' ? false : button.disabled }));
             lockedButtons.forEach(({ button }) => { button.disabled = true; });
             activeSubmitLocks.set(key, lockedButtons);
             return true;
@@ -4422,14 +4422,19 @@
             document.getElementById('modalText').textContent = text;
             overlay.style.display = 'flex';
             const btnCancel = document.getElementById('modalCancel');
+            const confirmBtn = document.getElementById('modalConfirm');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm';
+                confirmBtn.style.background = '';
+            }
             if (btnCancel) btnCancel.style.display = hideCancel ? 'none' : 'inline-block';
-            document.getElementById('modalConfirm').onclick = () => {
-                const confirmBtn = document.getElementById('modalConfirm');
+            confirmBtn.onclick = () => {
                 if (confirmBtn.disabled) return;
                 confirmBtn.disabled = true;
                 overlay.style.display = 'none';
-                callback();
                 setTimeout(() => { confirmBtn.disabled = false; }, 500);
+                callback();
             };
             if (btnCancel) btnCancel.onclick = () => { overlay.style.display = 'none'; };
         }
@@ -5587,13 +5592,30 @@
         }
 
         function handleShiftResetTrigger() {
+            const currentUser = state.selectedOperator;
+            if (!currentUser) {
+                showToast("⚠️ Select an associate before ending shift.");
+                return;
+            }
             state.handoverNotes = document.getElementById('handoverNotes').value;
-            const rdTotal = Object.values(state.defects).reduce((a, b) => a + b, 0);
-            const hasActiveLot = state.lotNumber || state.totalGood > 0 || rdTotal > 0;
+            if (!state.workspaces) state.workspaces = {};
+            state.workspaces[currentUser] = getActiveWorkspaceSnapshot();
+            const shiftEndWorkspace = state.workspaces[currentUser];
+            const rdTotal = Object.values(shiftEndWorkspace.defects || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+            const seqGoodTotal = Object.values(shiftEndWorkspace.seqGood || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+            const seqDefectTotal = Object.values(shiftEndWorkspace.seqDefects || {}).reduce((total, seqDefs) =>
+                total + Object.values(seqDefs || {}).reduce((a, b) => a + (Number(b) || 0), 0), 0);
+            const hasActiveLot = Boolean(
+                shiftEndWorkspace.lotNumber ||
+                shiftEndWorkspace.itemNumber ||
+                (Number(shiftEndWorkspace.totalGood) || 0) > 0 ||
+                rdTotal > 0 ||
+                seqGoodTotal > 0 ||
+                seqDefectTotal > 0
+            );
 
             const performShiftEnd = () => {
                 (async () => {
-                    const currentUser = state.selectedOperator;
                     showSubmittingOverlay('Please Wait', 'Submitting shift data to Smartsheet...');
 
                     // Auto-submit the active lot if there is one
