@@ -2012,7 +2012,7 @@
                 const text = String(value || '').trim();
                 if (!text) return;
                 if (id.endsWith('Date')) return;
-                if (id.endsWith('PartUnit') && text === 'in') return;
+                if (id.endsWith('PartUnit')) return;
                 if (id.endsWith('MultiplierInput') && text === '1') return;
                 if (id.endsWith('EventStartTime')) {
                     const prefix = id.startsWith('pi') ? 'pi' : 'ptfe';
@@ -2774,6 +2774,8 @@
             PTFE_MULTIPLIER_APPLIED = false;
             const multiplierInput = document.getElementById('ptfeMultiplierInput');
             if (multiplierInput) multiplierInput.value = '1';
+            const partUnit = document.getElementById('ptfePartUnit');
+            if (partUnit) partUnit.value = 'in';
             const resetBtn = document.getElementById('ptfeMultiplierResetBtn');
             if (resetBtn) resetBtn.style.display = 'none';
             updatePtfeCalculations();
@@ -3517,6 +3519,8 @@
             PI_MULTIPLIER_APPLIED = false;
             const multiplierInput = document.getElementById('piMultiplierInput');
             if (multiplierInput) multiplierInput.value = '1';
+            const partUnit = document.getElementById('piPartUnit');
+            if (partUnit) partUnit.value = 'in';
             const resetBtn = document.getElementById('piMultiplierResetBtn');
             if (resetBtn) resetBtn.style.display = 'none';
             updatePiCalculations();
