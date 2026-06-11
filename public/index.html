@@ -4432,6 +4432,15 @@
 
         let submittingOverlayHideTimer = null;
         const activeSubmitLocks = new Map();
+        let lastPlSubmissionError = '';
+
+        function clearPlSubmissionError() {
+            lastPlSubmissionError = '';
+        }
+
+        function setPlSubmissionError(message) {
+            lastPlSubmissionError = String(message || '').trim();
+        }
 
         function beginSubmitLock(key, buttonIds = []) {
             if (activeSubmitLocks.has(key)) {
@@ -4461,7 +4470,10 @@
             document.getElementById('submittingIcon').textContent = '⏳';
             document.getElementById('submittingTitle').textContent = title || 'Please Wait';
             document.getElementById('submittingText').textContent = message || 'Submitting to Smartsheet...';
+            document.getElementById('submittingText').style.whiteSpace = '';
             document.getElementById('submittingSubText').textContent = 'Do not press any buttons.';
+            const retryBtn = document.getElementById('submittingRetryBtn');
+            if (retryBtn) { retryBtn.style.display = 'none'; retryBtn.onclick = null; }
             document.getElementById('submittingOkBtn').style.display = 'none';
             document.getElementById('submittingOverlay').style.display = 'flex';
         }
@@ -4474,6 +4486,7 @@
             document.getElementById('submittingIcon').textContent = isError ? '❌' : '✅';
             document.getElementById('submittingTitle').textContent = title;
             document.getElementById('submittingText').textContent = message;
+            document.getElementById('submittingText').style.whiteSpace = String(message || '').includes('\n') ? 'pre-line' : '';
             document.getElementById('submittingSubText').textContent = '';
             if (isError) {
                 document.getElementById('submittingOkBtn').style.display = 'inline-block';
@@ -4493,6 +4506,19 @@
             const retryBtn = document.getElementById('submittingRetryBtn');
             if (retryBtn) { retryBtn.style.display = 'none'; retryBtn.onclick = null; }
             document.getElementById('submittingOverlay').style.display = 'none';
+        }
+
+        function showPlEndShiftFailure(message, retryCallback) {
+            const detail = lastPlSubmissionError ? `\n\nDetails: ${lastPlSubmissionError}` : '';
+            updateSubmittingOverlay('Submission Failed', `${message}${detail}`, true);
+            const retryBtn = document.getElementById('submittingRetryBtn');
+            if (retryBtn && typeof retryCallback === 'function') {
+                retryBtn.style.display = 'inline-block';
+                retryBtn.onclick = () => {
+                    hideSubmittingOverlay();
+                    retryCallback();
+                };
+            }
         }
 
         function customConfirm(title, text, callback, hideCancel = false) {
@@ -5695,30 +5721,39 @@
                 seqGoodTotal > 0 ||
                 seqDefectTotal > 0
             );
+            const pcdRowCount = buildPcdSubmissionRows(shiftEndWorkspace, currentUser).filteredRows.length;
+            const hasLiveSequenceTime = Boolean(currentUser === state.selectedOperator && state.sequence && state.sequenceStartTime);
+            let activeLotSubmitted = !hasActiveLot;
+            let shiftEndSubmitted = false;
 
             const performShiftEnd = () => {
                 (async () => {
+                    clearPlSubmissionError();
                     showSubmittingOverlay('Please Wait', 'Submitting shift data to Smartsheet...');
 
                     // Auto-submit the active lot if there is one
-                    if (hasActiveLot) {
+                    if (!activeLotSubmitted) {
                         const lotSaved = await submitToSmartsheet("Job", "", 0, currentUser);
                         if (!lotSaved) {
-                            updateSubmittingOverlay('Submission Failed', 'Failed to submit active lot. End Shift aborted.', true);
+                            showPlEndShiftFailure('Failed to submit active lot. End Shift aborted.', performShiftEnd);
                             return;
                         }
+                        activeLotSubmitted = true;
                         handleNewLot(currentUser);
                     }
 
-                    const saved = await submitToSmartsheet("Event", "Shift End", 0, currentUser);
-                    if (!saved) {
-                        updateSubmittingOverlay('Submission Failed', 'Failed to submit Shift End event.', true);
-                        return;
+                    if (!shiftEndSubmitted) {
+                        const saved = await submitToSmartsheet("Event", "Shift End", 0, currentUser);
+                        if (!saved) {
+                            showPlEndShiftFailure('Failed to submit Shift End event.', performShiftEnd);
+                            return;
+                        }
+                        shiftEndSubmitted = true;
                     }
 
                     const pcdSaved = await submitPcdToSmartsheet(currentUser);
                     if (!pcdSaved) {
-                        updateSubmittingOverlay('Submission Failed', 'Failed to submit hour-by-hour data.', true);
+                        showPlEndShiftFailure('Failed to submit hour-by-hour data.', performShiftEnd);
                         return;
                     }
                     hideSubmittingOverlay();
@@ -5755,6 +5790,17 @@
                     }
                 })();
             };
+            const confirmAndPerformShiftEnd = () => {
+                if (pcdRowCount === 0 && !hasLiveSequenceTime) {
+                    customConfirm(
+                        'No Hour-by-Hour Data',
+                        `${currentUser} has no hour-by-hour good, bad, or minute data to submit. Continue ending shift anyway?`,
+                        performShiftEnd
+                    );
+                    return;
+                }
+                performShiftEnd();
+            };
 
             const now = new Date(); const [endH, endM] = (state.endTime || "13:00").split(':').map(Number);
             const shiftEnd = new Date(now); shiftEnd.setHours(endH, endM, 0, 0);
@@ -5767,9 +5813,9 @@
             if (isEarlyLogout) {
                 const notes = state.handoverNotes.trim();
                 if (notes.length < 10) { showToast("⚠️ EARLY LOGOUT: Min 10 chars in Notes."); return; }
-                customConfirm("Early Logout", `${lotMsg}transmit Shift End, and sign out?`, performShiftEnd);
+                customConfirm("Early Logout", `${lotMsg}transmit Shift End, and sign out?`, confirmAndPerformShiftEnd);
             } else {
-                customConfirm("End Shift", `${lotMsg}submit shift summary, and sign out?`, performShiftEnd);
+                customConfirm("End Shift", `${lotMsg}submit shift summary, and sign out?`, confirmAndPerformShiftEnd);
             }
         }
 
@@ -5851,7 +5897,11 @@
 
             // Capture operator name
             const op = opName || state.selectedOperator || state.associate || '';
-            if (!op) return showToast("⚠️ No operator selected.");
+            if (!op) {
+                setPlSubmissionError('No operator was selected.');
+                showToast("⚠️ No operator selected.");
+                return false;
+            }
             showToast(`Submitting for ${op}...`);
 
             // If submitting for the currently active operator, ensure their latest changes are snapped
@@ -5965,17 +6015,23 @@
                         });
                         const result = await resp.json();
                         if (result.success) submittedCount++;
-                        else console.error(`Submission failed for sequence ${seq}:`, result);
+                        else {
+                            setPlSubmissionError(result.error || result.message || `Job row failed for sequence ${seq}.`);
+                            console.error(`Submission failed for sequence ${seq}:`, result);
+                        }
                     } catch (err) {
+                        setPlSubmissionError(err.message || `Network error submitting row for ${seq}.`);
                         console.error(`Network error submitting row for ${seq}:`, err);
                     }
                 }
 
                 const totalExpected = seqEntries.length;
                 if (submittedCount === 0) {
+                    if (!lastPlSubmissionError) setPlSubmissionError('No job rows were accepted by the server.');
                     showToast(`❌ Failed to save ${op}'s data.`);
                     return false;
                 } else if (submittedCount < totalExpected) {
+                    if (!lastPlSubmissionError) setPlSubmissionError(`${submittedCount} of ${totalExpected} job sequence rows saved.`);
                     showToast(`⚠️ Partial save: ${submittedCount}/${totalExpected} sequences saved. Please contact your supervisor.`);
                     return false;
                 }
@@ -6002,11 +6058,13 @@
                     });
                     const result = await response.json();
                     if (!result.success) {
+                        setPlSubmissionError(result.error || result.message || `${typeOverride} row was rejected by the server.`);
                         console.error(`Submission failed for ${op}:`, result);
                         showToast(`❌ Failed to save ${op}'s data.`);
                         return false;
                     }
                 } catch (err) {
+                    setPlSubmissionError(err.message || `Network error submitting ${typeOverride}.`);
                     console.error(`API error for ${op}:`, err);
                     if (err.message.includes('timed out')) {
                         showToast(`❌ Server timed out for ${op}. Try again.`);
@@ -6025,24 +6083,15 @@
             }
         }
 
-        async function submitPcdToSmartsheet(opName = "") {
-            ensurePcdState();
-            const op = opName || state.selectedOperator || state.associate || '';
-            if (!op) return false;
-
-            // Flush any un-committed on-sequence time before snapshotting
-            if (op === (state.selectedOperator || state.associate) && state.sequence && state.sequenceStartTime) {
-                flushSequenceTime(state.sequence);
-                // Restart timer so ongoing time continues accumulating if the shift is still active
-                state.sequenceStartTime = state.sequence ? Date.now() : null;
-            }
-
-            // Get workspace for PCD data source
-            const ws = (op === state.selectedOperator) ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
+        function buildPcdSubmissionRows(ws, op) {
+            const pcdBySequence = ws?.pcdBySequence || {};
             const allRows = [];
+            const sequenceNames = PCD_SEQUENCES.length > 0
+                ? PCD_SEQUENCES
+                : Object.keys(pcdBySequence).filter(seq => seq && seq !== '__events__');
 
-            PCD_SEQUENCES.forEach(seq => {
-                const buckets = ws.pcdBySequence[seq] || [];
+            sequenceNames.forEach(seq => {
+                const buckets = pcdBySequence[seq] || [];
                 const row = {
                     'Work Date': state.workDate,
                     'Associate Name': op,
@@ -6059,7 +6108,7 @@
             });
 
             // Build Event row from __events__ buckets
-            const evBuckets = ws.pcdBySequence['__events__'] || [];
+            const evBuckets = pcdBySequence['__events__'] || [];
             const hasEventData = evBuckets.some(b => (b.seqMins || 0) > 0);
             if (hasEventData) {
                 const evRow = {
@@ -6083,6 +6132,28 @@
                 return false;
             });
 
+            return { allRows, filteredRows };
+        }
+
+        async function submitPcdToSmartsheet(opName = "") {
+            ensurePcdState();
+            const op = opName || state.selectedOperator || state.associate || '';
+            if (!op) {
+                setPlSubmissionError('No associate was selected for the hour-by-hour submission.');
+                return false;
+            }
+
+            // Flush any un-committed on-sequence time before snapshotting
+            if (op === (state.selectedOperator || state.associate) && state.sequence && state.sequenceStartTime) {
+                flushSequenceTime(state.sequence);
+                // Restart timer so ongoing time continues accumulating if the shift is still active
+                state.sequenceStartTime = state.sequence ? Date.now() : null;
+            }
+
+            // Get workspace for PCD data source
+            const ws = (op === state.selectedOperator) ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
+            const { filteredRows } = buildPcdSubmissionRows(ws, op);
+
             if (!filteredRows.length) return true;
 
             showToast("Submitting hour-by-hour tracker...");
@@ -6105,10 +6176,12 @@
                 }
 
                 console.error("PCD submission failed:", result);
+                setPlSubmissionError(result.error || result.message || 'Hour-by-hour tracker was rejected by the server.');
                 showToast("❌ Failed to save hour-by-hour tracker.");
                 return false;
             } catch (err) {
                 console.error("PCD API error:", err);
+                setPlSubmissionError(err.message || 'Network error saving hour-by-hour tracker.');
                 if (err.message.includes('timed out')) {
                     showToast("❌ Server timed out saving tracker. Try again.");
                 } else {
