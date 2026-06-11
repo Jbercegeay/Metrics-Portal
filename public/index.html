@@ -1888,6 +1888,50 @@
             PI: ['piInspectionPareto', 'piPullingPareto', 'piPullingMethod']
         };
 
+        const DEPARTMENT_WORKSPACE_FIELD_LABELS = {
+            ptfeItem: 'Item Number',
+            ptfeLot: 'Lot Number',
+            ptfeSequence: 'Production Sequence',
+            ptfeFootage: 'Full Spool Footage',
+            ptfeProcessingLength: 'Processing / Part Length',
+            ptfePartUnit: 'Part Unit',
+            ptfeStartQuantity: 'Start Quantity',
+            ptfeEndQuantity: 'End Quantity',
+            ptfeTimeWorked: 'Time Worked',
+            ptfeRecuts: 'Re-Cuts',
+            ptfePullingWraps: 'Pulling Wraps',
+            ptfeComments: 'Comments',
+            ptfeEvent: 'Event',
+            ptfeEventStartTime: 'Event Start Time',
+            ptfeEventEndTime: 'Event End Time',
+            ptfeMultiplierInput: 'Start Qty Multiplier',
+            piItem: 'Item Number',
+            piLot: 'Lot Number',
+            piSequence: 'Production Sequence',
+            piFootage: 'Full Spool Footage',
+            piProcessingLength: 'Processing / Part Length',
+            piPartUnit: 'Part Unit',
+            piStartQuantity: 'Start Quantity',
+            piEndQuantity: 'End Quantity',
+            piTimeWorked: 'Time Worked',
+            piRecuts: 'Re-Cuts',
+            piPullingWraps: 'Pulling Wraps',
+            piComments: 'Comments',
+            piEvent: 'Event',
+            piEventStartTime: 'Event Start Time',
+            piEventEndTime: 'Event End Time',
+            piMultiplierInput: 'Start Qty Multiplier'
+        };
+
+        const DEPARTMENT_WORKSPACE_CHECK_LABELS = {
+            ptfeInspectionPareto: 'Inspection Pareto',
+            ptfePullingPareto: 'Pulling Pareto',
+            ptfePullingMethod: 'Pulling Method',
+            piInspectionPareto: 'Inspection Pareto',
+            piPullingPareto: 'Pulling Pareto',
+            piPullingMethod: 'Pulling Method'
+        };
+
         const DEPARTMENT_TEST_ASSOCIATES = { PTFE: 'test-ptfe', PI: 'test-pi' };
         const departmentWorkspaceAutosaveBound = {};
 
@@ -1952,6 +1996,10 @@
         }
 
         function departmentWorkspaceHasOpenWork(workspace) {
+            return getDepartmentOpenWorkDetails(workspace).length > 0;
+        }
+
+        function getDepartmentOpenWorkDetails(workspace) {
             const fields = workspace?.fields || {};
             const checks = workspace?.checks || {};
             const hasEventDraft = (prefix) => {
@@ -1959,20 +2007,26 @@
                 const eventEnd = String(fields[prefix + 'EventEndTime'] || '').trim();
                 return Boolean(eventName || eventEnd);
             };
-            const meaningfulFields = Object.entries(fields).some(([id, value]) => {
+            const details = [];
+            Object.entries(fields).forEach(([id, value]) => {
                 const text = String(value || '').trim();
-                if (!text) return false;
-                if (id.endsWith('Date')) return false;
-                if (id.endsWith('PartUnit') && text === 'in') return false;
-                if (id.endsWith('MultiplierInput') && text === '1') return false;
+                if (!text) return;
+                if (id.endsWith('Date')) return;
+                if (id.endsWith('PartUnit') && text === 'in') return;
+                if (id.endsWith('MultiplierInput') && text === '1') return;
                 if (id.endsWith('EventStartTime')) {
                     const prefix = id.startsWith('pi') ? 'pi' : 'ptfe';
-                    return hasEventDraft(prefix);
+                    if (!hasEventDraft(prefix)) return;
                 }
-                return true;
+                const label = DEPARTMENT_WORKSPACE_FIELD_LABELS[id] || id;
+                details.push(`${label}: ${text}`);
             });
-            const meaningfulChecks = Object.values(checks).some(values => Array.isArray(values) && values.length > 0);
-            return meaningfulFields || meaningfulChecks;
+            Object.entries(checks).forEach(([name, values]) => {
+                if (!Array.isArray(values) || values.length === 0) return;
+                const label = DEPARTMENT_WORKSPACE_CHECK_LABELS[name] || name;
+                details.push(`${label}: ${values.join(', ')}`);
+            });
+            return details;
         }
 
         function getDepartmentWorkspaceSummary(workspace) {
@@ -2025,6 +2079,23 @@
             const data = getDepartmentWorkspaceState(dept);
             if (!data.activeAssociate) data.activeAssociate = SESSION_USER.name;
             data.workspaces[data.activeAssociate] = captureDepartmentWorkspace(dept);
+            saveDepartmentWorkspaceState(dept, data);
+            return data;
+        }
+
+        function saveClearedDepartmentWorkspace(dept, clearDate = true) {
+            const data = getDepartmentWorkspaceState(dept);
+            if (!data.activeAssociate) data.activeAssociate = SESSION_USER.name;
+            const fields = {};
+            (DEPARTMENT_WORKSPACE_FIELDS[dept] || []).forEach(id => {
+                if (id.endsWith('Date')) fields[id] = clearDate ? getLocalDate() : (document.getElementById(id)?.value || getLocalDate());
+                else if (id.endsWith('PartUnit')) fields[id] = 'in';
+                else if (id.endsWith('MultiplierInput')) fields[id] = '1';
+                else fields[id] = '';
+            });
+            const checks = {};
+            (DEPARTMENT_WORKSPACE_CHECKS[dept] || []).forEach(name => { checks[name] = []; });
+            data.workspaces[data.activeAssociate] = { fields, checks };
             saveDepartmentWorkspaceState(dept, data);
             return data;
         }
@@ -2101,9 +2172,11 @@
 
         function warnOpenDepartmentEntryBeforeEndShift(dept) {
             const label = dept === 'PTFE' ? 'PTFE' : 'Polyimide';
+            const details = getDepartmentOpenWorkDetails(captureDepartmentWorkspace(dept)).slice(0, 6);
+            const detailText = details.length ? `\n\nBlocking form value(s):\n- ${details.join('\n- ')}` : '';
             customConfirm(
                 'Open Job Not Submitted',
-                `${label} still has data in the current entry form. Submit the current job/event to Smartsheet first, or use Reset/Exit Without Submitting if this entry should be discarded. End Shift only submits rows already added to the Job x Job tracker.`,
+                `${label} still has data in the current entry form. Submit the current job/event to Smartsheet first, or use Reset/Exit Without Submitting if this entry should be discarded. End Shift only submits rows already added to the Job x Job tracker.${detailText}`,
                 () => {},
                 true
             );
@@ -3068,7 +3141,7 @@
             if (clearDate) document.getElementById('ptfeDate').value = getLocalDate();
             setPtfeEntryMode('job');
             updatePtfeCalculations();
-            saveActiveDepartmentWorkspace('PTFE');
+            saveClearedDepartmentWorkspace('PTFE', clearDate);
             renderDepartmentWorkspacePanel('PTFE');
         }
 
@@ -3680,7 +3753,6 @@
                     : (isTestAccount(getPiActiveAssociate()) ? 'Training-mode PI job simulated.' : 'PI job submitted.');
                 updateSubmittingOverlay('Saved!', msg);
                 resetPiForm(false);
-                saveActiveDepartmentWorkspace('PI');
                 renderDepartmentWorkspacePanel('PI');
             } catch (error) {
                 updateSubmittingOverlay('Submission Failed', error.message || 'Network error.', true);
@@ -3766,7 +3838,7 @@
             if (clearDate) document.getElementById('piDate').value = getLocalDate();
             setPiEntryMode('job');
             updatePiCalculations();
-            saveActiveDepartmentWorkspace('PI');
+            saveClearedDepartmentWorkspace('PI', clearDate);
             renderDepartmentWorkspacePanel('PI');
         }
 
@@ -4423,7 +4495,9 @@
             const overlay = document.getElementById('modalOverlay');
             if (!overlay) return;
             document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalText').textContent = text;
+            const modalText = document.getElementById('modalText');
+            modalText.textContent = text;
+            modalText.style.whiteSpace = text.includes('\n') ? 'pre-line' : '';
             overlay.style.display = 'flex';
             const btnCancel = document.getElementById('modalCancel');
             const confirmBtn = document.getElementById('modalConfirm');
