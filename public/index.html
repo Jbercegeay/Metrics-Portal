@@ -5598,6 +5598,14 @@
 
         function handleSubmitJob() {
             if (!validateShiftSetup()) return;
+            state.timeWorked = Math.max(0, parseInt(document.getElementById('timeWorkedInput')?.value) || 0);
+            if (state.timeWorked <= 0) {
+                customConfirm('Action Required', 'Time worked must be greater than zero minutes before submitting a job.', () => {
+                    const input = document.getElementById('timeWorkedInput');
+                    if (input) input.focus();
+                }, true);
+                return;
+            }
             if (!isSixDigitItemNumber(state.itemNumber)) {
                 showItemNumberError('itemNumber');
                 return;
