@@ -6299,19 +6299,47 @@
             if (user && user.name) {
                 // Kiosk: ensure the current user is in activeUsers
                 if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
-                if (!state.activeUsers.includes(user.name)) {
+                const isNewLoginUser = !state.activeUsers.includes(user.name);
+                if (isNewLoginUser) {
                     state.activeUsers.unshift(user.name);
                 }
 
                 // Initialize workspaces if missing
                 if (!state.workspaces) state.workspaces = {};
 
-                if (!state.selectedOperator || !state.activeUsers.includes(state.selectedOperator)) {
+                if (isNewLoginUser && state.selectedOperator && state.selectedOperator !== user.name) {
+                    state.workspaces[state.selectedOperator] = getActiveWorkspaceSnapshot();
+                }
+
+                if (isNewLoginUser || !state.selectedOperator || !state.activeUsers.includes(state.selectedOperator)) {
                     state.selectedOperator = user.name;
                     state.associate = user.name;
                     // Load workspace if it exists
                     if (state.workspaces[user.name]) {
                         applyWorkspaceSnapshot(state.workspaces[user.name]);
+                    } else if (isNewLoginUser) {
+                        const fresh = createInitialState();
+                        applyWorkspaceSnapshot({
+                            sequence: fresh.sequence,
+                            lotNumber: fresh.lotNumber,
+                            itemNumber: fresh.itemNumber,
+                            totalGood: fresh.totalGood,
+                            defects: fresh.defects,
+                            pcdBySequence: fresh.pcdBySequence,
+                            activePcdTab: fresh.activePcdTab,
+                            spoolCheckSequence: fresh.spoolCheckSequence,
+                            spoolCheckNumber: fresh.spoolCheckNumber,
+                            handoverNotes: fresh.handoverNotes,
+                            nextShiftNote: fresh.nextShiftNote,
+                            startTime: fresh.startTime,
+                            endTime: fresh.endTime,
+                            billedMins: fresh.billedMins,
+                            rca: fresh.rca,
+                            eventData: fresh.eventData,
+                            seqGood: fresh.seqGood,
+                            seqDefects: fresh.seqDefects,
+                            seqMinsAtLotStart: fresh.seqMinsAtLotStart
+                        });
                     }
                 }
             }

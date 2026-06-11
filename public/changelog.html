@@ -135,6 +135,7 @@
                 <li>Fixed Precision Liner confirmation modals so the shared Confirm button cannot stay disabled after a previous submit lock, preventing End Shift from appearing greyed out until browser refresh.</li>
                 <li>Updated Precision Liner End Shift to snapshot the active associate workspace before deciding whether to submit an active job, reducing cases where only event data is sent.</li>
                 <li>Improved Precision Liner saved-shift restore so hour-by-hour tracker buckets are preserved even when Smartsheet config finishes loading after the local shift state.</li>
+                <li>Updated Precision Liner login handoff so a newly logged-in associate gets their own active workspace instead of inheriting the previous associate's selected workspace after an incomplete End Shift.</li>
                 <li>Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.</li>
                 <li>Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.</li>
                 <li>Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.</li>
