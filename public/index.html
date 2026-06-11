@@ -1281,8 +1281,9 @@
                         <div style="height: 1px; background: var(--border); margin: 18px 0;"></div>
                         <div class="row">
                             <div class="label">Time worked (Min)</div><input id="timeWorkedInput"
-                                class="input mono" style="width: 140px;" type="number" value="0" min="0"
-                                onchange="updateTimeWorked(this.value)">
+                                class="input mono" style="width: 140px;" type="text" inputmode="numeric" pattern="[0-9]*" value="0"
+                                onfocus="this.select()" onclick="this.select()"
+                                oninput="this.value=this.value.replace(/[^0-9]/g,''); updateTimeWorked(this.value)">
                         </div>
                         <div class="row">
                             <div class="label">Total Defects</div><input id="totalDefectsInput" class="input mono"
