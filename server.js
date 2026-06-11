@@ -367,7 +367,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 const EMPLOYEE_SCHEDULE_SHEET_ID = getRequiredEnv('DEPT_PL_CONFIG_SHEET_ID');
 const DEFECT_SEEDS_SHEET_ID = getRequiredEnv('DEPT_PL_DEFECT_SEEDS_SHEET_ID');
 const MASTER_LOG_SHEET_ID = getRequiredEnv('DEPT_PL_MASTER_LOG_SHEET_ID');
-const HOUR_BY_HOUR_SHEET_ID = getRequiredEnv('DEPT_PL_HOUR_BY_HOUR_SHEET_ID');
 
 // ==========================================
 // MASTER LOG COLUMN MAP
@@ -1652,73 +1651,6 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
         if (error.response?.status === 429) return res.status(429).json({ success: false, error: 'Rate limited.' });
         const details = smartsheetError?.message ? `Failed to submit PI JxJ data: ${smartsheetError.message}` : 'Failed to submit PI JxJ data.';
         res.status(500).json({ success: false, error: details });
-    }
-});
-
-// 4. Handle Hour by Hour PCD Submissions (separate sheet)
-app.post('/api/submit-pcd', async (req, res) => {
-    try {
-        const rows = req.body; // Array of { sequence, workDate, associate, H1_Good, H1_Bad, H1_Mins, ... }
-
-        // --- TEST ACCOUNT INTERCEPTION ---
-        if (rows.length > 0 && TEST_ACCOUNTS.includes(rows[0]['Associate Name'])) {
-            console.log(`[TEST MODE] Intercepted PCD submission for ${rows[0]['Associate Name']}. Bypassing Smartsheet.`);
-            return res.json({ success: true, message: `[TEST MODE] Successfully simulated logging ${rows.length} PCD row(s).`, data: [] });
-        }
-        // ---------------------------------
-
-        // Column mapping for the "Hour by Hour Tracker" sheet
-        const PCD_COLUMN_MAP = {
-            'Work Date': 8450494333407108,
-            'Associate Name': 287720008798084,
-            'Sequence': 4791319636168580,
-            'Event Name': 757865020428164,
-            'H1_Good': 2539519822483332, 'H1_Bad': 7043119449853828, 'H1_Mins': 1413619915640708,
-            'H2_Good': 5917219543011204, 'H2_Bad': 3665419729325956, 'H2_Mins': 8169019356696452,
-            'H3_Good': 850669962219396, 'H3_Bad': 5354269589589892, 'H3_Mins': 3102469775904644,
-            'H4_Good': 7606069403275140, 'H4_Bad': 1976569869062020, 'H4_Mins': 6480169496432516,
-            'H5_Good': 4228369682747268, 'H5_Bad': 8731969310117764, 'H5_Mins': 146982520442756,
-            'H6_Good': 4650582147813252, 'H6_Bad': 2398782334128004, 'H6_Mins': 6902381961498500,
-            'H7_Good': 1272882427285380, 'H7_Bad': 5776482054655876, 'H7_Mins': 3524682240970628,
-            'H8_Good': 8028281868341124, 'H8_Bad': 709932473864068, 'H8_Mins': 5213532101234564,
-            'H9_Good': 2961732287549316, 'H9_Bad': 7465331914919812, 'H9_Mins': 1835832380706692,
-            'H10_Good': 6339432008077188, 'H10_Bad': 4087632194391940, 'H10_Mins': 8591231821762436,
-            'H11_Good': 428457497153412, 'H11_Bad': 4932057124523908, 'H11_Mins': 2680257310838660,
-            'H12_Good': 7183856938209156, 'H12_Bad': 1554357403996036, 'H12_Mins': 6057957031366532
-        };
-
-        const smartsheetRows = rows.map(row => {
-            const newRow = { toTop: true, cells: [] };
-            for (const [key, value] of Object.entries(row)) {
-                if (PCD_COLUMN_MAP[key] && (value !== undefined && value !== null && value !== '')) {
-                    newRow.cells.push({
-                        columnId: PCD_COLUMN_MAP[key],
-                        value: value
-                    });
-                }
-            }
-            return newRow;
-        });
-
-        const response = await smartsheetApi.post(`sheets/${HOUR_BY_HOUR_SHEET_ID}/rows`, smartsheetRows);
-        logPortalUsage({
-            eventType: 'pcd_submit',
-            department: 'PL',
-            associateName: rows[0]?.['Associate Name'],
-            details: `Rows: ${smartsheetRows.length}`
-        });
-
-        res.json({ success: true, message: `Successfully logged ${smartsheetRows.length} PCD row(s).`, data: response.data });
-
-    } catch (error) {
-        console.error("Error submitting PCD to Smartsheet:", error.response?.data || error.message);
-        if (error.code === 'ECONNABORTED') {
-            return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });
-        }
-        if (error.response?.status === 429) {
-            return res.status(429).json({ success: false, error: 'Smartsheet is rate limited. Please wait a moment and try again.' });
-        }
-        res.status(500).json({ success: false, error: 'Failed to submit PCD data.' });
     }
 });
 

@@ -1137,7 +1137,7 @@
         <div class="grid">
             <div class="left-col">
                 <section class="card">
-                    <h2>Setup & Shift Boundary</h2>
+                    <h2>Setup</h2>
                     <div class="row" style="grid-template-columns: 100px 1fr;">
                         <label class="label">Work Date</label>
                         <input type="date" id="workDateInput" class="input"
@@ -1149,27 +1149,6 @@
                     </div>
 
                     <div id="jobHeaderFields">
-                        <div class="row" style="grid-template-columns: 100px 1fr 1fr;">
-                            <label class="label">Shift Window</label>
-                            <div>
-                                <div class="label" style="font-size: 10px; margin-bottom: 4px;">START</div>
-                                <div style="display:flex;gap:4px;"><select id="startH" class="custom-select"
-                                        onchange="updateTimeFromUI()"></select><select id="startP" class="custom-select"
-                                        onchange="updateTimeFromUI()">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select></div>
-                            </div>
-                            <div>
-                                <div class="label" style="font-size: 10px; margin-bottom: 4px;">END</div>
-                                <div style="display:flex;gap:4px;"><select id="endH" class="custom-select"
-                                        onchange="updateTimeFromUI()"></select><select id="endP" class="custom-select"
-                                        onchange="updateTimeFromUI()">
-                                        <option value="AM">AM</option>
-                                        <option value="PM">PM</option>
-                                    </select></div>
-                            </div>
-                        </div>
                         <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
                             <div class="row" style="margin-bottom:0; grid-template-columns: 100px 1fr;"><label
                                     class="label">Sequence</label>
@@ -1302,8 +1281,8 @@
                         <div style="height: 1px; background: var(--border); margin: 18px 0;"></div>
                         <div class="row">
                             <div class="label">Time worked (Min)</div><input id="timeWorkedInput"
-                                class="input mono input-auto" style="width: 140px;" type="number" value="0" readonly
-                                title="Automated Productivity Ledger">
+                                class="input mono" style="width: 140px;" type="number" value="0" min="0"
+                                onchange="updateTimeWorked(this.value)">
                         </div>
                         <div class="row">
                             <div class="label">Total Defects</div><input id="totalDefectsInput" class="input mono"
@@ -1361,48 +1340,8 @@
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;"><button
                                 id="btnSubmit" class="btn btn-green" onclick="handleSubmitJob()">Submit
-                                Job</button><button id="btnReset" class="btn btn-red"
-                                onclick="handleShiftResetTrigger()">End Shift Reset</button></div>
-                    </section>
-
-                    <section id="pcdTrackerCard" class="card">
-                        <div
-                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h2 style="margin:0;">Hour by Hour Tracker</h2>
-                            <div id="hourCountdown"
-                                style="font-size: 12px; color: var(--accent); font-weight: 700; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px;">
-                                --:-- REMAINING</div>
-                        </div>
-                        <div class="pcd-tabs">
-                            <button class="pcd-tab active" data-tab="Inspect"
-                                onclick="switchPcdTab('Inspect')">Inspect</button>
-                            <button class="pcd-tab" data-tab="Bundle" onclick="switchPcdTab('Bundle')">Bundle</button>
-                            <button class="pcd-tab" data-tab="Package"
-                                onclick="switchPcdTab('Package')">Package</button>
-                            <button class="pcd-tab" data-tab="Spool Check" onclick="switchPcdTab('Spool Check')">Spool
-                                Check</button>
-                            <button class="pcd-tab" data-tab="Re-Label"
-                                onclick="switchPcdTab('Re-Label')">Re-Label</button>
-                        </div>
-                        <div style="overflow-x: auto;">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Time Bucket</th>
-                                        <th>Goal</th>
-                                        <th>Total</th>
-                                        <th>Good</th>
-                                        <th>Bad</th>
-                                        <th>+/-</th>
-                                        <th>Min</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="pcdBody"></tbody>
-                                <tfoot id="pcdFooter"
-                                    style="background: rgba(255,255,255,0.05); border-top: 2px solid var(--border); font-weight: bold;">
-                                </tfoot>
-                            </table>
-                        </div>
+                                Job</button><button id="btnSignOut" class="btn btn-red"
+                                onclick="confirmPlSignOut(state.selectedOperator)">Sign Out</button></div>
                     </section>
                 </div>
             </div>
@@ -4260,11 +4199,13 @@
 
         /** Helper to capture current production state into a workspace object */
         function getActiveWorkspaceSnapshot() {
+            syncActivePlInputsToState();
             return {
                 sequence: state.sequence,
                 lotNumber: state.lotNumber,
                 itemNumber: state.itemNumber,
                 totalGood: state.totalGood,
+                timeWorked: state.timeWorked,
                 defects: JSON.parse(JSON.stringify(state.defects)),
                 pcdBySequence: JSON.parse(JSON.stringify(state.pcdBySequence)),
                 activePcdTab: state.activePcdTab,
@@ -4323,6 +4264,7 @@
             state.lotNumber = ws.lotNumber || "";
             state.itemNumber = ws.itemNumber || "";
             state.totalGood = ws.totalGood || 0;
+            state.timeWorked = ws.timeWorked || 0;
             state.defects = ws.defects ? JSON.parse(JSON.stringify(ws.defects)) : Object.fromEntries(DEFECTS.map(d => [d, 0]));
             state.pcdBySequence = ws.pcdBySequence ? JSON.parse(JSON.stringify(ws.pcdBySequence)) : {};
             state.activePcdTab = ws.activePcdTab || "Inspect";
@@ -4373,6 +4315,22 @@
                 state.activePcdTab = firstSavedSequence || 'Inspect';
             }
             state.pcd = state.pcdBySequence[state.activePcdTab] || [];
+        }
+
+        function syncActivePlInputsToState() {
+            const timeWorkedInput = document.getElementById('timeWorkedInput');
+            if (timeWorkedInput) state.timeWorked = Math.max(0, parseInt(timeWorkedInput.value) || 0);
+            const handoverNotesInput = document.getElementById('handoverNotes');
+            if (handoverNotesInput) state.handoverNotes = handoverNotesInput.value || '';
+            const eventSelect = document.getElementById('eventSelect');
+            const eventStart = document.getElementById('eventStartTimeRef');
+            const eventEnd = document.getElementById('eventEndTimeRef');
+            if (eventSelect || eventStart || eventEnd) {
+                if (!state.eventData) state.eventData = { type: "", startTimeRef: "", endTimeRef: "", exactStartMs: null };
+                state.eventData.type = eventSelect?.value || state.eventData.type || "";
+                state.eventData.startTimeRef = eventStart?.value || state.eventData.startTimeRef || "";
+                state.eventData.endTimeRef = eventEnd?.value || state.eventData.endTimeRef || "";
+            }
         }
 
         function applyPcdTabUI() {
@@ -4560,21 +4518,6 @@
 
         /** 3. INITIALIZATION FUNCTIONS **/
 
-        /** Populate the hour dropdowns (1–12) for shift start/end selectors */
-        function initTimeDropdowns() {
-            const startH = document.getElementById('startH');
-            const endH = document.getElementById('endH');
-            if (!startH || !endH) return;
-            startH.innerHTML = '<option value="">Select...</option>';
-            endH.innerHTML = '<option value="">Select...</option>';
-            for (let h = 1; h <= 12; h++) {
-                const o1 = document.createElement('option'); o1.value = h; o1.textContent = h; startH.appendChild(o1);
-                const o2 = document.createElement('option'); o2.value = h; o2.textContent = h; endH.appendChild(o2);
-            }
-            startH.value = "";
-            endH.value = "";
-        }
-
         /** Populate all RCA operator dropdowns from the ROSTER array */
         function initRosterDropdowns() {
             const selects = document.querySelectorAll('.rca-op-select');
@@ -4620,11 +4563,11 @@
                     if (op === user.name && user.role) span.textContent += ` (${user.role})`;
 
                     const btn = document.createElement('button');
-                    btn.textContent = 'Exit Without Submitting';
+                    btn.textContent = 'Sign Out';
                     btn.style.cssText = "background:transparent; border:none; color:#ef4444; border-radius:4px; cursor:pointer; font-size:11px; padding:0; text-transform:uppercase; font-weight:bold; transition:opacity 0.2s;";
                     btn.onmouseover = () => btn.style.opacity = '0.7';
                     btn.onmouseout = () => btn.style.opacity = '1';
-                    btn.onclick = () => confirmPlExitWithoutSubmitting(op);
+                    btn.onclick = () => confirmPlSignOut(op);
 
                     pill.appendChild(span);
                     pill.appendChild(btn);
@@ -4642,8 +4585,8 @@
                 const rm = document.createElement('button');
                 rm.className = 'kiosk-remove-btn';
                 rm.textContent = 'x';
-                rm.title = 'Exit without submitting this associate';
-                rm.onclick = (e) => { e.stopPropagation(); confirmPlExitWithoutSubmitting(name); };
+                rm.title = 'Sign out this associate';
+                rm.onclick = (e) => { e.stopPropagation(); confirmPlSignOut(name); };
                 btn.appendChild(rm);
                 btn.onclick = () => selectKioskOperator(name);
                 container.appendChild(btn);
@@ -4695,6 +4638,7 @@
                     lotNumber: fresh.lotNumber,
                     itemNumber: fresh.itemNumber,
                     totalGood: fresh.totalGood,
+                    timeWorked: fresh.timeWorked,
                     defects: fresh.defects,
                     pcdBySequence: fresh.pcdBySequence,
                     activePcdTab: fresh.activePcdTab,
@@ -4711,6 +4655,86 @@
 
             save();
             initKioskBar();
+        }
+
+        function workspaceHasUnsubmittedJob(ws) {
+            if (!ws) return false;
+            return Boolean(
+                ws.sequence ||
+                ws.lotNumber ||
+                ws.itemNumber ||
+                (Number(ws.totalGood) || 0) > 0 ||
+                (Number(ws.timeWorked) || 0) > 0 ||
+                workspaceDefectTotal(ws) > 0 ||
+                (ws.handoverNotes || '').trim()
+            );
+        }
+
+        function workspaceHasUnsubmittedEvent(ws, isActive) {
+            const eventData = ws?.eventData || {};
+            if (eventData.type || eventData.startTimeRef || eventData.endTimeRef) return true;
+            if (!isActive) return false;
+            return Boolean(
+                document.getElementById('eventSelect')?.value ||
+                document.getElementById('eventStartTimeRef')?.value ||
+                document.getElementById('eventEndTimeRef')?.value
+            );
+        }
+
+        function confirmPlSignOut(op) {
+            if (!op) return;
+            const isCurrentlySelected = op === state.selectedOperator;
+            if (isCurrentlySelected) {
+                state.handoverNotes = document.getElementById('handoverNotes')?.value || state.handoverNotes || '';
+                if (!state.workspaces) state.workspaces = {};
+                state.workspaces[op] = getActiveWorkspaceSnapshot();
+            }
+            const ws = getWorkspaceForOperator(op) || {};
+            if (workspaceHasUnsubmittedJob(ws)) {
+                customConfirm('Action Required', `${op} has unsubmitted job data. Submit Job first, then sign out.`, () => {}, true);
+                return;
+            }
+            if (workspaceHasUnsubmittedEvent(ws, isCurrentlySelected)) {
+                customConfirm('Action Required', `${op} has unsent event data. Submit Event first, then sign out.`, () => {}, true);
+                return;
+            }
+            customConfirm('Sign Out', `Sign out ${op}?`, () => completePlSignOut(op));
+        }
+
+        function completePlSignOut(op) {
+            if (!op) return;
+            const wasSelected = state.selectedOperator === op;
+            if (!Array.isArray(state.activeUsers)) state.activeUsers = [];
+            if (!state.workspaces) state.workspaces = {};
+
+            delete state.workspaces[op];
+            state.activeUsers = state.activeUsers.filter(name => name !== op);
+            releaseKioskLock(op, 'PL');
+
+            const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+            if (currentUser.name === op && state.activeUsers.length > 0) {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    ...currentUser,
+                    name: state.activeUsers[0],
+                    role: currentUser.role || 'Associate'
+                }));
+            }
+
+            if (state.activeUsers.length === 0) {
+                performLogout();
+                return;
+            }
+
+            if (wasSelected) {
+                state.selectedOperator = '';
+                state.associate = '';
+                selectKioskOperator(state.activeUsers[0]);
+            } else {
+                save();
+                initKioskBar();
+                updateActiveOperatorUI();
+            }
+            showToast(`${op} signed out.`);
         }
 
         function confirmPlExitWithoutSubmitting(op) {
@@ -5058,34 +5082,6 @@
             const elE = document.getElementById('endQtyInput'); if (elE) elE.value = goodParts;
             const elG = document.getElementById('goodPartsInput'); if (elG) elG.value = goodParts;
 
-            if (state.currentHourIndex !== -1) {
-                const now = new Date(); const [sh, sm] = (state.startTime || "05:00").split(':').map(Number);
-                const shiftStart = new Date(now); shiftStart.setHours(sh, sm, 0, 0);
-                if (shiftStart > new Date() && sh >= 12 && new Date().getHours() < 12) shiftStart.setDate(shiftStart.getDate() - 1);
-                let totalProductiveSoFar = 0;
-                // Use the working sequence's buckets (not necessarily the viewed PCD tab)
-                const timeBuckets = (state.sequence && state.pcdBySequence[state.sequence])
-                    ? state.pcdBySequence[state.sequence]
-                    : state.pcd;
-                // Sum flushed seqMins from all completed hour buckets.
-                // seqMins already excludes event time (flushSequenceTime stops at event start),
-                // so no billedMins deduction is needed.
-                for (let i = 0; i < state.currentHourIndex; i++) {
-                    if (timeBuckets && timeBuckets[i]) totalProductiveSoFar += (timeBuckets[i].seqMins || 0);
-                }
-                // For the current hour: flushed seqMins + live unflushed time since sequenceStartTime,
-                // clipped to the current hour boundary (mirrors flushSequenceTime logic).
-                if (timeBuckets && timeBuckets[state.currentHourIndex]) {
-                    let currentHourMins = timeBuckets[state.currentHourIndex].seqMins || 0;
-                    if (state.sequenceStartTime) {
-                        const currentHourStartMs = shiftStart.getTime() + (state.currentHourIndex * 3600000);
-                        const liveStart = Math.max(state.sequenceStartTime, currentHourStartMs);
-                        currentHourMins += Math.max(0, Math.floor((Date.now() - liveStart) / 60000));
-                    }
-                    totalProductiveSoFar += currentHourMins;
-                }
-                state.timeWorked = Math.max(0, totalProductiveSoFar);
-            }
             const elTw = document.getElementById('timeWorkedInput'); if (elTw) elTw.value = state.timeWorked;
 
             const badge = document.getElementById('yieldBadge');
@@ -5097,7 +5093,8 @@
             } else { if (badge) badge.textContent = "—"; if (yieldSection) yieldSection.style.display = 'none'; }
 
             let sumGoal = 0, sumGood = 0, sumBad = 0, sumMins = 0;
-            const pcdBody = document.getElementById('pcdBody'); if (!pcdBody) return;
+            const pcdBody = document.getElementById('pcdBody');
+            if (pcdBody) {
             pcdBody.innerHTML = '';
             (state.pcd || []).forEach((row, idx) => {
                 if (!row) return;
@@ -5130,6 +5127,8 @@
                 tr.innerHTML = `<td class="mono" style="font-weight:600;">${getHourLabel(idx)}${taktBarHtml}</td><td class="mono">${row.goal}</td><td class="mono">${(row.good || 0) + (row.bad || 0)}</td><td class="mono" style="font-weight:bold; color:${idx === state.currentHourIndex ? 'var(--accent)' : 'inherit'}">${row.good || 0}</td><td class="mono" style="color:var(--danger)">${row.bad || 0}</td><td class="mono ${varianceClass}">${varianceText}</td><td class="mono">${row.actMins}</td>`;
                 pcdBody.appendChild(tr);
             });
+
+            }
 
             const pcdFooter = document.getElementById('pcdFooter');
             if (pcdFooter) {
@@ -5194,113 +5193,9 @@
             updateEventDuration();
         }
 
-        function updateTimeFromUI() {
-            const sH = document.getElementById('startH'); const sP = document.getElementById('startP');
-            const eH = document.getElementById('endH'); const eP = document.getElementById('endP');
-            if (!sH || !sP || !eH || !eP) return;
-            const getTimeStr = (hVal, pVal) => {
-                let h = parseInt(hVal); if (pVal === 'PM' && h < 12) h += 12; if (pVal === 'AM' && h === 12) h = 0; return `${h.toString().padStart(2, '0')}:00`;
-            };
-            state.startTime = getTimeStr(sH.value, sP.value); state.endTime = getTimeStr(eH.value, eP.value);
-            const [sh, sm] = state.startTime.split(':').map(Number); const [eh, em] = state.endTime.split(':').map(Number);
-            let start = new Date(2000, 0, 1, sh, sm); let end = new Date(2000, 0, 1, eh, em); if (end <= start) end.setDate(end.getDate() + 1);
-            const dh = Math.ceil((end - start) / (3600000));
-            ensurePcdState();
-            const activeBuckets = state.pcdBySequence[state.activePcdTab] || [];
-            // Warn if shrinking the window would discard PCD buckets that have data
-            if (dh < activeBuckets.length) {
-                const discarded = activeBuckets.slice(dh);
-                const hasData = discarded.some(b => (b.good || 0) > 0 || (b.bad || 0) > 0 || (b.downtimeReasons || []).length > 0);
-                if (hasData) {
-                    customConfirm("Shift Window Changed", `Reducing to ${dh} hours will discard data in hours ${dh + 1}-${activeBuckets.length}. Continue?`, () => {
-                        PCD_SEQUENCES.forEach(seq => {
-                            const seqBuckets = state.pcdBySequence[seq] || [];
-                            state.pcdBySequence[seq] = Array.from(
-                                { length: dh },
-                                (_, i) => seqBuckets[i] || { hour: i + 1, goal: SEQUENCE_GOALS[seq] || 0, good: 0, bad: 0, planMins: 50, seqMins: 0, actMins: 0, downtimeReasons: [] }
-                            );
-                        });
-                        const evBuckets = state.pcdBySequence['__events__'] || [];
-                        state.pcdBySequence['__events__'] = Array.from(
-                            { length: dh },
-                            (_, i) => evBuckets[i] || { hour: i + 1, seqMins: 0, eventNames: [] }
-                        );
-                        state.pcd = state.pcdBySequence[state.activePcdTab];
-                        save();
-                    });
-                    return;
-                }
-            }
-            PCD_SEQUENCES.forEach(seq => {
-                const seqBuckets = state.pcdBySequence[seq] || [];
-                state.pcdBySequence[seq] = Array.from(
-                    { length: dh },
-                    (_, i) => seqBuckets[i] || { hour: i + 1, goal: SEQUENCE_GOALS[seq] || 0, good: 0, bad: 0, planMins: 50, seqMins: 0, actMins: 0, downtimeReasons: [] }
-                );
-            });
-            const evBucketsD = state.pcdBySequence['__events__'] || [];
-            state.pcdBySequence['__events__'] = Array.from(
-                { length: dh },
-                (_, i) => evBucketsD[i] || { hour: i + 1, seqMins: 0, eventNames: [] }
-            );
-            state.pcd = state.pcdBySequence[state.activePcdTab];
-            save();
-        }
-
         function updateClock() {
             const nowTs = Date.now(); const nowObj = new Date(nowTs);
             const dtEl = document.getElementById('currentDateTime'); if (dtEl) dtEl.textContent = nowObj.toLocaleDateString() + ' ' + nowObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            if (state.startTime && state.endTime) {
-                const [sh, sm] = state.startTime.split(':').map(Number);
-                const start = new Date(nowObj); start.setHours(sh, sm, 0, 0);
-                if (start > new Date() && sh >= 12 && new Date().getHours() < 12) start.setDate(start.getDate() - 1);
-                const ni = Math.floor((nowObj - start) / 3600000);
-                if (ni >= 0 && ni < (state.pcd?.length || 12) && ni !== state.currentHourIndex) { state.currentHourIndex = ni; save(); }
-                const timerEl = document.getElementById('shiftTimer');
-                if (nowObj >= start) {
-                    if (timerEl) { timerEl.style.display = "inline-block"; const ts = Math.floor((nowObj - start) / 1000); timerEl.textContent = `${Math.floor(ts / 3600).toString().padStart(2, '0')}:${Math.floor((ts % 3600) / 60).toString().padStart(2, '0')}:${(ts % 60).toString().padStart(2, '0')}`; }
-                    const countdownEl = document.getElementById('hourCountdown'); const rh = 3600000 - ((nowObj - start) % 3600000);
-                    if (countdownEl) countdownEl.textContent = `${Math.floor(rh / 60000).toString().padStart(2, '0')}:${Math.floor((rh % 60000) / 1000).toString().padStart(2, '0')} REMAINING`;
-                }
-
-                // --- SHIFT END LOGIC ---
-                const [eh, em] = state.endTime.split(':').map(Number);
-                const shiftEnd = new Date(nowObj); shiftEnd.setHours(eh, em, 0, 0);
-                if (shiftEnd <= start) shiftEnd.setDate(shiftEnd.getDate() + 1);
-
-                const minsToShiftEnd = (shiftEnd - nowObj) / 60000;
-
-                // 1. Pulsing Warning
-                const btnReset = document.getElementById('btnReset');
-                if (btnReset) {
-                    if (minsToShiftEnd <= 15 && minsToShiftEnd > -120) {
-                        btnReset.classList.add('pulse-warn');
-                    } else {
-                        btnReset.classList.remove('pulse-warn');
-                    }
-                }
-
-                // 2. Modal Popup
-                if (minsToShiftEnd <= 5 && minsToShiftEnd > -120 && !state.shiftEndModalShown) {
-                    state.shiftEndModalShown = true;
-                    save();
-                    customConfirm("Shift Ending Soon", "Your shift ends in 5 minutes! Please finalize any notes and click End Shift Reset to submit your tracker.", () => { }, true);
-                }
-
-                // 3. Lockout (Wait until 5 minutes over to lock out part inputs)
-                const isLockedOut = minsToShiftEnd <= -5;
-                const toggleLockout = (locked) => {
-                    const btnPlus1 = document.getElementById('btnPlus1');
-                    if (btnPlus1) btnPlus1.disabled = locked;
-                    const btnPlus5 = document.getElementById('btnPlus5');
-                    if (btnPlus5) btnPlus5.disabled = locked;
-                    const btnNewLot = document.getElementById('btnNewLot');
-                    if (btnNewLot) btnNewLot.disabled = locked;
-                    const defectBtns = document.querySelectorAll('#defectList button');
-                    defectBtns.forEach(b => b.disabled = locked);
-                };
-                toggleLockout(isLockedOut);
-            }
             updateEventDuration();
             render();
         }
@@ -5364,7 +5259,7 @@
             state.shiftTotalBadByUser[op] = (state.shiftTotalBadByUser[op] || 0) + userBad;
 
             // Calculate time worked for this lot specifically
-            const lotTimeWorked = calculateOpTimeWorked(ws);
+            const lotTimeWorked = Number(ws.timeWorked) || 0;
 
             // Snapshot current seqMins totals so next lot can isolate its own time
             const newSeqMinsAtLotStart = {};
@@ -5380,6 +5275,7 @@
                 lotNumber: "",
                 itemNumber: "",
                 totalGood: 0,
+                timeWorked: 0,
                 defects: Object.fromEntries(DEFECTS.map(d => [d, 0])),
                 seqGood: {},
                 seqDefects: {},
@@ -5434,8 +5330,7 @@
         function validateShiftSetup() {
             let valid = true;
             if (!state.selectedOperator && (!state.activeUsers || state.activeUsers.length === 0)) { valid = false; }
-            if (!state.startTime || state.startTime === "") { valid = false; }
-            if (!valid) showToast("⚠️ ERROR: Operator & Shift Times required.");
+            if (!valid) showToast("⚠️ ERROR: Select an associate before entering data.");
             return valid;
         }
 
@@ -5521,7 +5416,6 @@
         function addGood(val) {
             if (!validateShiftSetup()) return;
             if (!validateJobDetails()) return;
-            if (state.currentHourIndex === -1) return showToast("⚠️ Outside shift window.");
             const op = state.selectedOperator;
             state.totalGood += val;
             if (!state.totalGoodByUser) state.totalGoodByUser = {};
@@ -5532,7 +5426,7 @@
             }
 
             const targetBuckets = getActiveRecordSequenceArray();
-            if (targetBuckets[state.currentHourIndex]) {
+            if (state.currentHourIndex !== -1 && targetBuckets[state.currentHourIndex]) {
                 targetBuckets[state.currentHourIndex].good += val;
                 if (!targetBuckets[state.currentHourIndex].goodByUser) targetBuckets[state.currentHourIndex].goodByUser = {};
                 targetBuckets[state.currentHourIndex].goodByUser[op] = (targetBuckets[state.currentHourIndex].goodByUser[op] || 0) + val;
@@ -5543,7 +5437,6 @@
         function updateGood(val) {
             if (!validateShiftSetup()) return;
             if (!validateJobDetails()) return;
-            if (state.currentHourIndex === -1) return showToast("⚠️ Outside shift window.");
             const op = state.selectedOperator;
             const nv = Math.max(0, parseInt(val) || 0);
             const diff = nv - state.totalGood;
@@ -5555,7 +5448,7 @@
                 state.seqGood[state.sequence] = (state.seqGood[state.sequence] || 0) + diff;
             }
             const targetBuckets = getActiveRecordSequenceArray();
-            if (targetBuckets[state.currentHourIndex]) {
+            if (state.currentHourIndex !== -1 && targetBuckets[state.currentHourIndex]) {
                 targetBuckets[state.currentHourIndex].good += diff;
                 if (!targetBuckets[state.currentHourIndex].goodByUser) targetBuckets[state.currentHourIndex].goodByUser = {};
                 targetBuckets[state.currentHourIndex].goodByUser[op] = (targetBuckets[state.currentHourIndex].goodByUser[op] || 0) + diff;
@@ -5566,7 +5459,6 @@
         function addDefect(name) {
             if (!validateShiftSetup()) return;
             if (!validateJobDetails()) return;
-            if (state.currentHourIndex === -1) return showToast("⚠️ Outside shift window.");
             const op = state.selectedOperator;
             state.defects[name] = (state.defects[name] || 0) + 1;
             if (!state.defectsByUser) state.defectsByUser = {};
@@ -5611,6 +5503,11 @@
             applyPcdTabUI();
         }
 
+        function updateTimeWorked(val) {
+            state.timeWorked = Math.max(0, parseInt(val) || 0);
+            save();
+        }
+
         function handleEventSubmit() {
             if (!validateShiftSetup()) return;
             const evT = document.getElementById('eventSelect').value;
@@ -5620,7 +5517,7 @@
             const evM = calcEventMinutes(evS, evE);
             if (evM <= 0) return showToast("⚠️ End time must be after start time.");
             customConfirm("Log Event", `Bill ${evM}m to ${evT}?`, () => {
-                if (!beginSubmitLock('pl-event', ['btnSubmit', 'btnReset', 'modalConfirm'])) return;
+                if (!beginSubmitLock('pl-event', ['btnSubmit', 'btnSignOut', 'modalConfirm'])) return;
                 (async () => {
                     showSubmittingOverlay('Please Wait', 'Submitting event to Smartsheet...');
                     const priorSequenceStartTime = state.sequenceStartTime;
@@ -5699,126 +5596,6 @@
             if (endTimeRef) { state.eventData.endTimeRef = endTimeRef.value; save(); }
         }
 
-        function handleShiftResetTrigger() {
-            const currentUser = state.selectedOperator;
-            if (!currentUser) {
-                showToast("⚠️ Select an associate before ending shift.");
-                return;
-            }
-            state.handoverNotes = document.getElementById('handoverNotes').value;
-            if (!state.workspaces) state.workspaces = {};
-            state.workspaces[currentUser] = getActiveWorkspaceSnapshot();
-            const shiftEndWorkspace = state.workspaces[currentUser];
-            const rdTotal = Object.values(shiftEndWorkspace.defects || {}).reduce((a, b) => a + (Number(b) || 0), 0);
-            const seqGoodTotal = Object.values(shiftEndWorkspace.seqGood || {}).reduce((a, b) => a + (Number(b) || 0), 0);
-            const seqDefectTotal = Object.values(shiftEndWorkspace.seqDefects || {}).reduce((total, seqDefs) =>
-                total + Object.values(seqDefs || {}).reduce((a, b) => a + (Number(b) || 0), 0), 0);
-            const hasActiveLot = Boolean(
-                shiftEndWorkspace.lotNumber ||
-                shiftEndWorkspace.itemNumber ||
-                (Number(shiftEndWorkspace.totalGood) || 0) > 0 ||
-                rdTotal > 0 ||
-                seqGoodTotal > 0 ||
-                seqDefectTotal > 0
-            );
-            const pcdRowCount = buildPcdSubmissionRows(shiftEndWorkspace, currentUser).filteredRows.length;
-            const hasLiveSequenceTime = Boolean(currentUser === state.selectedOperator && state.sequence && state.sequenceStartTime);
-            let activeLotSubmitted = !hasActiveLot;
-            let shiftEndSubmitted = false;
-
-            const performShiftEnd = () => {
-                (async () => {
-                    clearPlSubmissionError();
-                    showSubmittingOverlay('Please Wait', 'Submitting shift data to Smartsheet...');
-
-                    // Auto-submit the active lot if there is one
-                    if (!activeLotSubmitted) {
-                        const lotSaved = await submitToSmartsheet("Job", "", 0, currentUser);
-                        if (!lotSaved) {
-                            showPlEndShiftFailure('Failed to submit active lot. End Shift aborted.', performShiftEnd);
-                            return;
-                        }
-                        activeLotSubmitted = true;
-                        handleNewLot(currentUser);
-                    }
-
-                    if (!shiftEndSubmitted) {
-                        const saved = await submitToSmartsheet("Event", "Shift End", 0, currentUser);
-                        if (!saved) {
-                            showPlEndShiftFailure('Failed to submit Shift End event.', performShiftEnd);
-                            return;
-                        }
-                        shiftEndSubmitted = true;
-                    }
-
-                    const pcdSaved = await submitPcdToSmartsheet(currentUser);
-                    if (!pcdSaved) {
-                        showPlEndShiftFailure('Failed to submit hour-by-hour data.', performShiftEnd);
-                        return;
-                    }
-                    hideSubmittingOverlay();
-
-                    if (state.nextShiftNote && state.nextShiftNote.trim()) {
-                        localStorage.setItem('pcd_handover_note', state.nextShiftNote.trim());
-                    }
-
-                    // Clear the operator's production data before logging them out
-                    state.lotNumber = ""; state.itemNumber = ""; state.totalGood = 0; state.sequence = ""; state.handoverNotes = "";
-                    state.defects = Object.fromEntries(DEFECTS.map(d => [d, 0]));
-                    state.spoolCheckSequence = ""; state.spoolCheckNumber = "";
-                    state.rca = createInitialState().rca;
-
-                    if (state.workspaces) delete state.workspaces[currentUser];
-                    releaseKioskLock(currentUser, 'PL');
-
-                    // Remove current operator and move to the next or clear station
-                    const remaining = state.activeUsers.filter(u => u !== currentUser);
-                    if (remaining.length > 0) {
-                        // If the departing user is the localStorage primary, transfer ownership
-                        const lsUser = JSON.parse(localStorage.getItem('currentUser')) || {};
-                        if (lsUser.name === currentUser) {
-                            // Promote the next remaining user to be the localStorage primary
-                            localStorage.setItem('currentUser', JSON.stringify({ name: remaining[0], role: lsUser.role || 'Associate' }));
-                        }
-                        removeKioskUser(currentUser);
-                        showToast(`${currentUser} signed out. Station transferred.`);
-                    } else {
-                        // Last user — fully log out of the portal
-                        localStorage.removeItem(SHIFT_KEY);
-                        localStorage.removeItem('currentUser');
-                        window.location.href = '/login.html';
-                    }
-                })();
-            };
-            const confirmAndPerformShiftEnd = () => {
-                if (pcdRowCount === 0 && !hasLiveSequenceTime) {
-                    customConfirm(
-                        'No Hour-by-Hour Data',
-                        `${currentUser} has no hour-by-hour good, bad, or minute data to submit. Continue ending shift anyway?`,
-                        performShiftEnd
-                    );
-                    return;
-                }
-                performShiftEnd();
-            };
-
-            const now = new Date(); const [endH, endM] = (state.endTime || "13:00").split(':').map(Number);
-            const shiftEnd = new Date(now); shiftEnd.setHours(endH, endM, 0, 0);
-            const graceMs = 15 * 60 * 1000;
-            const isEarlyLogout = now < (shiftEnd - graceMs);
-
-            // Build the confirmation message based on whether there's an active lot
-            const lotMsg = hasActiveLot ? "Submit active lot, " : "";
-
-            if (isEarlyLogout) {
-                const notes = state.handoverNotes.trim();
-                if (notes.length < 10) { showToast("⚠️ EARLY LOGOUT: Min 10 chars in Notes."); return; }
-                customConfirm("Early Logout", `${lotMsg}transmit Shift End, and sign out?`, confirmAndPerformShiftEnd);
-            } else {
-                customConfirm("End Shift", `${lotMsg}submit shift summary, and sign out?`, confirmAndPerformShiftEnd);
-            }
-        }
-
         function handleSubmitJob() {
             if (!validateShiftSetup()) return;
             if (!isSixDigitItemNumber(state.itemNumber)) {
@@ -5850,7 +5627,7 @@
                 : `${warning}Send Job to Smartsheet for ${op}?\n\n${detailLines}`;
                 
             customConfirm(`Submit Job for ${op}`, promptMsg, () => {
-                if (!beginSubmitLock('pl-job', ['btnSubmit', 'btnReset', 'modalConfirm'])) return;
+                if (!beginSubmitLock('pl-job', ['btnSubmit', 'btnSignOut', 'modalConfirm'])) return;
                 (async () => {
                     try {
                         showSubmittingOverlay('Please Wait', 'Submitting to Smartsheet...');
@@ -5939,7 +5716,8 @@
                         const seqDefs = wsSeqDefects[seq] || {};
                         const badTotal = Object.values(seqDefs).reduce((a, b) => a + b, 0);
                         const pcdBuckets = wsPcdBySequence[seq] || [];
-                        const totalSeqMins = pcdBuckets.reduce((sum, b) => sum + (b.seqMins || 0), 0);
+                        const manualMins = seq === (wsSnap.sequence || '') ? (Number(wsSnap.timeWorked) || 0) : 0;
+                        const totalSeqMins = manualMins || pcdBuckets.reduce((sum, b) => sum + (b.seqMins || 0), 0);
                         const lotStartMins = (wsSnap.seqMinsAtLotStart || {})[seq] || 0;
                         const lotMins = Math.max(0, totalSeqMins - lotStartMins);
                         return { seq, goodCount, seqDefs, badTotal, lotMins };
@@ -5952,7 +5730,7 @@
                         goodCount: wsSnap.totalGood || 0,
                         seqDefs: wsSeqDefects[wsSnap.sequence || ''] || {},
                         badTotal: Object.values(wsSeqDefects[wsSnap.sequence || ''] || {}).reduce((a, b) => a + b, 0),
-                        lotMins: 0
+                        lotMins: Number(wsSnap.timeWorked) || 0
                     }];
                 }
 
@@ -6083,114 +5861,6 @@
             }
         }
 
-        function buildPcdSubmissionRows(ws, op) {
-            const pcdBySequence = ws?.pcdBySequence || {};
-            const allRows = [];
-            const sequenceNames = PCD_SEQUENCES.length > 0
-                ? PCD_SEQUENCES
-                : Object.keys(pcdBySequence).filter(seq => seq && seq !== '__events__');
-
-            sequenceNames.forEach(seq => {
-                const buckets = pcdBySequence[seq] || [];
-                const row = {
-                    'Work Date': state.workDate,
-                    'Associate Name': op,
-                    'Sequence': seq
-                };
-
-                buckets.forEach(h => {
-                    row[`H${h.hour}_Good`] = h.good || 0;
-                    row[`H${h.hour}_Bad`] = h.bad || 0;
-                    row[`H${h.hour}_Mins`] = h.seqMins || 0;
-                });
-
-                allRows.push(row);
-            });
-
-            // Build Event row from __events__ buckets
-            const evBuckets = pcdBySequence['__events__'] || [];
-            const hasEventData = evBuckets.some(b => (b.seqMins || 0) > 0);
-            if (hasEventData) {
-                const evRow = {
-                    'Work Date': state.workDate,
-                    'Associate Name': op,
-                    'Sequence': 'Event',
-                    'Event Name': [...new Set(evBuckets.flatMap(b => b.eventNames || []))].join(', ')
-                };
-                evBuckets.forEach(b => {
-                    evRow[`H${b.hour}_Mins`] = b.seqMins || 0;
-                });
-                allRows.push(evRow);
-            }
-
-            const filteredRows = allRows.filter(row => {
-                for (let i = 1; i <= 12; i++) {
-                    if ((row[`H${i}_Good`] || 0) > 0) return true;
-                    if ((row[`H${i}_Bad`] || 0) > 0) return true;
-                    if ((row[`H${i}_Mins`] || 0) > 0) return true;
-                }
-                return false;
-            });
-
-            return { allRows, filteredRows };
-        }
-
-        async function submitPcdToSmartsheet(opName = "") {
-            ensurePcdState();
-            const op = opName || state.selectedOperator || state.associate || '';
-            if (!op) {
-                setPlSubmissionError('No associate was selected for the hour-by-hour submission.');
-                return false;
-            }
-
-            // Flush any un-committed on-sequence time before snapshotting
-            if (op === (state.selectedOperator || state.associate) && state.sequence && state.sequenceStartTime) {
-                flushSequenceTime(state.sequence);
-                // Restart timer so ongoing time continues accumulating if the shift is still active
-                state.sequenceStartTime = state.sequence ? Date.now() : null;
-            }
-
-            // Get workspace for PCD data source
-            const ws = (op === state.selectedOperator) ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
-            const { filteredRows } = buildPcdSubmissionRows(ws, op);
-
-            if (!filteredRows.length) return true;
-
-            showToast("Submitting hour-by-hour tracker...");
-
-            try {
-                const response = await fetchWithTimeout(`${API_BASE_URL}/submit-pcd`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(filteredRows)
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    if (isTestAccount(op)) {
-                        showToast("✅ (Training Mode) Simulated hour-by-hour tracker saved.");
-                    } else {
-                        showToast("✅ Hour-by-hour tracker saved.");
-                    }
-                    return true;
-                }
-
-                console.error("PCD submission failed:", result);
-                setPlSubmissionError(result.error || result.message || 'Hour-by-hour tracker was rejected by the server.');
-                showToast("❌ Failed to save hour-by-hour tracker.");
-                return false;
-            } catch (err) {
-                console.error("PCD API error:", err);
-                setPlSubmissionError(err.message || 'Network error saving hour-by-hour tracker.');
-                if (err.message.includes('timed out')) {
-                    showToast("❌ Server timed out saving tracker. Try again.");
-                } else {
-                    showToast("❌ Network error saving hour-by-hour tracker.");
-                }
-                return false;
-            }
-        }
-
         // Expose init/build functions so fetchSmartsheetData can call them once data arrives.
         function renderDropdowns() {
             initKioskBar();
@@ -6202,88 +5872,6 @@
             buildDefects();
             // Re-sync UI to make sure values map to new elements properly
             syncUIToState();
-        }
-
-        function handleUserLogout(op) {
-            const currentUser = JSON.parse(localStorage.getItem('currentUser')) || {};
-            if (currentUser.role === 'Supervisor' && currentUser.name === op) {
-                customConfirm('Logout', `Log out ${op}?`, performLogout);
-                return;
-            }
-            const isCurrentlySelected = (op === state.selectedOperator);
-            const ws = isCurrentlySelected ? getActiveWorkspaceSnapshot() : (state.workspaces[op] || getActiveWorkspaceSnapshot());
-            const rd = Object.values(ws.defects || {}).reduce((a, b) => a + (b || 0), 0);
-            const hasUnsaved = ws.lotNumber || (ws.totalGood > 0) || (rd > 0);
-
-            const performUserLogout = () => {
-                (async () => {
-                    const isTest = isTestAccount(op);
-                    showSubmittingOverlay('Please Wait', `Submitting ${op}'s data to Smartsheet...`);
-                    if (hasUnsaved) {
-                        const lotSaved = await submitToSmartsheet("Job", "", 0, op);
-                        if (!lotSaved) {
-                            updateSubmittingOverlay('Submission Failed', 'Failed to submit active lot. Logout aborted.', true);
-                            return;
-                        }
-                        
-                        // clear state so it doesn't leak if they are the currently selected operator
-                        if (isCurrentlySelected) {
-                            state.lotNumber = ""; state.itemNumber = ""; state.totalGood = 0; state.sequence = "";
-                            state.defects = Object.fromEntries(DEFECTS.map(d => [d, 0]));
-                        }
-                    }
-
-                    const saved = await submitToSmartsheet("Event", "Shift End", 0, op);
-                    if (!saved) {
-                        updateSubmittingOverlay('Submission Failed', 'Failed to submit Shift End event.', true);
-                        return;
-                    }
-                    const pcdSaved = await submitPcdToSmartsheet(op);
-                    if (!pcdSaved) {
-                        updateSubmittingOverlay('Submission Failed', 'Failed to submit hour-by-hour data.', true);
-                        return;
-                    }
-                    hideSubmittingOverlay();
-
-                    if (state.workspaces) delete state.workspaces[op];
-                    releaseKioskLock(op, 'PL');
-
-                    // If they are the primary local storage user, pass ownership
-                    const lsUser = JSON.parse(localStorage.getItem('currentUser')) || {};
-                    const remaining = state.activeUsers.filter(u => u !== op);
-                    if (lsUser.name === op && remaining.length > 0) {
-                        localStorage.setItem('currentUser', JSON.stringify({ name: remaining[0], role: 'Associate' }));
-                    }
-
-                    if (remaining.length === 0) {
-                        performLogout();
-                    } else {
-                        removeKioskUser(op);
-                        showToast(`✅ ${op} logged out successfully.`);
-                    }
-                })();
-            };
-
-            const now = new Date(); 
-            const [endH, endM] = (ws.endTime || state.endTime || "13:00").split(':').map(Number);
-            const shiftEnd = new Date(now); shiftEnd.setHours(endH, endM, 0, 0);
-            const graceMs = 15 * 60 * 1000;
-            const isEarlyLogout = now < (shiftEnd - graceMs);
-
-            if (isEarlyLogout) {
-                const notes = (ws.handoverNotes || "").trim();
-                // Ensure the user switches to the operator first if they need to type notes for them
-                if (notes.length < 10) { 
-                    showToast(`⚠️ EARLY LOGOUT: Minimum 10 characters required in Notes for ${op}. Select them and add notes.`); 
-                    return; 
-                }
-            }
-
-            if (hasUnsaved) {
-                customConfirm('⚠️ Unsubmitted Work', `Submit active lot and log out ${op}?`, performUserLogout);
-            } else {
-                customConfirm('Logout Operator', `Are you sure you want to securely log out ${op}?`, performUserLogout);
-            }
         }
 
         function performLogout() {
@@ -6323,8 +5911,6 @@
             // Trigger the background data fetch from Smartsheet.
             // renderDropdowns() and renderDefectLog() will be called automatically when data arrives.
             fetchSmartsheetData();
-
-            initTimeDropdowns();      // populate hour selects (1-12)
 
             const user = JSON.parse(localStorage.getItem('currentUser')) || {};
             const adminBtn = document.getElementById('navAdminBtn');
@@ -6541,7 +6127,6 @@
             const rcBO = document.getElementById('rca_pebax_ops'); if (rcBO) rcBO.onchange = (e) => { state.rca.pebaxOps = e.target.value; save(); };
             const rcCS = document.getElementById('rca_comment_status'); if (rcCS) rcCS.onchange = (e) => { state.rca.commentStatus = e.target.value; save(); };
 
-            updateTimeFromUI();
             setInterval(updateClock, 1000);
 
             // #1: "G" / "H" keyboard shortcuts for +5 / +1 Good Units (PL only, not typing in a field)
