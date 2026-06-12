@@ -9,7 +9,7 @@ A manufacturing metrics portal for PrecisionLiner, PTFE, and future Polyimide pr
 - PTFE production entry with standards lookup, pareto capture, and Job x Job tracker.
 - Department-specific admin pages for PL and PTFE.
 - Smartsheet-backed configuration, authentication, and production logs.
-- Test accounts for local validation without Smartsheet writes.
+- Department-specific test paths for local validation without Smartsheet writes.
 
 ## Technology Stack
 
@@ -122,14 +122,7 @@ Do not update the changelog for every commit. Add entries to `CHANGELOG.md` unde
 
 ## Test Accounts
 
-Password for all test accounts: `trenton1`.
-
-- `test-pl`
-- `test-pl-super`
-- `test-ptfe`
-- `test-ptfe-super`
-- `test-pi`
-- `test-pi-super`
+Local validation supports department-specific test users for PL, PTFE, and PI operator/supervisor flows. Keep test credentials in local configuration or development notes rather than publishing reusable passwords in the README.
 
 ## Notes
 
