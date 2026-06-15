@@ -4659,16 +4659,20 @@
         }
 
         function workspaceHasUnsubmittedJob(ws) {
-            if (!ws) return false;
-            return Boolean(
-                ws.sequence ||
-                ws.lotNumber ||
-                ws.itemNumber ||
-                (Number(ws.totalGood) || 0) > 0 ||
-                (Number(ws.timeWorked) || 0) > 0 ||
-                workspaceDefectTotal(ws) > 0 ||
-                (ws.handoverNotes || '').trim()
-            );
+            return getUnsubmittedJobReasons(ws).length > 0;
+        }
+
+        function getUnsubmittedJobReasons(ws) {
+            if (!ws) return [];
+            const reasons = [];
+            if (ws.sequence) reasons.push('Sequence');
+            if (ws.lotNumber) reasons.push('Lot #');
+            if (ws.itemNumber) reasons.push('Item #');
+            if ((Number(ws.totalGood) || 0) > 0) reasons.push('Good parts');
+            if ((Number(ws.timeWorked) || 0) > 0) reasons.push('Time worked');
+            if (workspaceDefectTotal(ws) > 0) reasons.push('Defects');
+            if ((ws.handoverNotes || '').trim()) reasons.push('Notes');
+            return reasons;
         }
 
         function workspaceHasUnsubmittedEvent(ws, isActive) {
@@ -4691,8 +4695,9 @@
                 state.workspaces[op] = getActiveWorkspaceSnapshot();
             }
             const ws = getWorkspaceForOperator(op) || {};
-            if (workspaceHasUnsubmittedJob(ws)) {
-                customConfirm('Action Required', `${op} has unsubmitted job data. Submit Job first, then sign out.`, () => {}, true);
+            const jobReasons = getUnsubmittedJobReasons(ws);
+            if (jobReasons.length > 0) {
+                customConfirm('Action Required', `${op} has unsubmitted job data: ${jobReasons.join(', ')}. Submit Job first, then sign out.`, () => {}, true);
                 return;
             }
             if (workspaceHasUnsubmittedEvent(ws, isCurrentlySelected)) {
@@ -5296,6 +5301,7 @@
             // 3. Apply to global state IF this operator is still the selected one
             if (isCurrentlySelected) {
                 applyWorkspaceSnapshot(resetWS);
+                clearPlJobInputsAfterSubmit();
             }
 
             // 4. Update the saved workspace
@@ -5507,6 +5513,28 @@
         function updateTimeWorked(val) {
             state.timeWorked = Math.max(0, parseInt(val) || 0);
             save();
+        }
+
+        function clearPlJobInputsAfterSubmit() {
+            const sequenceInput = document.getElementById('sequenceInput');
+            if (sequenceInput) sequenceInput.value = '';
+            const lotInput = document.getElementById('lotNumber');
+            if (lotInput) lotInput.value = '';
+            const itemInput = document.getElementById('itemNumber');
+            if (itemInput) itemInput.value = '';
+            const goodInput = document.getElementById('goodPartsInput');
+            if (goodInput) goodInput.value = 0;
+            const timeInput = document.getElementById('timeWorkedInput');
+            if (timeInput) timeInput.value = 0;
+            const notesInput = document.getElementById('handoverNotes');
+            if (notesInput) notesInput.value = '';
+            const totalDefectsInput = document.getElementById('totalDefectsInput');
+            if (totalDefectsInput) totalDefectsInput.value = 0;
+            const startQtyInput = document.getElementById('startQtyInput');
+            if (startQtyInput) startQtyInput.value = 0;
+            const endQtyInput = document.getElementById('endQtyInput');
+            if (endQtyInput) endQtyInput.value = 0;
+            document.querySelectorAll('.defect-input').forEach(input => { input.value = 0; });
         }
 
         function handleEventSubmit() {
