@@ -105,10 +105,10 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Work completed: Added a confirmation-guarded non-production delivery probe for exact mapped values, search visibility, permanent Submission ID replay, and test-row cleanup.
 - Files or schema changed: Integration-delivery command, package script, PL migration guide, changelog, and program memory. Production Smartsheet remains unchanged.
 - Decisions made: The probe must refuse the configured production sheet, use visibly synthetic values, create exactly one row, prove replay returns that same row, and delete all rows it created.
-- Validation performed: The probe passed JavaScript syntax, documentation links, and the 61-test local suite with 3 expected database skips; live integration execution is pending clean CI.
+- Validation performed: The probe passed JavaScript syntax, documentation links, the 61-test local suite with 3 expected database skips, and clean CI run 27841334056. Its first live attempt created exactly one test row and removed it, but the new value was not yet searchable after 60 seconds; no replay insert was attempted. The polling window was extended to ten minutes because Smartsheet documents delayed discoverability and possible search-index provisioning delay.
 - Deployment status: Not deployed; the combined Metrics Portal remains unchanged on port 3002.
-- Risks/blockers: Smartsheet search indexing may take up to 60 seconds; cleanup failure would leave only a marked row in the isolated test sheet.
-- Exact next action: Validate and publish the probe, then run it against the newly created empty PL integration sheet.
+- Risks/blockers: Smartsheet search indexing is asynchronous and can require provisioning; cleanup failure would leave only a marked row in the isolated test sheet.
+- Exact next action: Publish the bounded ten-minute polling correction and rerun the probe against the isolated integration sheet.
 
 ### 2026-06-19 - Empty PL integration destination tooling prepared
 

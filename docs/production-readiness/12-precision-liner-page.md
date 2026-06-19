@@ -84,4 +84,4 @@ With `PL_INTEGRATION_SHEET_ID` set only in the current process, validate a synth
 npm run validate:pl-integration-delivery -- --confirmation="WRITE AND DELETE PL INTEGRATION ROW"
 ```
 
-The command refuses the configured production master-log ID. It writes one visibly synthetic row to the non-production sheet, waits for Smartsheet search indexing, proves a replay finds the same row without another insert, verifies mapped cell values, and deletes every row it created.
+The command refuses the configured production master-log ID. It writes one visibly synthetic row to the non-production sheet, waits up to ten minutes for Smartsheet search indexing, proves a replay finds the same row without another insert, verifies mapped cell values, and deletes every row it created. Smartsheet documents that new data may not be immediately searchable and that an API search index that has not been provisioned recently can take substantially longer; a timeout is therefore a pending external-index gate, not permission to retry an insert in production.

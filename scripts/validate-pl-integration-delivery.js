@@ -16,7 +16,7 @@ function sleep(milliseconds) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function waitForExactSearch(client, sheetId, submissionId, expectedRowId, attempts = 12) {
+async function waitForExactSearch(client, sheetId, submissionId, expectedRowId, attempts = 120) {
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
         const response = await client.get(`search/sheets/${sheetId}`, {
             params: { query: `"${submissionId}"`, scopes: 'cellData' }
@@ -25,9 +25,12 @@ async function waitForExactSearch(client, sheetId, submissionId, expectedRowId, 
             result.objectType === 'row' && String(result.objectId) === expectedRowId
         );
         if (found) return attempt;
+        if (attempt % 12 === 0) {
+            console.log(`  Exact-ID search indexing pending: ${attempt * 5} seconds`);
+        }
         if (attempt < attempts) await sleep(5000);
     }
-    throw new Error('Created test row did not become searchable within 60 seconds.');
+    throw new Error('Created test row did not become searchable within 10 minutes.');
 }
 
 async function main() {
