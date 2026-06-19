@@ -97,18 +97,18 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
-### 2026-06-19 - Pre-existing PostgreSQL 13 isolated from Metrics Portal plan
+### 2026-06-19 - Incorrect PostgreSQL 13 installation identified
 
 - Branch: `codex/windows-operations-tooling`.
 - Commit or PR: Draft PR #8; follow-up not committed yet.
 - Phase/work package: Phase 1 target PostgreSQL installation.
-- Work completed: Identified that the existing listener and service are PostgreSQL 13, not the intended PostgreSQL 18 installation. Changed the target plan and bootstrap defaults to use side-by-side PostgreSQL 18 on port 5433 and added local-only listener validation.
+- Work completed: Identified that the newly installed listener and service are PostgreSQL 13.23, not the approved PostgreSQL 18 release. Confirmed from the installer screenshot that this was the new, mistaken installation rather than a pre-existing workload.
 - Files or schema changed: Target bootstrap scripts, production preflight, target runbook, and program memory. No server state changed.
-- Decisions made: Do not modify, restart, firewall, upgrade, or reuse the unknown PostgreSQL 13 service. Metrics Portal PostgreSQL 18 uses port 5433 with local-only binding and its own inbound firewall block.
+- Decisions made: Remove the unused PostgreSQL 13.23 installation completely, then install PostgreSQL 18 on the standard local port 5432. Do not retain an unnecessary side-by-side cluster.
 - Validation performed: Server process and service evidence identified `postgresql-x64-13` under the PostgreSQL 13 installation path. No PostgreSQL 18 service was present.
-- Deployment status: PostgreSQL 18 is not yet installed; compatibility portal remains unchanged.
-- Risks/blockers: Ownership and remote exposure of the legacy PostgreSQL 13 service remain outside this work package and should be referred to IT separately.
-- Exact next action: User installs PostgreSQL 18 side-by-side on port 5433, then returns service/tool/listener verification.
+- Deployment status: PostgreSQL 13.23 is installed but unused; PostgreSQL 18 is not yet installed; compatibility portal remains unchanged.
+- Risks/blockers: PostgreSQL 13.23 must be removed, including its empty data directory, before PostgreSQL 18 installation.
+- Exact next action: User uninstalls PostgreSQL 13.23, verifies service/port removal, then downloads an installer whose filename begins with `postgresql-18`.
 
 ### 2026-06-19 - Initial PostgreSQL listener misidentified
 

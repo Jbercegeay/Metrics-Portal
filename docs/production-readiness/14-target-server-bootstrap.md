@@ -2,16 +2,16 @@
 
 ## Verified Baseline
 
-The target is a 64-bit Windows 11 Enterprise host with adequate free space on the system and application-data volumes. Node.js, npm, Git, and PM2 are installed. The compatibility portal is listening on port 3000 from the production `main` checkout. A pre-existing PostgreSQL 13 service owns port 5432 and is outside this migration's scope; it must not be modified without a separate ownership review. PostgreSQL 18 will be installed side-by-side for Metrics Portal on port 5433. An off-server UNC backup destination has been identified but its service-account permissions and write behavior still require verification.
+The target is a 64-bit Windows 11 Enterprise host with adequate free space on the system and application-data volumes. Node.js, npm, Git, and PM2 are installed. The compatibility portal is listening on port 3000 from the production `main` checkout. PostgreSQL was initially absent; PostgreSQL 13.23 was accidentally installed during bootstrap and is removed before installing PostgreSQL 18. An off-server UNC backup destination has been identified but its service-account permissions and write behavior still require verification.
 
 ## PostgreSQL Installation Gate
 
-Install the current PostgreSQL 18 Windows release from the [official PostgreSQL Windows download page](https://www.postgresql.org/download/windows/). Use the standard 64-bit installer, choose port `5433` to avoid the pre-existing PostgreSQL 13 service on 5432, keep the database listener local to the host, install command-line tools, and do not install optional Stack Builder packages. Record the generated superuser password in the approved password manager—not in Git, chat, or this playbook.
+Install the current PostgreSQL 18 Windows release from the [official PostgreSQL Windows download page](https://www.postgresql.org/download/windows/). Confirm the downloaded filename begins with `postgresql-18`, use the standard 64-bit installer on port `5432`, keep the database listener local to the host, install command-line tools, and do not install optional Stack Builder packages. Record the generated superuser password in the approved password manager—not in Git, chat, or this playbook.
 
 After installation, discover the actual executable and service rather than assuming the install directory or service name:
 
 ```powershell
-$listener = Get-NetTCPConnection -State Listen -LocalPort 5433 | Select-Object -First 1
+$listener = Get-NetTCPConnection -State Listen -LocalPort 5432 | Select-Object -First 1
 $process = Get-CimInstance Win32_Process -Filter "ProcessId = $($listener.OwningProcess)"
 $pgBin = Split-Path -Parent $process.ExecutablePath
 $service = Get-CimInstance Win32_Service | Where-Object ProcessId -eq $listener.OwningProcess
@@ -34,9 +34,9 @@ Restart-Service -Name $service.Name
 Create a defense-in-depth inbound block even after local-only binding:
 
 ```powershell
-if (-not (Get-NetFirewallRule -DisplayName 'Metrics Portal - Block PostgreSQL 18 inbound' -ErrorAction SilentlyContinue)) {
-    New-NetFirewallRule -DisplayName 'Metrics Portal - Block PostgreSQL 18 inbound' `
-        -Direction Inbound -Action Block -Protocol TCP -LocalPort 5433
+if (-not (Get-NetFirewallRule -DisplayName 'Metrics Portal - Block PostgreSQL inbound' -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName 'Metrics Portal - Block PostgreSQL inbound' `
+        -Direction Inbound -Action Block -Protocol TCP -LocalPort 5432
 }
 ```
 
@@ -47,10 +47,10 @@ Get-Service *postgres*
 psql --version
 pg_dump --version
 pg_restore --version
-Get-NetTCPConnection -State Listen -LocalPort 5433
+Get-NetTCPConnection -State Listen -LocalPort 5432
 ```
 
-The PostgreSQL 18 listener must show only `127.0.0.1` and/or `::1`, never `0.0.0.0` or `::`. Windows Firewall must also block inbound TCP 5433 unless a separately approved administrative source is introduced later. The PostgreSQL 13 listener on 5432 is a separately owned legacy risk and is not changed by this plan.
+The PostgreSQL 18 listener must show only `127.0.0.1` and/or `::1`, never `0.0.0.0` or `::`. Windows Firewall must also block inbound TCP 5432 unless a separately approved administrative source is introduced later.
 
 ## Database And Roles
 

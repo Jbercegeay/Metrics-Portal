@@ -3,7 +3,7 @@ param(
     [string]$AppRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [Parameter(Mandatory = $true)][string]$BackupRoot,
     [string]$BaseUrl = 'http://127.0.0.1:3000',
-    [int]$PostgresPort = 5433,
+    [int]$PostgresPort = 5432,
     [int]$MinimumFreeGb = 20
 )
 
