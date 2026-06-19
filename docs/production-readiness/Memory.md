@@ -100,7 +100,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-19 - Backup verification and restore drill safeguards added
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Commit or PR: Draft PR #8; follow-up commit `318679c`.
 - Phase/work package: Phase 7 backup and recovery preparation.
 - Work completed: Added backup freshness/hash monitoring, server-local `.env` support for scheduled backups, and a guarded isolated restore drill that refuses production-equivalent or nonempty targets, applies migrations, and verifies required tables.
 - Files or schema changed: Windows backup, freshness, and restore scripts; operations guide; changelog; and program memory. No production schema changed.
@@ -108,7 +108,20 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Validation performed: All PowerShell scripts passed AST parsing. Backup freshness and SHA-256 verification passed against a generated local fixture. No production database or backup was accessed.
 - Deployment status: Not deployed.
 - Risks/blockers: A full restore execution requires PostgreSQL client tools, an actual verified backup, and an isolated target database on the server.
-- Exact next action: Commit and run clean CI for the follow-up, then obtain target-server inventory and backup destination details from the user.
+- Exact next action: Obtain target-server inventory and backup destination details from the user.
+
+### 2026-06-19 - Restore safeguards CI passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; follow-up commit `318679c`.
+- Phase/work package: Phase 7 backup and recovery validation.
+- Work completed: Closed the backup-freshness and isolated-restore safeguard clean-environment CI gate.
+- Files or schema changed: Program memory only.
+- Decisions made: None.
+- Validation performed: GitHub Actions run 27830860822 passed PowerShell parsing, migrations, all application and PostgreSQL integration tests, syntax, HTML, documentation, and dependency audit against PostgreSQL 18.
+- Deployment status: Not deployed.
+- Risks/blockers: Further verification requires target-server access, PostgreSQL client tools, an approved backup destination, and an isolated restore database.
+- Exact next action: User runs the read-only target-server inventory and identifies the approved off-machine backup location.
 
 ### 2026-06-19 - Windows operations tooling prepared
 
