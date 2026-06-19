@@ -97,6 +97,32 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Isolated PL page and durable workflow implemented
+
+- Branch: `codex/pl-page-extraction` stacked on the validated server-workspaces branch.
+- Commit or PR: Commit `5919c9c`; stacked draft PR #6.
+- Phase/work package: Phase 3 PL page extraction and durable workflow binding.
+- Work completed: Added the isolated `/pl/` module, authenticated feature/session startup, server autosave with stale-tab stop, durable job and event capture with permanent retry identity, database-versus-Smartsheet status, guarded sign-out/discard, and PL login routing. Removed hourly tracking, End Shift, browser-local workspace ownership, and local associate switching from the isolated module.
+- Files or schema changed: PL HTML/CSS/model/app bundle; shared API client; safe feature-state route; login routing; model/API/browser support tests; changelog; and PL migration guide. No schema change.
+- Decisions made: One authenticated associate owns one PL server workspace; one submitted PL form is one logical durable row; Smartsheet delivery status is never presented as a condition of database durability; the compatibility page remains the flag-controlled rollback path.
+- Validation performed: 42 JavaScript files passed syntax checks, inline scripts parsed, 59 local tests passed with 3 expected PostgreSQL skips, 32 documentation files passed local-link checks, the production dependency audit reported zero vulnerabilities, authenticated reporting fields were proven server-canonical, and real-browser checks proved job/event autosave and capture, pending-to-synced status, form clearing, stale-tab blocking and recovery, and 768 by 1024 responsive layout without horizontal overflow.
+- Deployment status: Not deployed; all rollout flags remain disabled by default.
+- Risks/blockers: Controlled Smartsheet exact-ID delivery, parallel output comparison, PL floor UAT, and rollback rehearsal remain cutover gates requiring the approved environment and people.
+- Exact next action: Prepare the controlled PL validation and deployment tooling without enabling production flags, then provide the exact physical cutover prerequisites when no further safe local work remains.
+
+### 2026-06-19 - PL page PostgreSQL CI passed
+
+- Branch: `codex/pl-page-extraction`.
+- Commit or PR: Draft PR #6; head `5919c9c` before this evidence-only memory update.
+- Phase/work package: Phase 3 PL clean-environment validation.
+- Work completed: Closed the isolated PL page clean-database CI gate.
+- Files or schema changed: Program memory only; no application or schema behavior changed.
+- Decisions made: Keep all PL rollout flags disabled and continue only safe preparation until controlled Smartsheet comparison and floor acceptance are available.
+- Validation performed: GitHub Actions run 27830248902 applied all three migrations and passed syntax, inline HTML, documentation, 59 application tests, PostgreSQL integration tests, and the production dependency audit against PostgreSQL 18.
+- Deployment status: Not deployed.
+- Risks/blockers: GitHub reports a non-failing future-runtime annotation for `actions/checkout@v4` and `actions/setup-node@v4`; current CI passed. PL external validation gates remain open.
+- Exact next action: Commit the CI evidence, then prepare controlled PL validation and deployment tooling.
+
 ### 2026-06-19 - PL server sessions and workspaces implemented
 
 - Branch: `codex/pl-server-workspaces` stacked on the validated outbox branch.

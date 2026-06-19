@@ -59,6 +59,13 @@ function normalizeSubmission(input = {}) {
 
     if (Object.keys(fields).length > 0) throw new ValidationError(fields);
 
+    const canonicalPayload = {
+        ...payload,
+        'Entry Type': entryType === 'jxj' ? 'JxJ' : `${entryType.charAt(0).toUpperCase()}${entryType.slice(1)}`,
+        'Work Date': workDate,
+        'Associate Name': associateName
+    };
+
     return {
         id,
         department,
@@ -66,8 +73,8 @@ function normalizeSubmission(input = {}) {
         associateName,
         workDate,
         kioskId,
-        payload: stableValue(payload),
-        payloadHash: hashPayload(payload),
+        payload: stableValue(canonicalPayload),
+        payloadHash: hashPayload(canonicalPayload),
         validationVersion: 1
     };
 }
