@@ -46,9 +46,9 @@ test('database enforces atomic idempotency and one worker lease', { skip: !datab
 
         const counts = await db.query(`
             SELECT
-                (SELECT count(*) FROM submissions WHERE id = $1)::integer AS submissions,
-                (SELECT count(*) FROM submission_outbox WHERE submission_id = $1)::integer AS outbox,
-                (SELECT count(*) FROM audit_events WHERE entity_id = $1 AND action = 'submission.created')::integer AS audits
+                (SELECT count(*) FROM submissions WHERE id = $1::uuid)::integer AS submissions,
+                (SELECT count(*) FROM submission_outbox WHERE submission_id = $1::uuid)::integer AS outbox,
+                (SELECT count(*) FROM audit_events WHERE entity_id = $1::text AND action = 'submission.created')::integer AS audits
         `, [id]);
         assert.deepEqual(counts.rows[0], { submissions: 1, outbox: 1, audits: 1 });
 
