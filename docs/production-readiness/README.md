@@ -87,8 +87,8 @@ A department is production ready only when all of the following are true:
 | --- | --- | --- |
 | Requirements | Approved | Stakeholder approval recorded |
 | Architecture | Approved | Decisions approved and prerequisites confirmed |
-| Foundation | In progress | Database, migrations, health checks, and CI operational |
-| Durable submissions | Not started | Failure tests prove no loss or duplicates |
+| Foundation | Complete | Database, migrations, health checks, and CI operational |
+| Durable submissions | In progress | Failure tests prove no loss or duplicates |
 | PL migration | Not started | PL user acceptance and cutover approval |
 | PTFE migration | Not started | PTFE user acceptance and cutover approval |
 | PI migration | Not started | PI user acceptance and cutover approval |

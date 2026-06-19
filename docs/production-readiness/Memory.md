@@ -10,8 +10,8 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: Phase 1 engineering foundation implemented locally and awaiting clean PostgreSQL CI validation.
-- Current phase: Phase 1 - Engineering Foundation.
+- Status: Phase 1 complete; Phase 2 durable submission platform in progress.
+- Current phase: Phase 2 - Durable Submission Platform.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
@@ -28,17 +28,19 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Inventoried the local host, application routes, browser state, configuration names, Smartsheet mappings, and operational utilities without recording secrets.
 - Approved PostgreSQL, asynchronous Smartsheet delivery, PL-first migration, tooling, worker, session, HTTPS, backup, retention, and alert defaults.
 - Added validated database configuration, pooled PostgreSQL transactions, the initial versioned migration, structured request logging, correlation IDs, graceful shutdown, liveness/readiness endpoints, automated tests, CI, and setup documentation.
+- Proved the foundation migration and transaction behavior against clean PostgreSQL 18 in GitHub Actions.
 
 ## Active Work
 
-- Validate the Phase 1 migration against clean PostgreSQL 18 in CI and begin the durable submission platform.
+- Implement the Phase 2 durable submission platform.
 
 ## Next Actions
 
-1. Push the foundation branch and record clean PostgreSQL 18 CI evidence.
-2. Implement the durable submission, outbox, delivery-attempt, and audit schema.
-3. Add the idempotent submission API and background worker.
-4. Keep the physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Implement the durable submission, outbox, delivery-attempt, and audit schema.
+2. Add the idempotent submission API and background worker.
+3. Add supervisor status, retry, and resolution controls.
+4. Prove restart, timeout, duplicate, uncertain-delivery, and terminal-failure behavior.
+5. Keep the physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -63,7 +65,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Local automated suite passes with 13 tests and one expected database test skip because PostgreSQL is not installed locally.
 - Health endpoints pass against the assembled Express application, including compatibility-mode readiness.
 - Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
-- Clean PostgreSQL migration and transaction validation is pending CI.
+- Draft PR #3 GitHub Actions run 27827283516 passed against PostgreSQL 18, including clean migration, database transaction, application, syntax, documentation-link, and dependency-audit checks.
 
 ## Deployment State
 
@@ -108,15 +110,15 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-19 - Phase 1 first CI correction
 
 - Branch: `codex/postgres-foundation`.
-- Commit or PR: Draft PR #3; correction not committed yet.
+- Commit or PR: Draft PR #3; correction commit `0f03740`.
 - Phase/work package: Phase 1 CI validation.
 - Work completed: Made the existing three-department startup environment contract explicit and added safe fake CI/test values after the assembled-app smoke test exposed local `.env` coupling.
 - Files or schema changed: Runtime validation, environment example, CI configuration, and tests. No schema change.
 - Decisions made: All configuration names required by the currently assembled three-department server are validated at startup; secret values remain environment-only.
-- Validation performed: The first clean PostgreSQL 18 CI run successfully applied the migration and passed the database transaction test before failing only on a missing PTFE Job Log test variable.
+- Validation performed: The first clean PostgreSQL 18 CI run successfully applied the migration and passed the database transaction test before failing only on a missing PTFE Job Log test variable. Replacement run 27827283516 passed all checks after the correction.
 - Deployment status: Not deployed.
-- Risks/blockers: Awaiting corrected CI run.
-- Exact next action: Run local checks, commit and push the focused correction, and confirm the replacement CI run.
+- Risks/blockers: None for the engineering foundation; production installation remains a later infrastructure prerequisite.
+- Exact next action: Implement Phase 2 durable submission storage and idempotent API.
 
 ### 2026-06-19 - Phase 0 current-state inventory
 
