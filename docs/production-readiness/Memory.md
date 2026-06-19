@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Restore drill database creation correction
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; target release candidate `b584521`.
+- Phase/work package: Phase 7 isolated restore drill.
+- Work completed: Corrected the operator sequence so `CREATE DATABASE` runs alone before connection and schema grants, as required by PostgreSQL.
+- Files or schema changed: Restore-drill documentation and program memory only. The rejected statement created no database or schema and did not read or modify the production database.
+- Decisions made: Every restore-drill database creation must use a dedicated autocommit command, followed by separately checked grants.
+- Validation performed: PostgreSQL rejected the combined creation/grant batch with `CREATE DATABASE cannot run inside a transaction block`; the guarded flow stopped before setting its database-created marker or invoking the restore script.
+- Deployment status: No database or portal change; verified post-migration backup remains ready.
+- Risks/blockers: Isolated restore proof still pending.
+- Exact next action: Rerun the drill with database creation and grants in distinct `psql` calls.
+
 ### 2026-06-19 - Verified post-migration backup created
 
 - Branch: `codex/windows-operations-tooling`.

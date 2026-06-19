@@ -28,7 +28,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Test-BackupF
 
 ## Isolated Restore Drill
 
-Create an empty database whose name ends in `_restore_drill`, then run:
+Create an empty database whose name ends in `_restore_drill`, then run. PostgreSQL requires `CREATE DATABASE` to be the only statement in its `psql -c` invocation; issue owner, connection, and schema grants in separate commands after creation.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Restore-PostgresDrill.ps1 `
