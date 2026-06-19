@@ -23,6 +23,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added Windows production preflight, verified PostgreSQL backup, health smoke-test, and PowerShell syntax-check tooling.
 - Added verified-backup freshness checks and a guarded isolated PostgreSQL restore drill that refuses nonempty or improperly named targets.
 - Added guarded least-privilege PostgreSQL database/role bootstrap and post-migration runtime grants for the Windows production host.
+- Added guarded creation of an empty PL integration Smartsheet from contract metadata only, without copying production rows or employee data.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.

@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Empty PL integration destination tooling prepared
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; not committed yet.
+- Phase/work package: Phase 3 controlled Smartsheet validation preparation.
+- Work completed: Added a confirmation-guarded creator for a standalone empty PL integration sheet built from exact destination-contract metadata and configured defect names.
+- Files or schema changed: PL integration-sheet definition, creation command, unit tests, package script, migration guide, changelog, and program memory. No Smartsheet object has been created yet.
+- Decisions made: Prefer a separate blank integration sheet over temporary production rows. Copy no production rows, formulas, automation, attachments, sharing, or employee data; store the returned sheet ID only in approved environment configuration.
+- Validation performed: 48 JavaScript files passed syntax, 9 HTML files passed inline-script parsing, 34 Markdown files passed link checks, PowerShell parsed, and 61 local tests passed with 3 expected database skips. The live-config dry run generated a valid 36-column empty contract and created no Smartsheet object.
+- Deployment status: Not deployed; production Metrics Portal remains unchanged on port 3002 and the legacy PL portal remains out of scope on port 3000.
+- Risks/blockers: Creation depends on the PL API identity having permission to create a sheet in its Sheets folder.
+- Exact next action: Run all local checks and a dry run, publish clean CI, then create and audit the empty integration sheet.
+
 ### 2026-06-19 - Production portal identity corrected and locked down
 
 - Branch: `codex/windows-operations-tooling`.
