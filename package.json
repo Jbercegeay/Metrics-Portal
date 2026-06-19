@@ -14,6 +14,8 @@
     "create:pl-integration-sheet": "node scripts/create-pl-integration-sheet.js",
     "validate:pl-integration-delivery": "node scripts/validate-pl-integration-delivery.js",
     "validate:pl-outbox-integration": "node scripts/validate-pl-outbox-integration.js",
+    "validate:pl-uat-sheet": "node scripts/manage-pl-uat-sheet.js",
+    "cleanup:pl-uat-sheet": "node scripts/manage-pl-uat-sheet.js --clear",
     "check:syntax": "node scripts/check-javascript-syntax.js",
     "check:html": "node scripts/check-html-scripts.js",
     "check:docs": "node scripts/check-markdown-links.js",

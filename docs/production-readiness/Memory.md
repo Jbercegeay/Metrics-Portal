@@ -98,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Isolated PL browser UAT package prepared
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; UAT package commit in this change.
+- Phase/work package: Phase 7 supervised PL acceptance and rollback.
+- Work completed: Added guarded UAT-sheet inspection/cleanup, an isolated Windows UAT environment manager with Start/Rollback/Stop actions, and a ten-scenario browser acceptance and rollback record.
+- Files or schema changed: Package scripts, one Smartsheet guard utility, one Windows environment manager, the production-readiness index, UAT runbook, changelog, and program memory. No server, database, Smartsheet, or live process state changed locally.
+- Decisions made: Run UAT on loopback port 3102 with an isolated database, dedicated empty test sheet, separate web/worker processes, and the built-in PL training identity. Treat the live port 3002 Metrics Portal and out-of-scope port 3000 legacy portal as immutable process-ID invariants.
+- Validation performed: JavaScript syntax, PowerShell parser, documentation-link, and diff checks passed; all 61 runnable unit/API tests passed with three database-dependent tests skipped as designed outside the CI database job.
+- Deployment status: Tooling prepared but not run on the target; production flags remain disabled.
+- Risks/blockers: Physical browser execution, participant names, and written acceptance are now required. TLS/DNS, alert routing, production destination expansion, and cutover approval remain later gates.
+- Exact next action: Validate and publish the UAT package, then have the technical observer run Start, the browser scenarios, Rollback, and Stop on the target.
+
 ### 2026-06-19 - Target PL database/outbox integration passed
 
 - Branch: `codex/windows-operations-tooling`.

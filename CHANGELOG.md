@@ -26,6 +26,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added guarded creation of an empty PL integration Smartsheet from contract metadata only, without copying production rows or employee data.
 - Added controlled PL Smartsheet delivery validation that proves mapped values and exact-ID replay behavior, then deletes its synthetic non-production row.
 - Added a guarded one-shot PL database/outbox/Smartsheet validation that refuses a nonempty queue or production destination and removes its synthetic database and test-sheet rows.
+- Added a guarded, isolated PL browser-UAT and feature-rollback rehearsal on loopback port 3102, including dedicated test-sheet cleanup and live-portal process invariants.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.
