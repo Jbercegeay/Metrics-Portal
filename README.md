@@ -102,7 +102,12 @@ So the current deployment path is the Express app in `server.js`.
 - `api/config.js`: Serverless-style compatibility handler. The current production deployment uses `server.js`.
 - `Brainstorming/`: Planning, implementation specs, and future roadmap notes.
 - `docs/`: SOP/training documents.
+- `docs/production-readiness/`: Production-grade upgrade playbook covering requirements, architecture, delivery phases, Git workflow, migration, testing, operations, and risk decisions.
 - `scripts/`: One-off utilities.
+
+## Production-Readiness Program
+
+The planned database-backed reliability upgrade is governed by the [Production-Readiness Playbook](docs/production-readiness/README.md). Start there before opening an implementation branch. It defines the approved work sequence, phase gates, branch and merge rules, acceptance evidence, deployment process, and rollback expectations.
 
 ## Release Versioning
 
