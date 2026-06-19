@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - PostgreSQL install path variance and exposed listener contained
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Phase/work package: Phase 1 target PostgreSQL installation.
+- Work completed: Installation produced a live PostgreSQL listener but used a non-default executable path/service name, so the assumed command discovery failed. Added process-based executable/service discovery and defense-in-depth firewall instructions to the target runbook.
+- Files or schema changed: Target-server runbook and program memory only.
+- Decisions made: Never assume the EDB installation directory or Windows service name; discover both from the port owner. Block inbound TCP 5432 regardless of local-only PostgreSQL binding.
+- Validation performed: Server evidence showed PostgreSQL listening on `0.0.0.0` and `::`; the backup UNC path was reachable. No portal or database schema change occurred.
+- Deployment status: PostgreSQL is installed but not accepted; the compatibility portal remains unchanged.
+- Risks/blockers: The listener must be restricted and the actual service/tool paths verified before database initialization.
+- Exact next action: User applies the inbound firewall block, discovers the executable/service from PID ownership, sets `listen_addresses=localhost`, restarts, and returns verification output.
+
 ### 2026-06-19 - Target server inventoried and PostgreSQL bootstrap prepared
 
 - Branch: `codex/windows-operations-tooling`.

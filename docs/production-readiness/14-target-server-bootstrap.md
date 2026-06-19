@@ -8,7 +8,39 @@ The target is a 64-bit Windows 11 Enterprise host with adequate free space on th
 
 Install the current PostgreSQL 18 Windows release from the [official PostgreSQL Windows download page](https://www.postgresql.org/download/windows/). Use the standard 64-bit installer, keep the database listener local to the host, install command-line tools, and do not install optional Stack Builder packages. Record the generated superuser password in the approved password manager—not in Git, chat, or this playbook.
 
-After installation, add the PostgreSQL `bin` directory to the system PATH and open a new elevated PowerShell session. Verify:
+After installation, discover the actual executable and service rather than assuming the install directory or service name:
+
+```powershell
+$listener = Get-NetTCPConnection -State Listen -LocalPort 5432 | Select-Object -First 1
+$process = Get-CimInstance Win32_Process -Filter "ProcessId = $($listener.OwningProcess)"
+$pgBin = Split-Path -Parent $process.ExecutablePath
+$service = Get-CimInstance Win32_Service | Where-Object ProcessId -eq $listener.OwningProcess
+$pgBin
+$service | Select-Object Name,State,StartMode,PathName
+```
+
+Add the discovered `bin` directory to the system PATH, then force local-only listening with the full executable path:
+
+```powershell
+$machinePath = [Environment]::GetEnvironmentVariable('Path','Machine')
+if (($machinePath -split ';') -notcontains $pgBin) {
+    [Environment]::SetEnvironmentVariable('Path', "$machinePath;$pgBin", 'Machine')
+}
+$env:Path += ";$pgBin"
+& (Join-Path $pgBin 'psql.exe') -U postgres -d postgres -c "ALTER SYSTEM SET listen_addresses = 'localhost';"
+Restart-Service -Name $service.Name
+```
+
+Create a defense-in-depth inbound block even after local-only binding:
+
+```powershell
+if (-not (Get-NetFirewallRule -DisplayName 'Metrics Portal - Block PostgreSQL inbound' -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName 'Metrics Portal - Block PostgreSQL inbound' `
+        -Direction Inbound -Action Block -Protocol TCP -LocalPort 5432
+}
+```
+
+Open a new elevated PowerShell session and verify:
 
 ```powershell
 Get-Service *postgres*
@@ -18,7 +50,7 @@ pg_restore --version
 Get-NetTCPConnection -State Listen -LocalPort 5432
 ```
 
-The listener must not be exposed beyond the local server. Windows Firewall should block inbound TCP 5432 except any separately approved administrative source.
+The listener must show only `127.0.0.1` and/or `::1`, never `0.0.0.0` or `::`. Windows Firewall must also block inbound TCP 5432 unless a separately approved administrative source is introduced later.
 
 ## Database And Roles
 
@@ -54,6 +86,7 @@ Stop and report before proceeding if:
 
 - The installer cannot create or start its Windows service.
 - Port 5432 is reachable from an unapproved remote host.
+- The listener still binds `0.0.0.0` or `::` after restart.
 - The database or roles already exist unexpectedly.
 - The off-server backup share cannot be written by the intended scheduled-task identity.
 - Any migration, backup verification, or restore drill fails.
