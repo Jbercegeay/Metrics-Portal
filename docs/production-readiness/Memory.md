@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. A standalone PL test sheet and live full-column exact-ID delivery/replay proof are complete. Target database/outbox proof, UAT, and final deployment infrastructure remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, and target database/outbox delivery proofs are complete. Supervised PL UAT, rollback rehearsal, production destination expansion, and final deployment infrastructure remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,13 +37,14 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Prepare the controlled Smartsheet validation and UAT package while preserving the live compatibility portal until release gates are approved.
+- Prepare supervised PL UAT and rollback rehearsal while preserving both live portals and all production feature flags.
 
 ## Next Actions
 
-1. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
-2. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
-3. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Run supervised PL browser UAT and rollback rehearsal in an isolated target environment.
+2. Add the expand-only production `Submission ID` column after UAT approval, then rerun the read-only production audit.
+3. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
+4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -96,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Target PL database/outbox integration passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; validation commit `70f0f19`.
+- Phase/work package: Phase 3 full controlled integration.
+- Work completed: Executed the one-shot proof on the target using the application role, migrated Metrics Portal database, and isolated PL test sheet.
+- Files or schema changed: Synthetic submission, outbox, delivery, audit, and test-sheet row were created and then removed by the guarded validator. No production Smartsheet row, live portal process, or persistent test record changed.
+- Decisions made: Close the controlled technical integration gate and advance to human workflow UAT; retain production flags disabled and defer the production `Submission ID` column until UAT approval.
+- Validation performed: Database capture committed, exactly one outbox attempt completed, submission/outbox/delivery converged to `submitted`, the remote row ID was linked, no unexpected pending work remained, and both Smartsheet and database test artifacts were removed. PM2 `metrics-portal` remained PID 6936 on port 3002 and legacy `PL-Portal` remained PID 1928 on port 3000. Clean CI run 27841952233 passed before target execution.
+- Deployment status: Technical integration validated but not deployed; live Metrics Portal remains unchanged on port 3002 with database features disabled.
+- Risks/blockers: Supervised browser UAT, rollback rehearsal, production destination expansion, TLS/DNS, alert routing, and cutover approval remain pending.
+- Exact next action: Prepare an isolated target UAT environment and written PL workflow/rollback acceptance record.
 
 ### 2026-06-19 - One-shot target PL outbox validation prepared
 
