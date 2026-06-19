@@ -18,6 +18,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Backup-Postg
 
 The backup command uses PostgreSQL custom format, verifies the archive with `pg_restore --list`, and writes a SHA-256 sidecar. It intentionally does not delete backups. Daily, weekly, and monthly retention must be configured on the approved off-machine destination only after its snapshot or copy behavior is known.
 
+For a scheduled task, provide `-EnvironmentFile 'C:\path\to\.env'`; the script reads only `DATABASE_URL` and never prints it. The task identity must have read access to that file and write access to the backup destination.
+
+Verify backup age and integrity independently:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Test-BackupFreshness.ps1 -BackupRoot 'X:\MetricsPortalBackups'
+```
+
+## Isolated Restore Drill
+
+Create an empty database whose name ends in `_restore_drill`, then run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Restore-PostgresDrill.ps1 `
+  -BackupFile 'X:\MetricsPortalBackups\metrics-portal-YYYYMMDD-HHMMSS.dump' `
+  -RestoreDatabaseUrl 'postgresql://restore_user:password@127.0.0.1/metrics_portal_restore_drill' `
+  -Confirmation 'RESTORE INTO ISOLATED DATABASE'
+```
+
+The drill refuses a nonempty target, refuses a target without the `_restore_drill` suffix, applies pending migrations, and verifies the required operational tables. Destroying the isolated drill database remains an explicit administrator action.
+
 ## Health Smoke Test
 
 ```powershell

@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Backup verification and restore drill safeguards added
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Phase/work package: Phase 7 backup and recovery preparation.
+- Work completed: Added backup freshness/hash monitoring, server-local `.env` support for scheduled backups, and a guarded isolated restore drill that refuses production-equivalent or nonempty targets, applies migrations, and verifies required tables.
+- Files or schema changed: Windows backup, freshness, and restore scripts; operations guide; changelog; and program memory. No production schema changed.
+- Decisions made: Scheduled-task registration remains manual until the target service identity and share permissions are known; restore targets must end in `_restore_drill`; credentials are passed through child-process environment variables rather than command arguments; drill database deletion is never automated.
+- Validation performed: All PowerShell scripts passed AST parsing. Backup freshness and SHA-256 verification passed against a generated local fixture. No production database or backup was accessed.
+- Deployment status: Not deployed.
+- Risks/blockers: A full restore execution requires PostgreSQL client tools, an actual verified backup, and an isolated target database on the server.
+- Exact next action: Commit and run clean CI for the follow-up, then obtain target-server inventory and backup destination details from the user.
+
 ### 2026-06-19 - Windows operations tooling prepared
 
 - Branch: `codex/windows-operations-tooling` stacked on draft PR #7.

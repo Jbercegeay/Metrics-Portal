@@ -21,6 +21,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added an isolated Precision Liner page backed by authenticated server workspaces and durable job/event capture, with explicit database-versus-Smartsheet status, permanent retry IDs, and responsive kiosk controls.
 - Added a read-only PL destination contract audit for exact static/configured defect columns, duplicate titles, writable formulas, and the required `Submission ID` type.
 - Added Windows production preflight, verified PostgreSQL backup, health smoke-test, and PowerShell syntax-check tooling.
+- Added verified-backup freshness checks and a guarded isolated PostgreSQL restore drill that refuses nonempty or improperly named targets.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.

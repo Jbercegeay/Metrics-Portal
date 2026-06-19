@@ -1,10 +1,16 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$BackupRoot,
-    [string]$DatabaseUrl = $env:DATABASE_URL
+    [string]$DatabaseUrl = $env:DATABASE_URL,
+    [string]$EnvironmentFile
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $DatabaseUrl -and $EnvironmentFile) {
+    if (-not (Test-Path -LiteralPath $EnvironmentFile -PathType Leaf)) { throw 'EnvironmentFile does not exist.' }
+    $line = Get-Content -LiteralPath $EnvironmentFile | Where-Object { $_ -match '^\s*DATABASE_URL\s*=' } | Select-Object -Last 1
+    if ($line) { $DatabaseUrl = ($line -replace '^\s*DATABASE_URL\s*=\s*', '').Trim().Trim('"').Trim("'") }
+}
 if (-not $DatabaseUrl) { throw 'DATABASE_URL is required but will not be printed.' }
 if (-not (Test-Path -LiteralPath $BackupRoot -PathType Container)) { throw 'BackupRoot must already exist.' }
 if (-not (Get-Command pg_dump -ErrorAction SilentlyContinue)) { throw 'pg_dump is not available in PATH.' }
