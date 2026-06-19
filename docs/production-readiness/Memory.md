@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, and initialized. Baseline backup, target migrations, restore proof, and controlled external validation remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, initialized, and protected by a verified off-server baseline backup. Target migrations, restore proof, and controlled external validation remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,12 +37,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Establish the verified target baseline backup, apply migrations from the pinned release candidate, prove restore and health behavior, and preserve the live compatibility portal until release gates are approved.
+- Apply migrations from the pinned release candidate, grant least-privilege runtime access, prove restore and health behavior, and preserve the live compatibility portal until release gates are approved.
 
 ## Next Actions
 
-1. Create and verify a baseline backup on the approved off-server destination.
-2. Apply all migrations from the pinned release-candidate worktree and grant runtime access.
+1. Apply all migrations from the pinned release-candidate worktree and grant runtime access.
+2. Create and verify a post-migration backup.
 3. Execute an isolated restore drill and target health/preflight checks.
 4. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
 5. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
@@ -98,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Verified target baseline backup created
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; backup correction head `b584521`.
+- Phase/work package: Phase 7 target baseline backup.
+- Work completed: Created the first off-server custom-format backup of the initialized pre-migration database with the dedicated backup role. The script verified archive readability and emitted a SHA-256 sidecar.
+- Files or schema changed: One verified dump and metadata sidecar on the approved backup destination; program memory only in Git. No database or portal state changed.
+- Decisions made: Preserve this pre-migration artifact as the rollback baseline and take another verified backup after migrations.
+- Validation performed: The dump completed without an interactive child-process password prompt, contained 891 bytes, passed `pg_restore --list`, and independently matched its recorded SHA-256. Clean CI run 27839735000 passed the backup-script correction and the full PostgreSQL 18 suite.
+- Deployment status: Baseline backup gate passed; live compatibility portal remains unchanged.
+- Risks/blockers: Target migrations, runtime grants, post-migration backup, isolated restore proof, and external release gates remain pending.
+- Exact next action: Create a detached worktree at immutable commit `b584521`, install locked dependencies there, run migrations with the migration role, and grant the application role access to existing objects.
 
 ### 2026-06-19 - Backup connection identity correction
 
