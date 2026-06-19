@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Target server inventoried and PostgreSQL bootstrap prepared
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Phase/work package: Phase 1/7 target database and operations bootstrap.
+- Work completed: Recorded the target Windows 11 baseline; confirmed adequate disk, live compatibility portal, installed Node/Git/PM2, absent PostgreSQL tooling, and an identified off-server UNC backup destination. Added guarded scripts for separate owner/migration/application/backup roles and post-migration runtime grants, plus a target-specific bootstrap runbook.
+- Files or schema changed: PostgreSQL initialization/grant PowerShell scripts, target-server runbook, playbook index, changelog, and program memory. No server or production schema changed.
+- Decisions made: Install the current PostgreSQL 18 Windows release; bind database access locally; use separate least-privilege roles; never print or pass passwords as process arguments; keep all portal database flags disabled until migration, backup, and restore proof pass.
+- Validation performed: PowerShell AST parsing passed, 34 documentation files passed local-link checks, 62 tests ran with 59 passing and 3 expected local PostgreSQL skips, and diff formatting passed.
+- Deployment status: Not deployed; current production remains on `main` at its pre-readiness compatibility release.
+- Risks/blockers: PostgreSQL installation requires an interactive elevated server session. Backup-share permissions for the eventual task identity are not yet proven.
+- Exact next action: Commit and validate the bootstrap package in CI, then have the user install PostgreSQL 18 from the official Windows installer and return the non-secret verification output.
+
 ### 2026-06-19 - Backup verification and restore drill safeguards added
 
 - Branch: `codex/windows-operations-tooling`.
