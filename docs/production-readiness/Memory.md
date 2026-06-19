@@ -10,8 +10,8 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: Phase 2 implementation validated in clean PostgreSQL; non-production Smartsheet proof remains a cutover gate. Phase 3 PL migration code is beginning.
-- Current phase: Phase 3 - Precision Liner Migration.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, and initialized. Baseline backup, target migrations, restore proof, and controlled external validation remain gates.
+- Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
@@ -32,23 +32,25 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Implemented the Phase 2 submission, outbox, delivery-attempt, and audit schema; idempotent capture API; leased worker; Smartsheet exact-ID check; retry classification; integration health; and supervisor status/retry/resolution interface behind a disabled-by-default feature gate.
 - Proved Phase 2 migrations, concurrent idempotency, worker leasing and expired-lease recovery, API authorization, and failure handling against clean PostgreSQL 18 in CI run 27828636152.
 - Implemented the Phase 3 server-session and versioned-workspace foundation with hashed opaque tokens, department rollout flags, durable kiosk locks, stale-tab protection, sign-out blocking, and audited discard/release behavior.
+- Implemented the isolated PL page, durable jobs/events, browser autosave and conflict handling, validation tooling, Windows backup/restore/health scripts, and guarded target-server bootstrap tooling.
+- Installed and secured PostgreSQL 18.4 on the target, then initialized the `metrics_portal` database and separate owner, migration, application, and backup roles without exposing credentials.
 
 ## Active Work
 
-- Implement PL server sessions/workspaces, isolated frontend, and durable capture while preserving the existing production route behind feature flags.
+- Establish the verified target baseline backup, apply migrations from the pinned release candidate, prove restore and health behavior, and preserve the live compatibility portal until release gates are approved.
 
 ## Next Actions
 
-1. Add durable server sessions and versioned associate workspaces.
-2. Extract PL into an isolated department page and shared browser API client.
-3. Route PL jobs and events through durable capture with compatibility flags.
-4. Add PL refresh, multi-click, stale-tab, shared-kiosk, validation, and sign-out tests.
-5. Keep non-production Smartsheet proof, physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Create and verify a baseline backup on the approved off-server destination.
+2. Apply all migrations from the pinned release-candidate worktree and grant runtime access.
+3. Execute an isolated restore drill and target health/preflight checks.
+4. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
+5. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
 - PostgreSQL installation service account and eventual company IT owner.
-- Physical off-machine backup destination and encryption mechanism.
+- Backup encryption mechanism (the physical off-machine destination is approved).
 - Internal DNS name and certificate issuer.
 - Monitoring and alert transport destination.
 - Production maintenance and department cutover windows.
@@ -60,7 +62,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - The current production page combines all three department interfaces.
 - Browser `localStorage` still owns substantial active-work state.
 - Current production submissions still depend on synchronous Smartsheet responses.
-- No active implementation blocker has been recorded because Phase 0 is still in planning.
+- Controlled Smartsheet schema/read-write proof, UAT ownership, TLS, alerting, and cutover approval remain external release gates.
 
 ## Latest Validation
 
@@ -72,7 +74,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Deployment State
 
-- No production-readiness implementation has been deployed.
+- PostgreSQL 18.4 and the initialized empty application database are installed on the target; no portal application migration or feature flag has been deployed.
 - Do not pull planning or incomplete implementation work onto the production server.
 - Production deployments must use an approved commit or release tag and the documented release checklist.
 
@@ -96,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Target database initialization gate passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; head `bb29732`.
+- Phase/work package: Phase 1/7 target database initialization.
+- Work completed: Initialized the empty `metrics_portal` database and separate no-login owner, migration, application, and backup roles with guarded least-privilege grants. Credentials were entered only in the target's interactive session and were not captured.
+- Files or schema changed: Target PostgreSQL roles and empty database only; application migrations have not run. This entry updates program memory.
+- Decisions made: Require a verified off-server baseline backup before applying the first application migration.
+- Validation performed: The pinned bootstrap script passed its SHA-256 check and reported successful database and role initialization; PostgreSQL notices confirmed expected role memberships.
+- Deployment status: Database bootstrap complete; live compatibility portal remains unchanged on approved `main`.
+- Risks/blockers: Baseline backup, target migrations, runtime grants, isolated restore proof, and external validation gates remain pending.
+- Exact next action: Run the pinned backup script with the backup role against the approved UNC destination and retain its verified dump and checksum sidecar.
 
 ### 2026-06-19 - PostgreSQL 18 installation gate passed
 
