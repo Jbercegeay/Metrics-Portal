@@ -6,6 +6,7 @@ process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'silent';
 process.env.DATABASE_ENABLED = 'false';
 process.env.DATABASE_REQUIRED = 'false';
+process.env.DURABLE_SUBMISSIONS_ENABLED = 'false';
 process.env.DEPT_PL_API_TOKEN = process.env.DEPT_PL_API_TOKEN || 'test-token';
 process.env.DEPT_PL_CONFIG_SHEET_ID = process.env.DEPT_PL_CONFIG_SHEET_ID || '1';
 process.env.DEPT_PL_MASTER_LOG_SHEET_ID = process.env.DEPT_PL_MASTER_LOG_SHEET_ID || '2';

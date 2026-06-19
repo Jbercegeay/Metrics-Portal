@@ -52,6 +52,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check:syntax
+      - run: npm run check:html
       - run: npm run check:docs
       - run: npm run migrate:up
       - run: npm test

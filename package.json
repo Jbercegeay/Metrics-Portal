@@ -5,14 +5,16 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:worker": "node workers/smartsheet-worker.js",
     "migrate:create": "node-pg-migrate create -m db/migrations",
     "migrate:up": "node-pg-migrate up -m db/migrations",
     "migrate:down": "node-pg-migrate down -m db/migrations",
     "validate:pi": "node scripts/validate-pi-smartsheet.js",
     "check:syntax": "node scripts/check-javascript-syntax.js",
+    "check:html": "node scripts/check-html-scripts.js",
     "check:docs": "node scripts/check-markdown-links.js",
     "test": "node --test test/*.test.js",
-    "test:database": "node --test test/database.integration.test.js"
+    "test:database": "node --test test/database.integration.test.js test/submission.database.integration.test.js"
   },
   "keywords": [],
   "author": "",

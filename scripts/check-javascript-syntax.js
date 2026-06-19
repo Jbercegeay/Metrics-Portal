@@ -4,7 +4,7 @@ const { spawnSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
 const roots = ['api', 'db', 'lib', 'routes', 'scripts', 'test'];
-const files = [path.join(root, 'server.js')];
+const files = [path.join(root, 'server.js'), path.join(root, 'ecosystem.config.js')];
 
 function collect(directory) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

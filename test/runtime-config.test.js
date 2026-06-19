@@ -28,6 +28,13 @@ test('a required database cannot be disabled', () => {
     );
 });
 
+test('durable submissions cannot be enabled without the database', () => {
+    assert.throws(
+        () => getRuntimeConfig({ DURABLE_SUBMISSIONS_ENABLED: 'true' }),
+        /DATABASE_ENABLED must be true/
+    );
+});
+
 test('production TLS verification cannot be disabled', () => {
     assert.throws(
         () => getRuntimeConfig({

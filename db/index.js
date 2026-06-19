@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 
-const EXPECTED_FOUNDATION_TABLE = 'app_metadata';
+const EXPECTED_TABLES = ['app_metadata', 'submissions', 'submission_outbox'];
 
 function createDatabase(config, logger) {
     if (!config.enabled) {
@@ -55,9 +55,11 @@ function createDatabase(config, logger) {
                     `SELECT EXISTS (
                         SELECT 1
                         FROM information_schema.tables
-                        WHERE table_schema = 'public' AND table_name = $1
+                        WHERE table_schema = 'public' AND table_name = ANY($1::text[])
+                        GROUP BY table_schema
+                        HAVING count(DISTINCT table_name) = $2
                     ) AS migration_ready`,
-                    [EXPECTED_FOUNDATION_TABLE]
+                    [EXPECTED_TABLES, EXPECTED_TABLES.length]
                 );
                 const migrationReady = result.rows[0]?.migration_ready === true;
                 return {
@@ -82,5 +84,5 @@ function createDatabase(config, logger) {
 
 module.exports = {
     createDatabase,
-    EXPECTED_FOUNDATION_TABLE
+    EXPECTED_TABLES
 };
