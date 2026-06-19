@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, initialized, and protected by a verified off-server baseline backup. Target migrations, restore proof, and controlled external validation remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, migrated, and protected by a verified off-server baseline backup. Post-migration backup, restore proof, and controlled external validation remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,15 +37,14 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Apply migrations from the pinned release candidate, grant least-privilege runtime access, prove restore and health behavior, and preserve the live compatibility portal until release gates are approved.
+- Create the verified post-migration backup, prove restore and health behavior, and preserve the live compatibility portal until release gates are approved.
 
 ## Next Actions
 
-1. Apply all migrations from the pinned release-candidate worktree and grant runtime access.
-2. Create and verify a post-migration backup.
-3. Execute an isolated restore drill and target health/preflight checks.
-4. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
-5. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Create and verify a post-migration backup.
+2. Execute an isolated restore drill and target health/preflight checks.
+3. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
+4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -74,7 +73,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Deployment State
 
-- PostgreSQL 18.4 and the initialized empty application database are installed on the target; no portal application migration or feature flag has been deployed.
+- PostgreSQL 18.4 and the migrated application schema are installed on the target; no portal application code or feature flag has been deployed.
 - Do not pull planning or incomplete implementation work onto the production server.
 - Production deployments must use an approved commit or release tag and the documented release checklist.
 
@@ -98,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Target migrations and runtime grants passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; target release candidate `b584521`.
+- Phase/work package: Phase 7 target schema migration.
+- Work completed: Installed locked dependencies in the isolated detached worktree, applied migrations 001 through 003 with the migration role, and granted the application role runtime access to existing objects with the guarded superuser script.
+- Files or schema changed: Target `metrics_portal` schema now contains the foundation metadata, durable submissions/outbox/audit objects, and sessions/kiosk/workspace objects. The live portal checkout and process were unchanged.
+- Decisions made: Treat node-pg-migrate's inability to infer timestamps from deliberately sequential numeric filenames as informational because all three files were explicitly ordered, applied atomically, and recorded in `pgmigrations`.
+- Validation performed: `pgmigrations` contains exactly `001_foundation`, `002_durable_submissions`, and `003_sessions_and_workspaces`; all seven required operational tables are present; the application role has schema usage and table read/write while schema creation is denied. The production checkout remains clean on `main`, and the existing portal still listens on port 3000 under the same process.
+- Deployment status: Database schema deployed but unused; all database/session/submission flags remain disabled in the unchanged compatibility portal.
+- Risks/blockers: Post-migration backup, isolated restore proof, target preflight/health, and external release gates remain pending.
+- Exact next action: Create and verify an off-server post-migration backup with the dedicated backup role.
 
 ### 2026-06-19 - Pinned worktree verified; portable integrity check corrected
 
