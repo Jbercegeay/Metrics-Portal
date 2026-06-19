@@ -129,7 +129,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Work completed: Replaced a timing-sensitive 20 ms concurrent lease test with a normal 60-second concurrency assertion followed by an explicit database lease expiration and recovery claim.
 - Files or schema changed: Integration test and program memory only.
 - Decisions made: Restart recovery tests manipulate the lease timestamp explicitly so runner scheduling cannot turn legitimate lease expiry into a false concurrency failure.
-- Validation performed: CI run 27828469533 applied both migrations and passed 33 tests; the sole failure showed two sequential claims because the intentionally tiny lease expired during runner scheduling.
+- Validation performed: CI run 27828469533 applied both migrations and passed 33 tests; the sole failure showed two sequential claims because the intentionally tiny lease expired during runner scheduling. Follow-up run 27828573590 proved one concurrent claim and one recovered claim, then exposed a stale expected retry count of 1 even though recovery correctly increments the count to 2.
 - Deployment status: Not deployed.
 - Risks/blockers: Awaiting deterministic replacement CI evidence.
 - Exact next action: Commit and push the deterministic lease test, then confirm the PostgreSQL 18 run.

@@ -78,7 +78,7 @@ test('database enforces atomic idempotency and one worker lease', { skip: !datab
 
         const stored = await service.getById(id);
         assert.equal(stored.syncStatus, 'needs_review');
-        assert.equal(stored.retryCount, 1);
+        assert.equal(stored.retryCount, 2);
     } finally {
         await db.query('DELETE FROM audit_events WHERE entity_id = $1', [id]);
         await db.query('DELETE FROM submission_deliveries WHERE submission_id = $1', [id]);
