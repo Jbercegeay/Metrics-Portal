@@ -10,6 +10,7 @@
     "migrate:up": "node-pg-migrate up -m db/migrations",
     "migrate:down": "node-pg-migrate down -m db/migrations",
     "validate:pi": "node scripts/validate-pi-smartsheet.js",
+    "validate:pl-destination": "node scripts/validate-pl-destination.js",
     "check:syntax": "node scripts/check-javascript-syntax.js",
     "check:html": "node scripts/check-html-scripts.js",
     "check:docs": "node scripts/check-markdown-links.js",
