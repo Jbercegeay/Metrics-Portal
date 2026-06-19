@@ -97,6 +97,32 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - PL destination contract audited read-only
+
+- Branch: `codex/pl-validation-tooling` stacked on draft PR #6.
+- Commit or PR: Draft PR #7; implementation commit `ef6c6a1`.
+- Phase/work package: Phase 3 controlled validation preparation.
+- Work completed: Added a reusable read-only PL destination contract module and command that combines static master-log requirements with configured defect titles, then detects missing columns, duplicate exact titles, writable formulas, and invalid Submission ID types without reading row contents.
+- Files or schema changed: PL destination contract library, validation command, unit tests, package command, changelog, PL migration guide, and program memory. No database or Smartsheet schema changed.
+- Decisions made: Destination schema changes remain additive and window-controlled; the audit fails closed and does not offer an implicit write mode.
+- Validation performed: 62 local tests ran with 59 passing and 3 expected PostgreSQL skips. A read-only audit against the currently configured PL destination found 57 columns and exactly one missing required contract field: `Submission ID`.
+- Deployment status: Not deployed; no external state changed.
+- Risks/blockers: PL worker delivery cannot be enabled until an approved `Submission ID` text-compatible column is added to the intended destination and this audit returns READY.
+- Exact next action: Continue safe deployment and operations preparation before requesting the controlled destination change.
+
+### 2026-06-19 - PL destination audit CI passed
+
+- Branch: `codex/pl-validation-tooling`.
+- Commit or PR: Draft PR #7; implementation commit `ef6c6a1`.
+- Phase/work package: Phase 3 controlled validation preparation.
+- Work completed: Closed the destination-audit clean-environment CI gate.
+- Files or schema changed: Program memory only.
+- Decisions made: None.
+- Validation performed: GitHub Actions run 27830472821 passed migrations, 62 application tests, PostgreSQL integration tests, syntax, HTML, documentation, and production dependency audit against PostgreSQL 18.
+- Deployment status: Not deployed.
+- Risks/blockers: The configured PL destination remains NOT READY until the approved `Submission ID` column is added.
+- Exact next action: Prepare deployment, backup, monitoring, and rollback automation without enabling production.
+
 ### 2026-06-19 - Isolated PL page and durable workflow implemented
 
 - Branch: `codex/pl-page-extraction` stacked on the validated server-workspaces branch.

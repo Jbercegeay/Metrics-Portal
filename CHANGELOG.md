@@ -19,6 +19,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added durable idempotent submission capture, a leased Smartsheet outbox worker, exact-ID uncertain-delivery checks, retry and `needs_review` handling, integration health, and a department-scoped supervisor status page behind disabled-by-default feature flags.
 - Added disabled-by-default PostgreSQL sessions, department-scoped kiosk locks, versioned server workspaces, stale-tab rejection, unsaved-work sign-out blocking, and audited discard/release controls for the PL migration.
 - Added an isolated Precision Liner page backed by authenticated server workspaces and durable job/event capture, with explicit database-versus-Smartsheet status, permanent retry IDs, and responsive kiosk controls.
+- Added a read-only PL destination contract audit for exact static/configured defect columns, duplicate titles, writable formulas, and the required `Submission ID` type.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.

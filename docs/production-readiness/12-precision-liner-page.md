@@ -55,3 +55,11 @@ Job payloads preserve the existing master-log titles for entry type, sequence, l
 - Run worker delivery against the controlled PL test sheet and compare every mapped column with the compatibility output.
 - Complete supervised PL floor UAT, owner sign-off, and rollback rehearsal.
 - Enable only during the approved PL window after HTTPS, database backup, monitoring, and worker process prerequisites are verified.
+
+Run the read-only destination audit from an environment configured for the intended PL sheet:
+
+```powershell
+npm run validate:pl-destination
+```
+
+The audit reads the PL configuration and master-log columns only. It does not read or print row contents and does not change the destination. A nonzero exit identifies missing exact titles, duplicate writable titles, formulas in writable columns, or an invalid `Submission ID` type.
