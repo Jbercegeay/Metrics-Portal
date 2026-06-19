@@ -10,8 +10,8 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: Phase 1 complete; Phase 2 durable submission platform in progress.
-- Current phase: Phase 2 - Durable Submission Platform.
+- Status: Phase 2 implementation validated in clean PostgreSQL; non-production Smartsheet proof remains a cutover gate. Phase 3 PL migration code is beginning.
+- Current phase: Phase 3 - Precision Liner Migration.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
@@ -30,18 +30,19 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Added validated database configuration, pooled PostgreSQL transactions, the initial versioned migration, structured request logging, correlation IDs, graceful shutdown, liveness/readiness endpoints, automated tests, CI, and setup documentation.
 - Proved the foundation migration and transaction behavior against clean PostgreSQL 18 in GitHub Actions.
 - Implemented the Phase 2 submission, outbox, delivery-attempt, and audit schema; idempotent capture API; leased worker; Smartsheet exact-ID check; retry classification; integration health; and supervisor status/retry/resolution interface behind a disabled-by-default feature gate.
+- Proved Phase 2 migrations, concurrent idempotency, worker leasing and expired-lease recovery, API authorization, and failure handling against clean PostgreSQL 18 in CI run 27828636152.
 
 ## Active Work
 
-- Implement the Phase 2 durable submission platform.
+- Implement PL server sessions/workspaces, isolated frontend, and durable capture while preserving the existing production route behind feature flags.
 
 ## Next Actions
 
-1. Implement the durable submission, outbox, delivery-attempt, and audit schema.
-2. Add the idempotent submission API and background worker.
-3. Add supervisor status, retry, and resolution controls.
-4. Prove restart, timeout, duplicate, uncertain-delivery, and terminal-failure behavior.
-5. Keep the physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Add durable server sessions and versioned associate workspaces.
+2. Extract PL into an isolated department page and shared browser API client.
+3. Route PL jobs and events through durable capture with compatibility flags.
+4. Add PL refresh, multi-click, stale-tab, shared-kiosk, validation, and sign-out tests.
+5. Keep non-production Smartsheet proof, physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -124,15 +125,28 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-19 - Phase 2 deterministic lease test correction
 
 - Branch: `codex/submission-outbox`.
-- Commit or PR: Draft PR #4; correction not committed yet.
+- Commit or PR: Draft PR #4; final correction commit `13074a7`.
 - Phase/work package: Phase 2 worker restart validation.
 - Work completed: Replaced a timing-sensitive 20 ms concurrent lease test with a normal 60-second concurrency assertion followed by an explicit database lease expiration and recovery claim.
 - Files or schema changed: Integration test and program memory only.
 - Decisions made: Restart recovery tests manipulate the lease timestamp explicitly so runner scheduling cannot turn legitimate lease expiry into a false concurrency failure.
 - Validation performed: CI run 27828469533 applied both migrations and passed 33 tests; the sole failure showed two sequential claims because the intentionally tiny lease expired during runner scheduling. Follow-up run 27828573590 proved one concurrent claim and one recovered claim, then exposed a stale expected retry count of 1 even though recovery correctly increments the count to 2.
 - Deployment status: Not deployed.
-- Risks/blockers: Awaiting deterministic replacement CI evidence.
-- Exact next action: Commit and push the deterministic lease test, then confirm the PostgreSQL 18 run.
+- Risks/blockers: Non-production Smartsheet exact-ID proof requires a destination with the approved `Submission ID` column before cutover.
+- Exact next action: Implement PL server sessions/workspaces and isolated durable capture while the live-sheet gate remains disabled.
+
+### 2026-06-19 - Phase 2 clean PostgreSQL validation passed
+
+- Branch: `codex/submission-outbox`.
+- Commit or PR: Draft PR #4; head `13074a7`.
+- Phase/work package: Phase 2 validation.
+- Work completed: Closed the durable submission implementation database gate.
+- Files or schema changed: No additional schema or application change; this entry records validation evidence.
+- Decisions made: Continue PL implementation with the feature disabled while preserving non-production Smartsheet proof as a cutover requirement.
+- Validation performed: GitHub Actions run 27828636152 passed both migrations, 34 automated tests, syntax checks, inline HTML script parsing, documentation-link checks, and production dependency audit against PostgreSQL 18.
+- Deployment status: Not deployed; feature disabled by default.
+- Risks/blockers: Required `Submission ID` destination columns and controlled Smartsheet delivery remain external cutover prerequisites.
+- Exact next action: Begin Phase 3 durable sessions, server workspaces, and isolated PL page.
 
 ### 2026-06-19 - Phase 1 engineering foundation implemented
 
