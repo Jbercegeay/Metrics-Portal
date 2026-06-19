@@ -39,7 +39,8 @@ Read and maintain these documents in order:
 10. [Development and Database Setup](09-development-and-database-setup.md) - local runtime, PostgreSQL, migrations, CI, and health verification.
 11. [Durable Submissions](10-durable-submissions.md) - capture contract, outbox worker, supervisor controls, and failure behavior.
 12. [Server Sessions and Workspaces](11-sessions-and-workspaces.md) - durable identity, kiosk locking, optimistic workspaces, and sign-out rules.
-13. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
+13. [Precision Liner Page Migration](12-precision-liner-page.md) - isolated page, server workspace, durable capture, validation, and rollback behavior.
+14. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
 
 `AGENTS.md` contains the scoped enforcement instructions for coding agents working from this playbook.
 
@@ -91,7 +92,7 @@ A department is production ready only when all of the following are true:
 | Architecture | Approved | Decisions approved and prerequisites confirmed |
 | Foundation | Complete | Database, migrations, health checks, and CI operational |
 | Durable submissions | In progress | Failure tests prove no loss or duplicates |
-| PL migration | Not started | PL user acceptance and cutover approval |
+| PL migration | In progress | Isolated workflow implemented; test-sheet comparison, UAT, and cutover approval pending |
 | PTFE migration | Not started | PTFE user acceptance and cutover approval |
 | PI migration | Not started | PI user acceptance and cutover approval |
 | Operations handoff | Not started | Restore drill and support handoff completed |

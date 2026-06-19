@@ -30,6 +30,7 @@ const { createSessionMiddleware, createSessionService } = require('./services/se
 const { createWorkspaceService } = require('./services/workspaces/workspace-service');
 const { createSessionRouter } = require('./routes/sessions');
 const { createWorkspaceRouter } = require('./routes/workspaces');
+const { createFeatureRouter } = require('./routes/features');
 
 const app = express();
 validateApplicationEnvironment();
@@ -433,6 +434,7 @@ app.use('/api/v2', createHealthRouter({
     version: runtimeConfig.serviceVersion,
     integrationHealth: database.enabled ? () => submissionRepository.integrationHealth() : null
 }));
+app.use('/api/v2', createFeatureRouter(runtimeConfig.features));
 app.use('/api/v2', createSessionMiddleware({
     enabled: runtimeConfig.features.serverSessions,
     service: sessionService

@@ -29,6 +29,9 @@ test('submission service normalizes and creates one durable destination', async 
     const result = await service.create(value);
     assert.equal(result.created, true);
     assert.equal(captured.submission.department, 'PL');
+    assert.equal(captured.submission.payload['Entry Type'], 'Job');
+    assert.equal(captured.submission.payload['Work Date'], '2026-06-19');
+    assert.equal(captured.submission.payload['Associate Name'], 'Test Associate');
     assert.equal(captured.destination, 'smartsheet:PL:master_log');
     assert.equal(captured.actor.name, 'Test Associate');
 });
@@ -37,7 +40,7 @@ test('same ID and payload returns the existing result', async () => {
     const value = input();
     const service = createSubmissionService({
         async create(submission) {
-            return { created: false, submission: { ...submission, payloadHash: hashPayload(value.payload) } };
+            return { created: false, submission: { ...submission, payloadHash: submission.payloadHash } };
         }
     });
     const result = await service.create(value);

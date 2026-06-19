@@ -176,10 +176,35 @@
 
     <div id="toast"></div>
 
+    <script src="/shared/auth-routing.js"></script>
     <script>
         // Check if already logged in
-        if (localStorage.getItem('currentUser')) {
-            window.location.href = '/';
+        redirectExistingUser();
+
+        async function redirectExistingUser() {
+            let savedUser = null;
+            try { savedUser = JSON.parse(localStorage.getItem('currentUser')); } catch (error) {}
+            if (!savedUser) return;
+            const department = savedUser.departmentKey || 'PL';
+            if (savedUser.role === 'Supervisor' && localStorage.getItem('adminToken')) {
+                window.location.href = AuthRouting.adminDestination(department);
+                return;
+            }
+            if (department !== 'PL') {
+                window.location.href = '/';
+                return;
+            }
+            try {
+                const response = await fetch('/api/v2/sessions/current');
+                if (response.ok) {
+                    window.location.href = '/pl/';
+                    return;
+                }
+                if (response.status === 503) window.location.href = '/';
+                else localStorage.removeItem('currentUser');
+            } catch (error) {
+                localStorage.removeItem('currentUser');
+            }
         }
 
         let pendingSetupUsername = '';
@@ -330,13 +355,6 @@
             setTimeout(() => el.style.display = 'none', 4000);
         }
 
-        function getAdminDestination(deptKey) {
-            if (deptKey === 'PTFE') return '/admin-ptfe.html';
-            if (deptKey === 'PL') return '/admin-pl.html';
-            if (deptKey === 'PI') return '/admin-pi.html';
-            return '/';
-        }
-
         async function handleLogin() {
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
@@ -377,18 +395,16 @@
                 } else if (data.success) {
                     // Login successful!
                     localStorage.setItem('currentUser', JSON.stringify(data.user));
-                    const deptKey = data.user.departmentKey || 'PL';
                     const isSupervisor = data.user.role === 'Supervisor';
                     if (isSupervisor && data.adminToken) {
                         localStorage.setItem('adminToken', data.adminToken);
                     } else {
                         localStorage.removeItem('adminToken');
                     }
-                    const adminDest = getAdminDestination(deptKey);
                     const toast = document.getElementById('toast');
                     toast.textContent = "Login successful!"; toast.style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = (isSupervisor && data.adminToken) ? adminDest : '/';
+                        window.location.href = AuthRouting.loginDestination(data);
                     }, 500);
                 } else {
                     showError(data.error || "Login failed");
@@ -423,18 +439,16 @@
 
                 if (data.success) {
                     localStorage.setItem('currentUser', JSON.stringify(data.user));
-                    const deptKey = data.user.departmentKey || 'PL';
                     const isSupervisor = data.user.role === 'Supervisor';
                     if (isSupervisor && data.adminToken) {
                         localStorage.setItem('adminToken', data.adminToken);
                     } else {
                         localStorage.removeItem('adminToken');
                     }
-                    const adminDest = getAdminDestination(deptKey);
                     const toast = document.getElementById('toast');
                     toast.textContent = "Password saved. Logging in..."; toast.style.display = 'block';
                     setTimeout(() => {
-                        window.location.href = (isSupervisor && data.adminToken) ? adminDest : '/';
+                        window.location.href = AuthRouting.loginDestination(data);
                     }, 1000);
                 } else {
                     showError(data.error || "Failed to save password.", true);

@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Isolated PL page and durable workflow implemented
+
+- Branch: `codex/pl-page-extraction` stacked on the validated server-workspaces branch.
+- Commit or PR: Commit `Add durable Precision Liner workflow`; stacked draft PR pending.
+- Phase/work package: Phase 3 PL page extraction and durable workflow binding.
+- Work completed: Added the isolated `/pl/` module, authenticated feature/session startup, server autosave with stale-tab stop, durable job and event capture with permanent retry identity, database-versus-Smartsheet status, guarded sign-out/discard, and PL login routing. Removed hourly tracking, End Shift, browser-local workspace ownership, and local associate switching from the isolated module.
+- Files or schema changed: PL HTML/CSS/model/app bundle; shared API client; safe feature-state route; login routing; model/API/browser support tests; changelog; and PL migration guide. No schema change.
+- Decisions made: One authenticated associate owns one PL server workspace; one submitted PL form is one logical durable row; Smartsheet delivery status is never presented as a condition of database durability; the compatibility page remains the flag-controlled rollback path.
+- Validation performed: 42 JavaScript files passed syntax checks, inline scripts parsed, 59 local tests passed with 3 expected PostgreSQL skips, 32 documentation files passed local-link checks, the production dependency audit reported zero vulnerabilities, authenticated reporting fields were proven server-canonical, and real-browser checks proved job/event autosave and capture, pending-to-synced status, form clearing, stale-tab blocking and recovery, and 768 by 1024 responsive layout without horizontal overflow.
+- Deployment status: Not deployed; all rollout flags remain disabled by default.
+- Risks/blockers: Clean PostgreSQL CI is pending for this branch. Controlled Smartsheet exact-ID delivery, parallel output comparison, PL floor UAT, and rollback rehearsal remain cutover gates requiring the approved environment and people.
+- Exact next action: Commit and push the bounded branch, open its stacked draft PR, and confirm clean PostgreSQL 18 CI before beginning controlled test-sheet validation preparation.
+
 ### 2026-06-19 - PL server sessions and workspaces implemented
 
 - Branch: `codex/pl-server-workspaces` stacked on the validated outbox branch.

@@ -18,12 +18,16 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added automated unit, API, database, syntax, documentation-link, migration, dependency-audit, and GitHub Actions checks.
 - Added durable idempotent submission capture, a leased Smartsheet outbox worker, exact-ID uncertain-delivery checks, retry and `needs_review` handling, integration health, and a department-scoped supervisor status page behind disabled-by-default feature flags.
 - Added disabled-by-default PostgreSQL sessions, department-scoped kiosk locks, versioned server workspaces, stale-tab rejection, unsaved-work sign-out blocking, and audited discard/release controls for the PL migration.
+- Added an isolated Precision Liner page backed by authenticated server workspaces and durable job/event capture, with explicit database-versus-Smartsheet status, permanent retry IDs, and responsive kiosk controls.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.
 
 ### Changed
 
+- Precision Liner associates with the database rollout enabled now enter through `/pl/`; the compatibility page remains the rollback path while flags are disabled.
+- Replaced PL browser-local multi-associate and hourly shift state with one server-owned workspace per authenticated associate.
+- Removed the hourly tracker and End Shift workflow from the isolated PL module; sign-out now blocks unsent work unless the associate intentionally discards it with a reason.
 - Removed the live KPI/OEE banner from the department entry portals so production reporting can be handled through Smartsheet and Power BI instead of duplicated in the portal UI.
 - Improved PL, PTFE, and Polyimide admin panels so table rows and dropdown choices render alphabetically regardless of Smartsheet row order.
 - Added top Save buttons and top-insert behavior to admin panel Add actions so new blank rows are immediately editable without scrolling to the bottom of a table.
