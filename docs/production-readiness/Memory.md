@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Pinned worktree verified; portable integrity check corrected
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; target release candidate `b584521`.
+- Phase/work package: Phase 7 target migration preparation.
+- Work completed: Fetched the release branch and created an isolated detached target worktree at the exact approved commit. Replaced an ad hoc raw SHA-256 check for the runtime-grant script with the commit's Git blob identity plus a clean-worktree check because Windows checkout line-ending conversion legitimately changes raw file bytes.
+- Files or schema changed: Program memory only; target release worktree created. Dependency installation and database operations did not run because the integrity check stopped first.
+- Decisions made: Verify checked-out release files through the pinned commit, expected Git blob, and clean index rather than platform-dependent post-checkout hashes unless `.gitattributes` enforces byte-identical line endings.
+- Validation performed: Target fetched commit `b5845218cbb58dd16fc5dadff8a6eadacb6f09a4`, checked it out detached, and stopped on the expected CRLF-sensitive SHA-256 mismatch before `npm ci`, migrations, or grants. The canonical grant-script blob is `c5dd14df155c578dda8a0df373f68b11f896753f`.
+- Deployment status: No schema or live portal change; isolated release worktree is ready to continue.
+- Risks/blockers: Migrations and runtime grants remain pending.
+- Exact next action: Verify the worktree HEAD, canonical Git blob, and clean grant script, then install locked dependencies and apply the migrations.
+
 ### 2026-06-19 - Verified target baseline backup created
 
 - Branch: `codex/windows-operations-tooling`.
