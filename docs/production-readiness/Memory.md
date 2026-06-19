@@ -100,7 +100,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-19 - Windows operations tooling prepared
 
 - Branch: `codex/windows-operations-tooling` stacked on draft PR #7.
-- Commit or PR: Not committed yet.
+- Commit or PR: Draft PR #8; implementation commit `e10bb4e`.
 - Phase/work package: Phase 7 operations and recovery preparation.
 - Work completed: Added Windows production prerequisite, verified PostgreSQL backup, and health smoke-test scripts; added PowerShell parser validation to local and CI checks; updated GitHub actions to Node 24-compatible major versions; documented intentionally manual production gates.
 - Files or schema changed: PowerShell operations/check scripts, CI workflow, package commands, operations guide, playbook index, changelog, and program memory. No schema change.
@@ -108,7 +108,20 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Validation performed: PowerShell parser check passed, 45 JavaScript files passed syntax checks, inline HTML and 33 documentation files passed, 62 tests ran with 59 passing and 3 expected local PostgreSQL skips, and the production dependency audit reported zero vulnerabilities.
 - Deployment status: Not deployed; scripts were not run against a production server or database.
 - Risks/blockers: Server-local prerequisite execution requires access to the target Windows server and the approved off-machine backup path. Restore-drill automation depends on PostgreSQL installation and an isolated restore target.
-- Exact next action: Commit and validate operations tooling in clean CI, then stop for the target-server prerequisite and backup-destination work that cannot be completed from this workstation.
+- Exact next action: Obtain the target-server prerequisite inventory and approved off-machine backup path through an interactive server session.
+
+### 2026-06-19 - Windows operations CI passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; implementation commit `e10bb4e`.
+- Phase/work package: Phase 7 operations and recovery preparation.
+- Work completed: Closed the Windows operations clean-environment validation gate and removed the prior GitHub Actions Node-runtime annotation by advancing the action majors.
+- Files or schema changed: Program memory only.
+- Decisions made: No additional local deployment automation will guess target-server identities, storage, network, certificate, or maintenance settings.
+- Validation performed: GitHub Actions run 27830671911 passed PowerShell parsing on Linux PowerShell, all three PostgreSQL migrations, 62 application tests, PostgreSQL integration tests, syntax, HTML, documentation, and production dependency audit against PostgreSQL 18.
+- Deployment status: Not deployed.
+- Risks/blockers: Target Windows server facts and an approved off-machine backup destination are now required for meaningful progress.
+- Exact next action: User opens an interactive session on the target server and runs the supplied read-only inventory commands, then returns the output without secret values.
 
 ### 2026-06-19 - PL destination contract audited read-only
 
