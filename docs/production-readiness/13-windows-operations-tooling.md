@@ -5,10 +5,12 @@ These scripts are intended to be run locally on the Windows application server f
 ## Preflight
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Test-ProductionPrerequisites.ps1 -BackupRoot 'X:\MetricsPortalBackups'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Test-ProductionPrerequisites.ps1 `
+  -BackupRoot 'X:\MetricsPortalBackups' `
+  -BaseUrl 'http://127.0.0.1:3002'
 ```
 
-The preflight checks required commands, `.env`, an existing backup destination, free disk, clean Git state, current commit, and application liveness. It does not print environment values.
+The preflight checks required commands, `.env`, an existing backup destination, free disk, clean Git state, current commit, application identity, and application liveness. `BaseUrl` is mandatory so a host running multiple Node portals cannot silently validate the wrong process. It does not print environment values.
 
 ## Verified Database Backup
 
@@ -45,7 +47,7 @@ The drill refuses a nonempty target, refuses a target without the `_restore_dril
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Test-PortalHealth.ps1 -BaseUrl 'https://metrics-portal.internal'
 ```
 
-Run after migrations and PM2 restart. A deployment is not accepted until liveness, readiness, and integration health return expected states and PM2 shows both the web and worker processes stable.
+Run after migrations and PM2 restart. The script first proves the root page title contains `Metrics Portal`, preventing the old PL portal from satisfying a health check. A deployment is not accepted until liveness, readiness, and integration health return expected states and PM2 shows both the web and worker processes stable.
 
 ## Intentionally Manual Gates
 

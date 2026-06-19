@@ -2,7 +2,8 @@
 param(
     [string]$AppRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [Parameter(Mandatory = $true)][string]$BackupRoot,
-    [string]$BaseUrl = 'http://127.0.0.1:3000',
+    [Parameter(Mandatory = $true)][ValidatePattern('^https?://')][string]$BaseUrl,
+    [string]$ExpectedTitle = 'Metrics Portal',
     [int]$PostgresPort = 5432,
     [int]$MinimumFreeGb = 20
 )
@@ -44,6 +45,12 @@ try {
     $head = git rev-parse HEAD
     Add-Check 'Git commit' ([bool]$head) $head
 } finally { Pop-Location }
+
+try {
+    $home = Invoke-WebRequest -Uri "$BaseUrl/" -UseBasicParsing -TimeoutSec 5
+    $title = $(if ($home.Content -match '<title[^>]*>([^<]+)</title>') { $matches[1].Trim() } else { '' })
+    Add-Check 'Application identity' ($title -like "*$ExpectedTitle*") $(if ($title) { $title } else { 'No HTML title found' })
+} catch { Add-Check 'Application identity' $false 'Root page not reachable' }
 
 try {
     $live = Invoke-RestMethod -Uri "$BaseUrl/api/v2/health" -TimeoutSec 5

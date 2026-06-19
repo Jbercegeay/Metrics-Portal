@@ -39,6 +39,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 
 ### Fixed
 
+- Renamed the legacy npm package and login-page branding to Metrics Portal, and made Windows health tooling require an explicit URL plus Metrics Portal page-identity verification so the co-hosted legacy PL portal cannot be checked accidentally.
 - Fixed the Windows PostgreSQL backup script so the supplied database URL explicitly controls the host, port, user, password, and database instead of inheriting the Windows service account's PostgreSQL identity; failed or unverified attempts now remove partial dump artifacts.
 - Updated supervisor reset to clear the current multi-associate Job x Job tracker storage for PL, PTFE, and Polyimide.
 - Allowed shared-workstation associate names to submit to PTFE/PI Smartsheet logs even when the destination sheet's Associate Name column has strict picklist validation.

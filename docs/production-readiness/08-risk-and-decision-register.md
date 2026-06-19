@@ -9,7 +9,7 @@
 | R-003 | Browser state mixes associates | Incorrect attribution and blocked sign-out | Server-owned versioned workspaces and session isolation | Technical owner | Planned |
 | R-004 | Combined frontend causes cross-department regression | One department change breaks another | Separate department pages/modules and department test suites | Technical owner | Planned |
 | R-005 | Large rewrite delays reliability improvements | Current incidents continue during development | Incremental PL-first vertical slices and compatibility flags | Johnny Bercegeay | Open |
-| R-006 | Database backups exist but cannot be restored | Extended outage or permanent data loss | Scheduled restore drills and documented evidence | Johnny Bercegeay | Open |
+| R-006 | Database backups exist but cannot be restored | Extended outage or permanent data loss | Scheduled restore drills and documented evidence | Johnny Bercegeay | Mitigated; first target restore passed 2026-06-19 |
 | R-007 | Production schema change breaks old release | Rollback becomes unsafe | Expand-and-contract migrations and compatibility testing | Technical owner | Planned |
 | R-008 | Worker silently stops | Smartsheet becomes stale | Queue-age monitoring, health checks, and alerts | Operations owner | Planned |
 | R-009 | Test environment writes to production sheets | Polluted production data | Environment validation, safe defaults, separate credentials | Technical owner | Open |

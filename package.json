@@ -1,5 +1,5 @@
 {
-  "name": "pl-portal-full-app",
+  "name": "metrics-portal",
   "version": "1.1.0",
   "description": "",
   "main": "server.js",

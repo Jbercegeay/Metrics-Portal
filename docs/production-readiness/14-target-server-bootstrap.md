@@ -2,7 +2,16 @@
 
 ## Verified Baseline
 
-The target is a 64-bit Windows 11 Enterprise host with adequate free space on the system and application-data volumes. Node.js, npm, Git, and PM2 are installed. The compatibility portal is listening on port 3000 from the production `main` checkout. PostgreSQL was initially absent; PostgreSQL 13.23 was accidentally installed during bootstrap and is removed before installing PostgreSQL 18. An off-server UNC backup destination has been identified but its service-account permissions and write behavior still require verification.
+The target is a 64-bit Windows 11 Enterprise host with adequate free space on the system and application-data volumes. Node.js, npm, Git, and PM2 are installed. The three-department compatibility Metrics Portal is listening on port 3002 from its production `main` checkout. PostgreSQL was initially absent; PostgreSQL 13.23 was accidentally installed during bootstrap and was removed before PostgreSQL 18 was installed. The approved off-server backup destination has verified write, hash, and restore behavior.
+
+The host runs two distinct portals. They must never be treated as interchangeable:
+
+| PM2 process | Port | Repository | Scope |
+| --- | --- | --- | --- |
+| `PL-Portal` | 3000 | `C:\ServerData\Repos\Precision-Liner-Portal` | Legacy PL-only portal; out of scope for this program |
+| `metrics-portal` | 3002 | `C:\ServerData\Repos\Metrics-Portal` | Three-department Metrics Portal; production-readiness target |
+
+All Metrics Portal health, deployment, restart, and rollback commands must name `metrics-portal` and use port 3002. Never restart, delete, or deploy into `PL-Portal` as part of this program.
 
 ## PostgreSQL Installation Gate
 

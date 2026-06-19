@@ -10,9 +10,9 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, migrated, and protected by verified pre- and post-migration off-server backups. Restore proof and controlled external validation remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, migrated, protected by verified pre- and post-migration off-server backups, and proven recoverable through an isolated restore. Controlled Smartsheet validation, UAT, and final deployment infrastructure remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
-- Production: The existing portal remains active from the server's approved `main` deployment.
+- Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
 - Last updated: 2026-06-19.
@@ -37,12 +37,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Prove isolated restore and health behavior, and preserve the live compatibility portal until release gates are approved.
+- Prepare the controlled Smartsheet validation and UAT package while preserving the live compatibility portal until release gates are approved.
 
 ## Next Actions
 
-1. Execute an isolated restore drill and target health/preflight checks.
-2. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
+1. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
+2. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
 3. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
@@ -96,6 +96,32 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Production portal identity corrected and locked down
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; correction not committed yet.
+- Phase/work package: Phase 7 target deployment mapping.
+- Work completed: Proved that the server hosts two independent portals, corrected the production target from port 3000 to 3002, renamed stale PL-only npm/login branding in the combined repository, and required explicit URL plus page-title verification in Windows health tooling.
+- Files or schema changed: Package metadata, login title, Windows preflight/health scripts, target operations documentation, changelog, risk evidence, and program memory. No server process, database, or Smartsheet state changed.
+- Decisions made: `PL-Portal` at port 3000 and `Precision-Liner-Portal` are explicitly out of scope. Only PM2 `metrics-portal`, `Metrics-Portal`, and port 3002 may be used for this program's application operations.
+- Validation performed: Server listener and HTTP evidence mapped PID 1928/port 3000 to the legacy Precision Liner page and PID 6936/port 3002 to `Metrics Portal - v1.2.0`. PM2 mapped `PL-Portal` to `C:\ServerData\Repos\Precision-Liner-Portal` and `metrics-portal` to `C:\ServerData\Repos\Metrics-Portal`; the latter is GitHub `Jbercegeay/Metrics-Portal` on approved `main` commit `2e936a4`. Locally, PowerShell parsing, JavaScript syntax, inline HTML parsing, Markdown links, and 59 runnable tests passed with 3 expected database skips under the corrected `metrics-portal` package identity.
+- Deployment status: Metrics Portal remains live and unchanged on port 3002; legacy PL portal remains live and unchanged on port 3000. Database foundation remains migrated but disabled.
+- Risks/blockers: Earlier port-3000 liveness observations are invalid for Metrics Portal and are superseded by this mapping. Controlled Smartsheet validation and remaining release gates are still pending.
+- Exact next action: Validate the identity-safety corrections locally and in CI, then continue only against the Metrics Portal target on port 3002.
+
+### 2026-06-19 - Isolated target restore drill passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; restore tooling release candidate `b584521`.
+- Phase/work package: Phase 7 recovery validation.
+- Work completed: Restored the verified post-migration backup into a disposable isolated database, applied the recovery-time migration check, restored runtime grants, verified schema/data/privilege invariants, and removed the drill database after success.
+- Files or schema changed: Temporary `metrics_portal_restore_drill` database created and removed; risk register and program memory updated. Production database and live portal were not modified by the drill.
+- Decisions made: Target preflight and HTTP health acceptance remain deployment-rehearsal gates because the currently live compatibility commit predates the v2 health endpoints; recovery proof does not require changing the live process.
+- Validation performed: Restore script found all seven required operational tables and no pending migrations; `pgmigrations` contained three records, foundation version was 1, application database/schema/table/sequence privileges were correct, and `DROP DATABASE ... WITH (FORCE)` completed without error. R-006 is mitigated by target evidence.
+- Deployment status: Database foundation is migrated, backed up, and recoverable but unused; compatibility portal remains live and unchanged.
+- Risks/blockers: Controlled Smartsheet exact-ID proof, named PL UAT participants, TLS/DNS, alert transport, and deployment window remain external gates.
+- Exact next action: Prepare the guarded `Submission ID` destination schema migration and controlled validation procedure, then identify the approved non-production PL destination and UAT participants.
 
 ### 2026-06-19 - Restore drill database creation correction
 
