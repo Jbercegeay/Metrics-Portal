@@ -10,6 +10,15 @@ process.env.DEPT_PL_API_TOKEN = process.env.DEPT_PL_API_TOKEN || 'test-token';
 process.env.DEPT_PL_CONFIG_SHEET_ID = process.env.DEPT_PL_CONFIG_SHEET_ID || '1';
 process.env.DEPT_PL_MASTER_LOG_SHEET_ID = process.env.DEPT_PL_MASTER_LOG_SHEET_ID || '2';
 process.env.DEPT_PL_DEFECT_SEEDS_SHEET_ID = process.env.DEPT_PL_DEFECT_SEEDS_SHEET_ID || '3';
+const additionalEnvironment = [
+    'DEPT_PTFE_API_TOKEN', 'DEPT_PTFE_CONFIG_SHEET_ID', 'DEPT_PTFE_MASTER_LOG_SHEET_ID',
+    'DEPT_PTFE_STANDARDS_SHEET_ID', 'DEPT_PTFE_ITEMS_SHEET_ID', 'DEPT_PTFE_JOB_LOG_SHEET_ID',
+    'DEPT_PI_API_TOKEN', 'DEPT_PI_CONFIG_SHEET_ID', 'DEPT_PI_MASTER_LOG_SHEET_ID',
+    'DEPT_PI_STANDARDS_SHEET_ID', 'DEPT_PI_ITEMS_SHEET_ID', 'DEPT_PI_JOB_LOG_SHEET_ID'
+];
+for (const [index, name] of additionalEnvironment.entries()) {
+    process.env[name] = process.env[name] || String(index + 10);
+}
 
 const { app, database } = require('../server');
 

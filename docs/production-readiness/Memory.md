@@ -105,6 +105,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Risks/blockers: Clean PostgreSQL migration evidence is pending CI; physical production-server prerequisites remain deferred until deployment preparation.
 - Exact next action: Commit and push the foundation, confirm PostgreSQL 18 CI, then implement the Phase 2 durable submission schema and API.
 
+### 2026-06-19 - Phase 1 first CI correction
+
+- Branch: `codex/postgres-foundation`.
+- Commit or PR: Draft PR #3; correction not committed yet.
+- Phase/work package: Phase 1 CI validation.
+- Work completed: Made the existing three-department startup environment contract explicit and added safe fake CI/test values after the assembled-app smoke test exposed local `.env` coupling.
+- Files or schema changed: Runtime validation, environment example, CI configuration, and tests. No schema change.
+- Decisions made: All configuration names required by the currently assembled three-department server are validated at startup; secret values remain environment-only.
+- Validation performed: The first clean PostgreSQL 18 CI run successfully applied the migration and passed the database transaction test before failing only on a missing PTFE Job Log test variable.
+- Deployment status: Not deployed.
+- Risks/blockers: Awaiting corrected CI run.
+- Exact next action: Run local checks, commit and push the focused correction, and confirm the replacement CI run.
+
 ### 2026-06-19 - Phase 0 current-state inventory
 
 - Branch: `codex/production-readiness-phase0`.

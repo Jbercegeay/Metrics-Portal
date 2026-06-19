@@ -56,16 +56,15 @@ test('application validation reports missing names without exposing values', () 
     );
 });
 
-test('enabled department writes require their own credentials and destination', () => {
-    const base = {
-        DEPT_PL_API_TOKEN: 'secret',
-        DEPT_PL_CONFIG_SHEET_ID: '1',
-        DEPT_PL_MASTER_LOG_SHEET_ID: '2',
-        DEPT_PL_DEFECT_SEEDS_SHEET_ID: '3',
-        ALLOW_PTFE_MASTER_LOG_WRITES: 'true'
-    };
-    assert.throws(
-        () => validateApplicationEnvironment(base),
-        /DEPT_PTFE_API_TOKEN, DEPT_PTFE_MASTER_LOG_SHEET_ID/
-    );
+test('application validation accepts a complete three-department environment', () => {
+    const names = [
+        'DEPT_PL_API_TOKEN', 'DEPT_PL_CONFIG_SHEET_ID', 'DEPT_PL_MASTER_LOG_SHEET_ID',
+        'DEPT_PL_DEFECT_SEEDS_SHEET_ID', 'DEPT_PTFE_API_TOKEN', 'DEPT_PTFE_CONFIG_SHEET_ID',
+        'DEPT_PTFE_MASTER_LOG_SHEET_ID', 'DEPT_PTFE_STANDARDS_SHEET_ID', 'DEPT_PTFE_ITEMS_SHEET_ID',
+        'DEPT_PTFE_JOB_LOG_SHEET_ID', 'DEPT_PI_API_TOKEN', 'DEPT_PI_CONFIG_SHEET_ID',
+        'DEPT_PI_MASTER_LOG_SHEET_ID', 'DEPT_PI_STANDARDS_SHEET_ID', 'DEPT_PI_ITEMS_SHEET_ID',
+        'DEPT_PI_JOB_LOG_SHEET_ID'
+    ];
+    const complete = Object.fromEntries(names.map((name, index) => [name, String(index + 1)]));
+    assert.deepEqual(validateApplicationEnvironment(complete).missing, []);
 });

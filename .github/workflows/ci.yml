@@ -32,6 +32,18 @@ jobs:
       DEPT_PL_CONFIG_SHEET_ID: "1"
       DEPT_PL_MASTER_LOG_SHEET_ID: "2"
       DEPT_PL_DEFECT_SEEDS_SHEET_ID: "3"
+      DEPT_PTFE_API_TOKEN: test-token
+      DEPT_PTFE_CONFIG_SHEET_ID: "4"
+      DEPT_PTFE_MASTER_LOG_SHEET_ID: "5"
+      DEPT_PTFE_STANDARDS_SHEET_ID: "6"
+      DEPT_PTFE_ITEMS_SHEET_ID: "7"
+      DEPT_PTFE_JOB_LOG_SHEET_ID: "8"
+      DEPT_PI_API_TOKEN: test-token
+      DEPT_PI_CONFIG_SHEET_ID: "9"
+      DEPT_PI_MASTER_LOG_SHEET_ID: "10"
+      DEPT_PI_STANDARDS_SHEET_ID: "11"
+      DEPT_PI_ITEMS_SHEET_ID: "12"
+      DEPT_PI_JOB_LOG_SHEET_ID: "13"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
