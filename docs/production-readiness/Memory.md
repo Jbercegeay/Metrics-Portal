@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Backup connection identity correction
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; correction not committed yet.
+- Phase/work package: Phase 7 target baseline backup.
+- Work completed: Corrected the Windows backup script to parse the supplied PostgreSQL URL into process-scoped libpq variables, explicitly overriding any PostgreSQL identity inherited by the Windows service account while keeping the password out of child-process arguments.
+- Files or schema changed: Windows PostgreSQL backup script, changelog, and program memory; no database or portal state changed.
+- Decisions made: Operational database scripts must explicitly set and restore all five connection variables (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, and `PGDATABASE`) before invoking PostgreSQL tools.
+- Validation performed: The first target attempt failed safely before creating a dump because `pg_dump` inherited the `trnhrkiosk` identity. The failure exposed no credentials and made no database change. The correction passed PowerShell parsing, Markdown-link checks, 59 local tests with 3 expected database skips, and `git diff --check`.
+- Deployment status: Baseline backup not yet created; live compatibility portal remains unchanged.
+- Risks/blockers: The corrected pinned script must pass validation and then be rerun on the target.
+- Exact next action: Validate and publish the correction, then download it by immutable commit and retry the baseline backup.
+
 ### 2026-06-19 - Target database initialization gate passed
 
 - Branch: `codex/windows-operations-tooling`.

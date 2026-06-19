@@ -39,6 +39,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 
 ### Fixed
 
+- Fixed the Windows PostgreSQL backup script so the supplied database URL explicitly controls the host, port, user, password, and database instead of inheriting the Windows service account's PostgreSQL identity.
 - Updated supervisor reset to clear the current multi-associate Job x Job tracker storage for PL, PTFE, and Polyimide.
 - Allowed shared-workstation associate names to submit to PTFE/PI Smartsheet logs even when the destination sheet's Associate Name column has strict picklist validation.
 - Improved PTFE/Polyimide Job x Job trackers so submissions jump to the matching sequence tab, tabs show job counts, and each associate remembers their active tracker tab.
