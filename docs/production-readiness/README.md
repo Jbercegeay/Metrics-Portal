@@ -37,6 +37,7 @@ Read and maintain these documents in order:
 8. [Operations and Recovery](07-operations-and-recovery.md) - monitoring, alerts, backups, restoration, support, and incident response.
 9. [Risk and Decision Register](08-risk-and-decision-register.md) - known risks, assumptions, and architecture decisions.
 10. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
+11. [Development and Database Setup](09-development-and-database-setup.md) - local runtime, PostgreSQL, migrations, CI, and health verification.
 
 `AGENTS.md` contains the scoped enforcement instructions for coding agents working from this playbook.
 
@@ -84,9 +85,9 @@ A department is production ready only when all of the following are true:
 
 | Area | Status | Exit Evidence |
 | --- | --- | --- |
-| Requirements | Draft | Stakeholder approval recorded |
-| Architecture | Draft | Decisions approved and prerequisites confirmed |
-| Foundation | Not started | Database, migrations, health checks, and CI operational |
+| Requirements | Approved | Stakeholder approval recorded |
+| Architecture | Approved | Decisions approved and prerequisites confirmed |
+| Foundation | In progress | Database, migrations, health checks, and CI operational |
 | Durable submissions | Not started | Failure tests prove no loss or duplicates |
 | PL migration | Not started | PL user acceptance and cutover approval |
 | PTFE migration | Not started | PTFE user acceptance and cutover approval |

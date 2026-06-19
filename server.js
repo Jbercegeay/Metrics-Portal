@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -17,9 +17,21 @@ const {
     normalizeDept
 } = require('./lib/config');
 const { getClientForDept, getRequiredEnv, smartsheetApi } = require('./lib/smartsheet');
+const { getRuntimeConfig, validateApplicationEnvironment } = require('./lib/runtime-config');
+const { createLogger, requestContext } = require('./lib/logger');
+const { createDatabase } = require('./db');
+const { createHealthRouter } = require('./routes/health');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+validateApplicationEnvironment();
+const runtimeConfig = getRuntimeConfig();
+const PORT = runtimeConfig.port;
+const logger = createLogger({
+    level: runtimeConfig.logLevel,
+    version: runtimeConfig.serviceVersion,
+    environment: runtimeConfig.nodeEnv
+});
+const database = createDatabase(runtimeConfig.database, logger);
 
 function isEnvTrue(name) {
     return ['1', 'true', 'yes', 'on'].includes(String(process.env[name] || '').trim().toLowerCase());
@@ -393,8 +405,13 @@ async function recordPortalUsage(event) {
 // Middleware
 app.use(cors({ origin: (process.env.CORS_ORIGIN || 'http://localhost:3000').split(',') }));
 app.use(helmet({ contentSecurityPolicy: false })); // CSP off — HTML files use inline scripts
+app.use(requestContext(logger));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
+app.use('/api/v2', createHealthRouter({
+    database,
+    version: runtimeConfig.serviceVersion
+}));
 
 // Serve static frontend files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -1721,11 +1738,48 @@ app.get('/api/status', (req, res) => {
     res.json({ status: 'Online', message: 'Smartsheet API Gateway is running.' });
 });
 
-// Start the Server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on http://0.0.0.0:${PORT}`);
-    console.log(`Local access: http://localhost:${PORT}`);
-    if (process.env.SHOW_LAN_HINT === 'true' && process.env.SERVER_HOST) {
-        console.log(`LAN access: http://${process.env.SERVER_HOST}:${PORT}`);
+async function shutdown(signal, server) {
+    logger.info({ signal }, 'graceful shutdown started');
+    if (server) {
+        await new Promise((resolve) => server.close(resolve));
     }
-});
+    await database.close();
+    logger.info({ signal }, 'graceful shutdown complete');
+}
+
+function startServer() {
+    const server = app.listen(PORT, runtimeConfig.host, () => {
+        logger.info({
+            host: runtimeConfig.host,
+            port: PORT,
+            databaseEnabled: database.enabled
+        }, 'metrics portal started');
+    });
+
+    let stopping = false;
+    const stop = async (signal) => {
+        if (stopping) return;
+        stopping = true;
+        try {
+            await shutdown(signal, server);
+            process.exitCode = 0;
+        } catch (error) {
+            logger.error({ err: error, signal }, 'graceful shutdown failed');
+            process.exitCode = 1;
+        }
+    };
+    process.once('SIGINT', () => stop('SIGINT'));
+    process.once('SIGTERM', () => stop('SIGTERM'));
+    return server;
+}
+
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = {
+    app,
+    database,
+    startServer,
+    shutdown
+};

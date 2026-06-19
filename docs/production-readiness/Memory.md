@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: Phase 0 architecture approved; external infrastructure details remain tracked as deployment prerequisites.
+- Status: Phase 1 engineering foundation implemented locally and awaiting clean PostgreSQL CI validation.
 - Current phase: Phase 1 - Engineering Foundation.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -27,18 +27,18 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Established this program memory and handoff requirement.
 - Inventoried the local host, application routes, browser state, configuration names, Smartsheet mappings, and operational utilities without recording secrets.
 - Approved PostgreSQL, asynchronous Smartsheet delivery, PL-first migration, tooling, worker, session, HTTPS, backup, retention, and alert defaults.
+- Added validated database configuration, pooled PostgreSQL transactions, the initial versioned migration, structured request logging, correlation IDs, graceful shutdown, liveness/readiness endpoints, automated tests, CI, and setup documentation.
 
 ## Active Work
 
-- Implement the Phase 1 engineering foundation.
+- Validate the Phase 1 migration against clean PostgreSQL 18 in CI and begin the durable submission platform.
 
 ## Next Actions
 
-1. Add environment validation, PostgreSQL access, and versioned migrations.
-2. Add structured logs, request IDs, and liveness/readiness checks.
-3. Replace the placeholder test command and add continuous integration.
-4. Document local database setup and migration commands.
-5. Keep the physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Push the foundation branch and record clean PostgreSQL 18 CI evidence.
+2. Implement the durable submission, outbox, delivery-attempt, and audit schema.
+3. Add the idempotent submission API and background worker.
+4. Keep the physical backup destination, certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -59,9 +59,11 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Latest Validation
 
-- Local application, host, route, environment-name, browser-state, and Smartsheet mapping inventory completed by repository inspection.
-- Local PostgreSQL and PM2 prerequisites are not installed on the development workstation.
-- No database or production validation has started.
+- Syntax checked across application, migration, script, and test JavaScript files.
+- Local automated suite passes with 13 tests and one expected database test skip because PostgreSQL is not installed locally.
+- Health endpoints pass against the assembled Express application, including compatibility-mode readiness.
+- Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
+- Clean PostgreSQL migration and transaction validation is pending CI.
 
 ## Deployment State
 
@@ -89,6 +91,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Phase 1 engineering foundation implemented
+
+- Branch: `codex/postgres-foundation` stacked on the approved Phase 0 commit.
+- Commit or PR: Not committed yet.
+- Phase/work package: Phase 1 engineering foundation.
+- Work completed: Added runtime environment validation, PostgreSQL pooling and transaction support, initial migration, structured redacted logs, request IDs, graceful shutdown, liveness/readiness endpoints, automated tests, CI, and database setup documentation. Updated vulnerable production dependencies to patched versions.
+- Files or schema changed: Added `app_metadata` foundation migration, database/runtime/logging/health modules, CI workflow, tests, check scripts, `.env.example`, setup guide, and changelog entry; integrated the foundation into `server.js`.
+- Decisions made: Database support remains disabled by default for compatibility until an environment is installed, migrated, and verified.
+- Validation performed: JavaScript syntax (19 files at the time of the check), Markdown links (29 files), 13 passing automated tests, assembled-app health smoke tests, `git diff --check`, and zero production dependency vulnerabilities. PostgreSQL integration test is correctly skipped locally because no server is installed.
+- Deployment status: Not deployed.
+- Risks/blockers: Clean PostgreSQL migration evidence is pending CI; physical production-server prerequisites remain deferred until deployment preparation.
+- Exact next action: Commit and push the foundation, confirm PostgreSQL 18 CI, then implement the Phase 2 durable submission schema and API.
 
 ### 2026-06-19 - Phase 0 current-state inventory
 
