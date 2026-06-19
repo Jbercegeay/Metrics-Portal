@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, migrated, protected by verified pre- and post-migration off-server backups, and proven recoverable through an isolated restore. Controlled Smartsheet validation, UAT, and final deployment infrastructure remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. A standalone PL test sheet and live full-column exact-ID delivery/replay proof are complete. Target database/outbox proof, UAT, and final deployment infrastructure remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - One-shot target PL outbox validation prepared
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; not committed yet.
+- Phase/work package: Phase 3 full controlled integration.
+- Work completed: Added a guarded one-shot validation spanning target database capture, outbox leasing, real non-production Smartsheet delivery, durable evidence, idle-queue proof, and synthetic cleanup.
+- Files or schema changed: Outbox integration command, package script, PL guide, changelog, and program memory. No production external state changed.
+- Decisions made: Refuse the production sheet and any nonempty queue; use the application role; process exactly one synthetic submission; require database/outbox/delivery convergence; remove both remote and database test artifacts.
+- Validation performed: 50 JavaScript files passed syntax, 34 Markdown files passed links, and 61 local tests passed with 3 expected database skips. Target execution is pending clean CI.
+- Deployment status: Not deployed; live Metrics Portal remains unchanged on port 3002.
+- Risks/blockers: Execution requires physical target access to enter the application-role password without exposing it.
+- Exact next action: Validate and publish the command, then execute it from the pinned target worktree with process-scoped credentials and the isolated sheet ID.
+
 ### 2026-06-19 - Controlled PL delivery validation tooling prepared
 
 - Branch: `codex/windows-operations-tooling`.
@@ -105,10 +118,10 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Work completed: Added a confirmation-guarded non-production delivery probe for exact mapped values, search visibility, permanent Submission ID replay, and test-row cleanup.
 - Files or schema changed: Integration-delivery command, package script, PL migration guide, changelog, and program memory. Production Smartsheet remains unchanged.
 - Decisions made: The probe must refuse the configured production sheet, use visibly synthetic values, create exactly one row, prove replay returns that same row, and delete all rows it created.
-- Validation performed: The probe passed JavaScript syntax, documentation links, the 61-test local suite with 3 expected database skips, and clean CI runs 27841334056 and 27841465705. Its first live attempt created exactly one test row and removed it, but the new value was not yet searchable after 60 seconds; no replay insert was attempted. With bounded extended polling, the next live attempt became searchable after 32 attempts, replay found the original row without insertion, all 11 representative values matched, and the one test row was removed. Full-column comparison is pending.
+- Validation performed: The probe passed JavaScript syntax, documentation links, the 61-test local suite with 3 expected database skips, and clean CI runs 27841334056, 27841465705, and 27841666256. Its first live attempt created exactly one test row and removed it, but the new value was not yet searchable after 60 seconds; no replay insert was attempted. With bounded extended polling, the next attempt became searchable after 32 searches, replay found the original without insertion, all 11 representative values matched, and cleanup passed. The final full-contract run became searchable after 36 attempts, verified all 36 mapped values, inserted no replay row, and removed its single test row.
 - Deployment status: Not deployed; the combined Metrics Portal remains unchanged on port 3002.
 - Risks/blockers: Smartsheet search indexing is asynchronous and can require provisioning; cleanup failure would leave only a marked row in the isolated test sheet.
-- Exact next action: Expand the successful controlled probe to every contract column, publish it, and rerun once before closing the mapping gate.
+- Exact next action: Run the one-shot target database/outbox proof against the same isolated destination, then prepare supervised browser UAT.
 
 ### 2026-06-19 - Empty PL integration destination tooling prepared
 

@@ -85,3 +85,11 @@ npm run validate:pl-integration-delivery -- --confirmation="WRITE AND DELETE PL 
 ```
 
 The command refuses the configured production master-log ID. It writes one visibly synthetic row covering every destination column, waits up to ten minutes for Smartsheet search indexing, proves a replay finds the same row without another insert, verifies every mapped cell value, and deletes every row it created. Smartsheet documents that new data may not be immediately searchable and that an API search index that has not been provisioned recently can take substantially longer; a timeout is therefore a pending external-index gate, not permission to retry an insert in production.
+
+After the target database is migrated, run a one-shot database-to-outbox-to-test-sheet proof with the application-role `DATABASE_URL` and `PL_INTEGRATION_SHEET_ID` set only in the current process:
+
+```powershell
+npm run validate:pl-outbox-integration -- --confirmation="VALIDATE PL DATABASE OUTBOX"
+```
+
+The command refuses the production destination and any pre-existing pending/processing queue. It captures one synthetic submission transactionally, processes exactly one worker lease, verifies the submission/outbox/delivery records converge to `submitted`, verifies no unexpected work remains, then removes its test-sheet row and related synthetic database records.
