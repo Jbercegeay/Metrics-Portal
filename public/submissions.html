@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submission Status | Metrics Portal</title>
+    <style>
+        :root { color-scheme: light; --navy:#12304a; --blue:#1e6fa8; --line:#d8e0e7; --muted:#667786; --danger:#a32626; --warn:#8a5b00; --ok:#176a3a; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:Arial,sans-serif; background:#f4f7f9; color:#18232d; }
+        header { background:var(--navy); color:white; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+        header h1 { margin:0; font-size:22px; }
+        header a { color:white; }
+        main { max-width:1400px; margin:24px auto; padding:0 20px; }
+        .filters,.card { background:white; border:1px solid var(--line); border-radius:10px; box-shadow:0 2px 8px rgba(18,48,74,.06); }
+        .filters { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; padding:16px; margin-bottom:16px; }
+        label { display:flex; flex-direction:column; gap:5px; font-size:12px; font-weight:bold; color:var(--muted); }
+        input,select,button { font:inherit; padding:9px 10px; border:1px solid #b8c5cf; border-radius:6px; }
+        button { background:var(--blue); color:white; border:0; cursor:pointer; font-weight:bold; }
+        button.secondary { background:#5d6e7a; }
+        button.danger { background:var(--danger); }
+        .actions { display:flex; align-items:flex-end; gap:8px; }
+        .summary { display:flex; justify-content:space-between; padding:13px 16px; color:var(--muted); }
+        .table-wrap { overflow:auto; }
+        table { width:100%; border-collapse:collapse; min-width:1050px; }
+        th,td { padding:11px 12px; border-top:1px solid var(--line); text-align:left; font-size:13px; vertical-align:top; }
+        th { background:#edf3f7; color:#3d5364; position:sticky; top:0; }
+        th:last-child,td:last-child { position:sticky; right:0; box-shadow:-5px 0 8px rgba(18,48,74,.08); }
+        th:last-child { background:#edf3f7; }
+        td:last-child { background:white; }
+        .status { font-weight:bold; text-transform:capitalize; }
+        .status-submitted { color:var(--ok); }
+        .status-failed,.status-needs_review { color:var(--danger); }
+        .status-pending,.status-processing { color:var(--warn); }
+        .row-actions { display:flex; gap:6px; }
+        .row-actions button { padding:6px 8px; font-size:12px; }
+        .empty,.error { padding:32px; text-align:center; color:var(--muted); }
+        .error { color:var(--danger); }
+        @media (max-width:900px) {
+            .filters { grid-template-columns:repeat(2,minmax(130px,1fr)); }
+            table { min-width:720px; }
+            th,td { padding:9px 8px; font-size:12px; }
+            th:nth-child(8),td:nth-child(8) { display:none; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Submission Status</h1>
+        <a id="backLink" href="/">Back to Department Admin</a>
+    </header>
+    <main>
+        <section class="filters" aria-label="Submission filters">
+            <label>Status
+                <select id="status"><option value="">All statuses</option><option>pending</option><option>processing</option><option>submitted</option><option>failed</option><option>needs_review</option><option>resolved</option></select>
+            </label>
+            <label>Department
+                <select id="department"><option value="">All departments</option><option>PL</option><option>PTFE</option><option>PI</option></select>
+            </label>
+            <label>Associate<input id="associate" autocomplete="off"></label>
+            <label>Date<input id="workDate" type="date"></label>
+            <label>Type<select id="entryType"><option value="">All types</option><option value="job">Job</option><option value="event">Event</option><option value="jxj">Job x Job</option></select></label>
+            <div class="actions"><button id="refreshBtn">Refresh</button><button id="clearBtn" class="secondary">Clear</button></div>
+        </section>
+        <section class="card">
+            <div class="summary"><span id="summary">Loading submissions…</span><span id="updated"></span></div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Created</th><th>Department</th><th>Associate</th><th>Type</th><th>Status</th><th>Attempts</th><th>Last error / next attempt</th><th>Submission ID</th><th>Actions</th></tr></thead>
+                    <tbody id="rows"></tbody>
+                </table>
+                <div id="message" class="empty" hidden></div>
+            </div>
+        </section>
+    </main>
+    <script>
+        const user = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        const adminToken = localStorage.getItem('adminToken');
+        if (!user || user.role !== 'Supervisor' || !adminToken) window.location.replace('/login.html');
+        const dept = user?.departmentKey || 'PL';
+        document.getElementById('department').value = dept;
+        document.getElementById('backLink').href = dept === 'PTFE' ? '/admin-ptfe.html' : dept === 'PI' ? '/admin-pi.html' : '/admin-pl.html';
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character]));
+        }
+        function formatDate(value) { return value ? new Date(value).toLocaleString() : '—'; }
+        function query() {
+            const params = new URLSearchParams({ limit: '250' });
+            for (const [id, key] of [['status','status'],['department','dept'],['associate','associate'],['workDate','date'],['entryType','type']]) {
+                const value = document.getElementById(id).value.trim();
+                if (value) params.set(key, value);
+            }
+            return params;
+        }
+        async function api(url, options = {}) {
+            const response = await fetch(url, {
+                ...options,
+                headers: { 'content-type':'application/json', 'x-admin-token':adminToken, ...(options.headers || {}) }
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(body.error || `Request failed (${response.status}).`);
+            return body;
+        }
+        function render(submissions) {
+            const rows = document.getElementById('rows');
+            const message = document.getElementById('message');
+            rows.innerHTML = '';
+            message.hidden = submissions.length > 0;
+            message.className = 'empty';
+            message.textContent = submissions.length ? '' : 'No submissions match these filters.';
+            for (const item of submissions) {
+                const actionable = ['failed','needs_review'].includes(item.syncStatus);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${escapeHtml(formatDate(item.createdAt))}</td><td>${escapeHtml(item.department)}</td><td>${escapeHtml(item.associateName)}</td><td>${escapeHtml(item.entryType)}</td><td><span class="status status-${escapeHtml(item.syncStatus)}">${escapeHtml(item.syncStatus.replace('_',' '))}</span></td><td>${escapeHtml(item.retryCount)}</td><td>${escapeHtml(item.lastErrorMessage || '—')}<br><small>${item.nextAttemptAt ? `Next: ${escapeHtml(formatDate(item.nextAttemptAt))}` : ''}</small></td><td><code>${escapeHtml(item.id)}</code></td><td><div class="row-actions">${actionable ? '<button data-action="retry">Retry</button><button data-action="resolve" class="danger">Resolve</button>' : ''}</div></td>`;
+                for (const button of tr.querySelectorAll('button')) button.addEventListener('click', () => act(item, button.dataset.action));
+                rows.appendChild(tr);
+            }
+            document.getElementById('summary').textContent = `${submissions.length} submission${submissions.length === 1 ? '' : 's'}`;
+            document.getElementById('updated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        }
+        async function load() {
+            const message = document.getElementById('message');
+            try { render((await api(`/api/v2/submissions?${query()}`)).submissions || []); }
+            catch (error) { document.getElementById('rows').innerHTML = ''; message.hidden = false; message.className = 'error'; message.textContent = error.message; }
+        }
+        async function act(item, action) {
+            const reason = prompt(action === 'retry' ? 'Reason for retry:' : 'Resolution reason (this stops automatic delivery):');
+            if (!reason?.trim()) return;
+            try { await api(`/api/v2/submissions/${encodeURIComponent(item.id)}/${action}`, { method:'POST', body:JSON.stringify({ reason:reason.trim() }) }); await load(); }
+            catch (error) { alert(error.message); }
+        }
+        document.getElementById('refreshBtn').addEventListener('click', load);
+        document.getElementById('clearBtn').addEventListener('click', () => { for (const id of ['status','associate','workDate','entryType']) document.getElementById(id).value = ''; document.getElementById('department').value = dept; load(); });
+        load();
+        setInterval(load, 30000);
+    </script>
+</body>
+</html>

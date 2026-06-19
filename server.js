@@ -21,6 +21,9 @@ const { getRuntimeConfig, validateApplicationEnvironment } = require('./lib/runt
 const { createLogger, requestContext } = require('./lib/logger');
 const { createDatabase } = require('./db');
 const { createHealthRouter } = require('./routes/health');
+const { createSubmissionRepository } = require('./repositories/submission-repository');
+const { createSubmissionService } = require('./services/submissions/submission-service');
+const { createSubmissionRouter } = require('./routes/submissions');
 
 const app = express();
 validateApplicationEnvironment();
@@ -32,6 +35,8 @@ const logger = createLogger({
     environment: runtimeConfig.nodeEnv
 });
 const database = createDatabase(runtimeConfig.database, logger);
+const submissionRepository = createSubmissionRepository(database);
+const submissionService = createSubmissionService(submissionRepository);
 
 function isEnvTrue(name) {
     return ['1', 'true', 'yes', 'on'].includes(String(process.env[name] || '').trim().toLowerCase());
@@ -410,7 +415,8 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use('/api/v2', createHealthRouter({
     database,
-    version: runtimeConfig.serviceVersion
+    version: runtimeConfig.serviceVersion,
+    integrationHealth: database.enabled ? () => submissionRepository.integrationHealth() : null
 }));
 
 // Serve static frontend files from 'public' directory
@@ -646,6 +652,24 @@ function requireAdmin(req, res, next) {
     }
     next();
 }
+
+function getSupervisorActor(req) {
+    const token = req.headers['x-admin-token'];
+    const session = token && adminSessions.get(token);
+    if (!session || session.expires < Date.now()) return null;
+    return {
+        name: session.name,
+        role: 'Supervisor',
+        department: session.deptKey,
+        workstation: String(req.headers['x-kiosk-id'] || '')
+    };
+}
+
+app.use('/api/v2/submissions', createSubmissionRouter({
+    databaseEnabled: database.enabled && runtimeConfig.features.durableSubmissions,
+    service: submissionService,
+    getSupervisorActor
+}));
 
 app.use('/api/admin', requireAdmin);
 
