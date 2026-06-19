@@ -12,6 +12,7 @@
     "validate:pi": "node scripts/validate-pi-smartsheet.js",
     "validate:pl-destination": "node scripts/validate-pl-destination.js",
     "create:pl-integration-sheet": "node scripts/create-pl-integration-sheet.js",
+    "validate:pl-integration-delivery": "node scripts/validate-pl-integration-delivery.js",
     "check:syntax": "node scripts/check-javascript-syntax.js",
     "check:html": "node scripts/check-html-scripts.js",
     "check:docs": "node scripts/check-markdown-links.js",

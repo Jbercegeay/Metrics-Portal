@@ -97,18 +97,31 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Controlled PL delivery validation tooling prepared
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; probe not committed yet.
+- Phase/work package: Phase 3 controlled Smartsheet validation.
+- Work completed: Added a confirmation-guarded non-production delivery probe for exact mapped values, search visibility, permanent Submission ID replay, and test-row cleanup.
+- Files or schema changed: Integration-delivery command, package script, PL migration guide, changelog, and program memory. Production Smartsheet remains unchanged.
+- Decisions made: The probe must refuse the configured production sheet, use visibly synthetic values, create exactly one row, prove replay returns that same row, and delete all rows it created.
+- Validation performed: The probe passed JavaScript syntax, documentation links, and the 61-test local suite with 3 expected database skips; live integration execution is pending clean CI.
+- Deployment status: Not deployed; the combined Metrics Portal remains unchanged on port 3002.
+- Risks/blockers: Smartsheet search indexing may take up to 60 seconds; cleanup failure would leave only a marked row in the isolated test sheet.
+- Exact next action: Validate and publish the probe, then run it against the newly created empty PL integration sheet.
+
 ### 2026-06-19 - Empty PL integration destination tooling prepared
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; not committed yet.
+- Commit or PR: Draft PR #8; creation commit `c3c9134`.
 - Phase/work package: Phase 3 controlled Smartsheet validation preparation.
 - Work completed: Added a confirmation-guarded creator for a standalone empty PL integration sheet built from exact destination-contract metadata and configured defect names.
-- Files or schema changed: PL integration-sheet definition, creation command, unit tests, package script, migration guide, changelog, and program memory. No Smartsheet object has been created yet.
+- Files or schema changed: PL integration-sheet definition, creation command, unit tests, package script, migration guide, changelog, and program memory; one standalone empty integration sheet created in the API identity's Sheets folder. No production sheet changed.
 - Decisions made: Prefer a separate blank integration sheet over temporary production rows. Copy no production rows, formulas, automation, attachments, sharing, or employee data; store the returned sheet ID only in approved environment configuration.
-- Validation performed: 48 JavaScript files passed syntax, 9 HTML files passed inline-script parsing, 34 Markdown files passed link checks, PowerShell parsed, and 61 local tests passed with 3 expected database skips. The live-config dry run generated a valid 36-column empty contract and created no Smartsheet object.
+- Validation performed: 48 JavaScript files passed syntax, 9 HTML files passed inline-script parsing, 34 Markdown files passed link checks, PowerShell parsed, and 61 local tests passed with 3 expected database skips. The live-config dry run generated a valid 36-column empty contract and created no object; clean CI run 27841158599 passed; the guarded apply then created an empty 36-column sheet, copied zero rows, and passed the destination audit.
 - Deployment status: Not deployed; production Metrics Portal remains unchanged on port 3002 and the legacy PL portal remains out of scope on port 3000.
-- Risks/blockers: Creation depends on the PL API identity having permission to create a sheet in its Sheets folder.
-- Exact next action: Run all local checks and a dry run, publish clean CI, then create and audit the empty integration sheet.
+- Risks/blockers: Controlled row delivery/replay/cleanup proof and later floor UAT remain pending.
+- Exact next action: Run the guarded delivery probe against the isolated integration sheet and retain only non-sensitive validation evidence.
 
 ### 2026-06-19 - Production portal identity corrected and locked down
 

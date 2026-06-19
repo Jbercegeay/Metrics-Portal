@@ -77,3 +77,11 @@ npm run create:pl-integration-sheet -- --apply --confirmation="CREATE EMPTY PL I
 ```
 
 The generated sheet contains the exact PL destination columns as text-compatible fields, with `Submission ID` as its primary column. It contains no rows and copies no production values, formulas, automation, attachments, sharing, or employee data. Record the returned sheet ID in the approved integration environment only, never in Git or program memory.
+
+With `PL_INTEGRATION_SHEET_ID` set only in the current process, validate a synthetic delivery, exact-ID replay, mapped values, and cleanup:
+
+```powershell
+npm run validate:pl-integration-delivery -- --confirmation="WRITE AND DELETE PL INTEGRATION ROW"
+```
+
+The command refuses the configured production master-log ID. It writes one visibly synthetic row to the non-production sheet, waits for Smartsheet search indexing, proves a replay finds the same row without another insert, verifies mapped cell values, and deletes every row it created.
