@@ -47,7 +47,9 @@ async function main() {
 
     const client = getClientForDept('PL');
     const submissionId = crypto.randomUUID();
-    const payload = {
+    const columnsResponse = await client.get(`sheets/${sheetId}/columns`);
+    const columns = columnsResponse.data.data || columnsResponse.data.columns || [];
+    const representativeValues = {
         'Entry Type': 'Job',
         'Work Date': new Date().toISOString().slice(0, 10),
         'Associate Name': 'METRICS PORTAL INTEGRATION TEST',
@@ -59,6 +61,14 @@ async function main() {
         'Start Quantity': 1,
         'End Quantity': 1
     };
+    const payload = Object.fromEntries(
+        columns
+            .filter((column) => column.title !== 'Submission ID')
+            .map((column) => [
+                column.title,
+                representativeValues[column.title] ?? 'INTEGRATION TEST'
+            ])
+    );
     const claim = {
         destination: 'smartsheet:PL:master_log',
         submission_id: submissionId,
@@ -94,11 +104,7 @@ async function main() {
             throw new Error('Replay did not resolve to the original exact Submission ID row.');
         }
 
-        const [columnsResponse, rowResponse] = await Promise.all([
-            client.get(`sheets/${sheetId}/columns`),
-            client.get(`sheets/${sheetId}/rows/${first.remoteRowId}`)
-        ]);
-        const columns = columnsResponse.data.data || columnsResponse.data.columns || [];
+        const rowResponse = await client.get(`sheets/${sheetId}/rows/${first.remoteRowId}`);
         const titleById = new Map(columns.map((column) => [String(column.id), column.title]));
         const values = new Map((rowResponse.data.cells || []).map((cell) => [
             titleById.get(String(cell.columnId)),
