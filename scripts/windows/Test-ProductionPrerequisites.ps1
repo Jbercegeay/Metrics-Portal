@@ -1,0 +1,49 @@
+[CmdletBinding()]
+param(
+    [string]$AppRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
+    [Parameter(Mandatory = $true)][string]$BackupRoot,
+    [string]$BaseUrl = 'http://127.0.0.1:3000',
+    [int]$MinimumFreeGb = 20
+)
+
+$ErrorActionPreference = 'Stop'
+$results = [System.Collections.Generic.List[object]]::new()
+function Add-Check([string]$Name, [bool]$Ok, [string]$Detail) {
+    $results.Add([pscustomobject]@{ Check = $Name; Ready = $Ok; Detail = $Detail })
+}
+function Find-Command([string]$Name) {
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    Add-Check $Name ([bool]$command) $(if ($command) { $command.Source } else { 'Not found in PATH' })
+}
+
+Find-Command node
+Find-Command npm
+Find-Command git
+Find-Command pm2
+Find-Command psql
+Find-Command pg_dump
+Find-Command pg_restore
+
+$envFile = Join-Path $AppRoot '.env'
+Add-Check '.env' (Test-Path -LiteralPath $envFile -PathType Leaf) 'Required local configuration file'
+Add-Check 'Backup root' (Test-Path -LiteralPath $BackupRoot -PathType Container) $BackupRoot
+
+$appDrive = Get-PSDrive -Name ([System.IO.Path]::GetPathRoot($AppRoot).TrimEnd('\').TrimEnd(':'))
+$freeGb = [math]::Round($appDrive.Free / 1GB, 1)
+Add-Check 'Free disk' ($freeGb -ge $MinimumFreeGb) "$freeGb GB free; minimum $MinimumFreeGb GB"
+
+Push-Location $AppRoot
+try {
+    $status = git status --porcelain
+    Add-Check 'Git worktree' (-not $status) $(if ($status) { 'Uncommitted files present' } else { 'Clean' })
+    $head = git rev-parse HEAD
+    Add-Check 'Git commit' ([bool]$head) $head
+} finally { Pop-Location }
+
+try {
+    $live = Invoke-RestMethod -Uri "$BaseUrl/api/v2/health" -TimeoutSec 5
+    Add-Check 'Application liveness' ($live.status -eq 'ok') "$BaseUrl/api/v2/health"
+} catch { Add-Check 'Application liveness' $false 'Not reachable (acceptable before first deployment)' }
+
+$results | Format-Table -AutoSize
+if ($results.Where({ -not $_.Ready }).Count -gt 0) { exit 1 }

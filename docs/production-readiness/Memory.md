@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - Windows operations tooling prepared
+
+- Branch: `codex/windows-operations-tooling` stacked on draft PR #7.
+- Commit or PR: Not committed yet.
+- Phase/work package: Phase 7 operations and recovery preparation.
+- Work completed: Added Windows production prerequisite, verified PostgreSQL backup, and health smoke-test scripts; added PowerShell parser validation to local and CI checks; updated GitHub actions to Node 24-compatible major versions; documented intentionally manual production gates.
+- Files or schema changed: PowerShell operations/check scripts, CI workflow, package commands, operations guide, playbook index, changelog, and program memory. No schema change.
+- Decisions made: Backups never prune automatically until off-machine daily/weekly/monthly retention behavior is confirmed; database URLs are passed to `pg_dump` through the child environment rather than command-line arguments; production-changing install/deploy steps remain explicit manual gates.
+- Validation performed: PowerShell parser check passed, 45 JavaScript files passed syntax checks, inline HTML and 33 documentation files passed, 62 tests ran with 59 passing and 3 expected local PostgreSQL skips, and the production dependency audit reported zero vulnerabilities.
+- Deployment status: Not deployed; scripts were not run against a production server or database.
+- Risks/blockers: Server-local prerequisite execution requires access to the target Windows server and the approved off-machine backup path. Restore-drill automation depends on PostgreSQL installation and an isolated restore target.
+- Exact next action: Commit and validate operations tooling in clean CI, then stop for the target-server prerequisite and backup-destination work that cannot be completed from this workstation.
+
 ### 2026-06-19 - PL destination contract audited read-only
 
 - Branch: `codex/pl-validation-tooling` stacked on draft PR #6.
