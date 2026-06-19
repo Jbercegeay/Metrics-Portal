@@ -105,10 +105,10 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Work completed: Added users, server sessions, durable kiosk locks, and optimistic-versioned workspace schema and services. Integrated compatibility login with department-gated HTTP-only sessions, protected submission identity with the authenticated session, added session/workspace APIs, blocked unsafe sign-out, and audited discard and supervisor lock release.
 - Files or schema changed: Migration `003_sessions_and_workspaces.js`; identity/workspace repositories; session/workspace services and routes; server integration; runtime flags; tests; environment example; changelog; and session/workspace guide.
 - Decisions made: PL sessions are independently gated so enabling the PL pilot cannot strand PTFE or PI users; the database stores token hashes only; active requests extend inactivity expiry; one open workspace is allowed per user/department.
-- Validation performed: 36 JavaScript files passed syntax checks and 47 local tests passed with 3 expected PostgreSQL skips. Clean PostgreSQL migration/session/workspace evidence is pending CI.
+- Validation performed: 36 JavaScript files passed syntax checks, 47 local tests passed with 3 expected PostgreSQL skips, and GitHub Actions run 27829232827 passed migration 003 and all 50 tests against clean PostgreSQL 18.
 - Deployment status: Not deployed; all new flags default false.
 - Risks/blockers: HTTPS remains required for production secure cookies. Existing PL frontend extraction and workspace binding are the next work package.
-- Exact next action: Validate migration 003 in PostgreSQL 18 CI, then extract and bind the PL page to the session/workspace APIs.
+- Exact next action: Extract and bind the PL page to the session/workspace and durable-submission APIs.
 
 ### 2026-06-19 - Phase 2 durable submission slice implemented
 
