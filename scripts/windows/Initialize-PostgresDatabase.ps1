@@ -12,7 +12,14 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-if (-not (Get-Command psql -ErrorAction SilentlyContinue)) { throw 'psql is not available in PATH.' }
+function Find-PgTool([string]$Name) {
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $candidate = Join-Path $env:ProgramFiles "PostgreSQL\18\bin\$Name.exe"
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+    throw "$Name is not available in PATH or the PostgreSQL 18 default directory."
+}
+$psqlExe = Find-PgTool 'psql'
 @($DatabaseName,$OwnerRole,$MigrationRole,$ApplicationRole,$BackupRole) | ForEach-Object {
     if ($_ -notmatch '^[a-z][a-z0-9_]{2,62}$') { throw "Unsafe PostgreSQL identifier: $_" }
 }
@@ -60,7 +67,7 @@ $previous = @{}
 try {
     $env:PGHOST = $HostName; $env:PGPORT = [string]$Port; $env:PGUSER = $Superuser
     $env:PGPASSWORD = $adminPassword; $env:PGDATABASE = 'postgres'
-    $sql | & psql -X --quiet --set ON_ERROR_STOP=1
+    $sql | & $psqlExe -X --quiet --set ON_ERROR_STOP=1
     if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL database initialization failed.' }
     Write-Output 'Metrics Portal database and least-privilege roles initialized.'
     Write-Output 'Store the application, migration, and backup connection strings in the approved secret locations; passwords are not printed.'

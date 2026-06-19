@@ -6,9 +6,16 @@ param(
     [string]$AppRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 )
 $ErrorActionPreference = 'Stop'
+function Find-PgTool([string]$Name) {
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $candidate = Join-Path $env:ProgramFiles "PostgreSQL\18\bin\$Name.exe"
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+    throw "$Name is not available in PATH or the PostgreSQL 18 default directory."
+}
 if (-not (Test-Path -LiteralPath $BackupFile -PathType Leaf)) { throw 'BackupFile does not exist.' }
-if (-not (Get-Command psql -ErrorAction SilentlyContinue)) { throw 'psql is not available in PATH.' }
-if (-not (Get-Command pg_restore -ErrorAction SilentlyContinue)) { throw 'pg_restore is not available in PATH.' }
+$psqlExe = Find-PgTool 'psql'
+$pgRestoreExe = Find-PgTool 'pg_restore'
 $uri = [uri]$RestoreDatabaseUrl
 $databaseName = $uri.AbsolutePath.Trim('/')
 if ($databaseName -notmatch '_restore_drill$') { throw 'Restore database name must end with _restore_drill.' }
@@ -24,17 +31,17 @@ try {
     $env:PGUSER = [uri]::UnescapeDataString($credentials[0])
     $env:PGPASSWORD = $(if ($credentials.Count -gt 1) { [uri]::UnescapeDataString($credentials[1]) } else { '' })
     $env:PGDATABASE = $databaseName
-    $existing = (& psql -X -tA -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'public';").Trim()
+    $existing = (& $psqlExe -X -tA -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_tables WHERE schemaname = 'public';").Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Could not inspect restore target.' }
     if ([int]$existing -gt 0) { throw 'Restore target is not empty. Refusing to overwrite it.' }
-    & pg_restore --exit-on-error --no-owner --no-acl --dbname=$databaseName $BackupFile
+    & $pgRestoreExe --exit-on-error --no-owner --no-acl --dbname=$databaseName $BackupFile
     if ($LASTEXITCODE -ne 0) { throw 'pg_restore failed.' }
     $env:DATABASE_URL = $RestoreDatabaseUrl
     Push-Location $AppRoot
     try { & npm run migrate:up; if ($LASTEXITCODE -ne 0) { throw 'Migrations failed on restored database.' } }
     finally { Pop-Location }
     $required = @('users','sessions','workspaces','submissions','submission_outbox','submission_deliveries','audit_events')
-    $present = (& psql -X -tA -v ON_ERROR_STOP=1 -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
+    $present = (& $psqlExe -X -tA -v ON_ERROR_STOP=1 -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
     $missing = $required | Where-Object { $_ -notin $present }
     if ($missing) { throw "Restore verification is missing required tables: $($missing -join ', ')" }
     [pscustomobject]@{ Database = $databaseName; RequiredTables = $required.Count; VerifiedAt = (Get-Date).ToString('o') }

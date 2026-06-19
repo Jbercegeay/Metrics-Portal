@@ -8,7 +8,14 @@ param(
     [Parameter(Mandatory = $true)][ValidateSet('GRANT METRICS PORTAL RUNTIME ACCESS')][string]$Confirmation
 )
 $ErrorActionPreference = 'Stop'
-if (-not (Get-Command psql -ErrorAction SilentlyContinue)) { throw 'psql is not available in PATH.' }
+function Find-PgTool([string]$Name) {
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $candidate = Join-Path $env:ProgramFiles "PostgreSQL\18\bin\$Name.exe"
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+    throw "$Name is not available in PATH or the PostgreSQL 18 default directory."
+}
+$psqlExe = Find-PgTool 'psql'
 @($DatabaseName,$ApplicationRole) | ForEach-Object { if ($_ -notmatch '^[a-z][a-z0-9_]{2,62}$') { throw "Unsafe PostgreSQL identifier: $_" } }
 function Convert-Secret([Security.SecureString]$Value) {
     $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($Value)
@@ -24,7 +31,7 @@ try {
 GRANT USAGE ON SCHEMA public TO $ApplicationRole;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO $ApplicationRole;
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO $ApplicationRole;
-"@ | & psql -X --quiet --set ON_ERROR_STOP=1
+"@ | & $psqlExe -X --quiet --set ON_ERROR_STOP=1
     if ($LASTEXITCODE -ne 0) { throw 'Runtime grant failed.' }
     Write-Output 'Runtime access granted to existing Metrics Portal objects.'
 } finally {

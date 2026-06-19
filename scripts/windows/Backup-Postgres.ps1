@@ -6,6 +6,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+function Find-PgTool([string]$Name) {
+    $command = Get-Command $Name -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $candidate = Join-Path $env:ProgramFiles "PostgreSQL\18\bin\$Name.exe"
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
+    throw "$Name is not available in PATH or the PostgreSQL 18 default directory."
+}
 if (-not $DatabaseUrl -and $EnvironmentFile) {
     if (-not (Test-Path -LiteralPath $EnvironmentFile -PathType Leaf)) { throw 'EnvironmentFile does not exist.' }
     $line = Get-Content -LiteralPath $EnvironmentFile | Where-Object { $_ -match '^\s*DATABASE_URL\s*=' } | Select-Object -Last 1
@@ -13,21 +20,21 @@ if (-not $DatabaseUrl -and $EnvironmentFile) {
 }
 if (-not $DatabaseUrl) { throw 'DATABASE_URL is required but will not be printed.' }
 if (-not (Test-Path -LiteralPath $BackupRoot -PathType Container)) { throw 'BackupRoot must already exist.' }
-if (-not (Get-Command pg_dump -ErrorAction SilentlyContinue)) { throw 'pg_dump is not available in PATH.' }
-if (-not (Get-Command pg_restore -ErrorAction SilentlyContinue)) { throw 'pg_restore is not available in PATH.' }
+$pgDumpExe = Find-PgTool 'pg_dump'
+$pgRestoreExe = Find-PgTool 'pg_restore'
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $file = Join-Path $BackupRoot "metrics-portal-$stamp.dump"
 $previousDatabase = $env:PGDATABASE
 try {
     $env:PGDATABASE = $DatabaseUrl
-    & pg_dump --format=custom --no-owner --no-acl --file=$file
+    & $pgDumpExe --format=custom --no-owner --no-acl --file=$file
     if ($LASTEXITCODE -ne 0) { throw "pg_dump failed with exit code $LASTEXITCODE." }
 } finally {
     $env:PGDATABASE = $previousDatabase
 }
 
-& pg_restore --list $file | Out-Null
+& $pgRestoreExe --list $file | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed.' }
 $hash = Get-FileHash -LiteralPath $file -Algorithm SHA256
 [pscustomobject]@{ File = $file; Bytes = (Get-Item -LiteralPath $file).Length; Sha256 = $hash.Hash; VerifiedAt = (Get-Date).ToString('o') } |

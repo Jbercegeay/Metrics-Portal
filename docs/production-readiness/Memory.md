@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-19 - PostgreSQL 18 installation gate passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Phase/work package: Phase 1 target PostgreSQL installation.
+- Work completed: Removed the mistaken PostgreSQL 13.23 installation, installed PostgreSQL 18.4, enabled automatic service startup, set `listen_addresses=localhost`, and created an enabled inbound block for TCP 5432. Hardened operational scripts to discover PostgreSQL 18 tools even when PATH propagation differs between sessions.
+- Files or schema changed: PostgreSQL tool-discovery logic in database initialization, grants, backup, and restore scripts; program memory. No application database has been created yet.
+- Decisions made: Standardize on PostgreSQL 18.4 and port 5432; accept the installation only with both local-only binding and defense-in-depth firewall enforcement.
+- Validation performed: Server evidence confirmed service `postgresql-x64-18` running automatically; `psql`, `pg_dump`, and `pg_restore` all report 18.4; listeners exist only on `127.0.0.1` and `::1`; inbound block is enabled.
+- Deployment status: PostgreSQL service installed and secured; portal remains on compatibility `main` with no database features enabled.
+- Risks/blockers: Least-privilege roles/database, migrations, backup, and restore verification remain pending.
+- Exact next action: Validate and publish the tool-discovery update, then run the pinned database initialization script on the server.
+
 ### 2026-06-19 - Incorrect PostgreSQL 13 installation identified
 
 - Branch: `codex/windows-operations-tooling`.
