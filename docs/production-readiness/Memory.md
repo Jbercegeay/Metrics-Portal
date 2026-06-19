@@ -121,6 +121,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Risks/blockers: Awaiting corrected CI evidence.
 - Exact next action: Commit and push the focused test correction, then confirm the replacement PostgreSQL 18 run.
 
+### 2026-06-19 - Phase 2 deterministic lease test correction
+
+- Branch: `codex/submission-outbox`.
+- Commit or PR: Draft PR #4; correction not committed yet.
+- Phase/work package: Phase 2 worker restart validation.
+- Work completed: Replaced a timing-sensitive 20 ms concurrent lease test with a normal 60-second concurrency assertion followed by an explicit database lease expiration and recovery claim.
+- Files or schema changed: Integration test and program memory only.
+- Decisions made: Restart recovery tests manipulate the lease timestamp explicitly so runner scheduling cannot turn legitimate lease expiry into a false concurrency failure.
+- Validation performed: CI run 27828469533 applied both migrations and passed 33 tests; the sole failure showed two sequential claims because the intentionally tiny lease expired during runner scheduling.
+- Deployment status: Not deployed.
+- Risks/blockers: Awaiting deterministic replacement CI evidence.
+- Exact next action: Commit and push the deterministic lease test, then confirm the PostgreSQL 18 run.
+
 ### 2026-06-19 - Phase 1 engineering foundation implemented
 
 - Branch: `codex/postgres-foundation` stacked on the approved Phase 0 commit.

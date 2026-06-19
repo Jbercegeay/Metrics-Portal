@@ -55,12 +55,16 @@ test('database enforces atomic idempotency and one worker lease', { skip: !datab
         await assert.rejects(() => service.create(submission(id, { Item: '654321' })), ConflictError);
 
         const claims = await Promise.all([
-            repository.claimNext('worker-a', 20),
-            repository.claimNext('worker-b', 20)
+            repository.claimNext('worker-a', 60000),
+            repository.claimNext('worker-b', 60000)
         ]);
         const claimed = claims.filter(Boolean);
         assert.equal(claimed.length, 1);
-        await new Promise((resolve) => setTimeout(resolve, 40));
+        await db.query(`
+            UPDATE submission_outbox
+            SET lease_expires_at = current_timestamp - interval '1 second'
+            WHERE submission_id = $1
+        `, [id]);
         const recovered = await repository.claimNext('worker-after-restart', 60000);
         assert.ok(recovered);
         assert.equal(recovered.submission_id, id);
