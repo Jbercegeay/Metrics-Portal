@@ -3,6 +3,7 @@ param(
     [string]$AppRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [Parameter(Mandatory = $true)][string]$BackupRoot,
     [string]$BaseUrl = 'http://127.0.0.1:3000',
+    [int]$PostgresPort = 5433,
     [int]$MinimumFreeGb = 20
 )
 
@@ -31,6 +32,10 @@ Add-Check 'Backup root' (Test-Path -LiteralPath $BackupRoot -PathType Container)
 $appDrive = Get-PSDrive -Name ([System.IO.Path]::GetPathRoot($AppRoot).TrimEnd('\').TrimEnd(':'))
 $freeGb = [math]::Round($appDrive.Free / 1GB, 1)
 Add-Check 'Free disk' ($freeGb -ge $MinimumFreeGb) "$freeGb GB free; minimum $MinimumFreeGb GB"
+
+$listeners = Get-NetTCPConnection -State Listen -LocalPort $PostgresPort -ErrorAction SilentlyContinue
+$unsafeListeners = @($listeners | Where-Object LocalAddress -in @('0.0.0.0','::'))
+Add-Check 'PostgreSQL listener' ([bool]$listeners -and $unsafeListeners.Count -eq 0) $(if (-not $listeners) { "No listener on $PostgresPort" } elseif ($unsafeListeners.Count) { "Port $PostgresPort is exposed on all interfaces" } else { "Port $PostgresPort is local-only" })
 
 Push-Location $AppRoot
 try {

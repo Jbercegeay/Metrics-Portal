@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$HostName = '127.0.0.1',
-    [int]$Port = 5432,
+    [int]$Port = 5433,
     [string]$Superuser = 'postgres',
     [string]$DatabaseName = 'metrics_portal',
     [string]$OwnerRole = 'metrics_portal_owner',

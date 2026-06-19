@@ -97,18 +97,31 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
-### 2026-06-19 - PostgreSQL install path variance and exposed listener contained
+### 2026-06-19 - Pre-existing PostgreSQL 13 isolated from Metrics Portal plan
 
 - Branch: `codex/windows-operations-tooling`.
 - Commit or PR: Draft PR #8; follow-up not committed yet.
 - Phase/work package: Phase 1 target PostgreSQL installation.
-- Work completed: Installation produced a live PostgreSQL listener but used a non-default executable path/service name, so the assumed command discovery failed. Added process-based executable/service discovery and defense-in-depth firewall instructions to the target runbook.
+- Work completed: Identified that the existing listener and service are PostgreSQL 13, not the intended PostgreSQL 18 installation. Changed the target plan and bootstrap defaults to use side-by-side PostgreSQL 18 on port 5433 and added local-only listener validation.
+- Files or schema changed: Target bootstrap scripts, production preflight, target runbook, and program memory. No server state changed.
+- Decisions made: Do not modify, restart, firewall, upgrade, or reuse the unknown PostgreSQL 13 service. Metrics Portal PostgreSQL 18 uses port 5433 with local-only binding and its own inbound firewall block.
+- Validation performed: Server process and service evidence identified `postgresql-x64-13` under the PostgreSQL 13 installation path. No PostgreSQL 18 service was present.
+- Deployment status: PostgreSQL 18 is not yet installed; compatibility portal remains unchanged.
+- Risks/blockers: Ownership and remote exposure of the legacy PostgreSQL 13 service remain outside this work package and should be referred to IT separately.
+- Exact next action: User installs PostgreSQL 18 side-by-side on port 5433, then returns service/tool/listener verification.
+
+### 2026-06-19 - Initial PostgreSQL listener misidentified
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Phase/work package: Phase 1 target PostgreSQL installation.
+- Work completed: Initial verification found a live PostgreSQL listener and the assumed service-name check failed. Process-based discovery was added before later evidence proved this listener belonged to a pre-existing PostgreSQL 13 installation, not PostgreSQL 18.
 - Files or schema changed: Target-server runbook and program memory only.
 - Decisions made: Never assume the EDB installation directory or Windows service name; discover both from the port owner. Block inbound TCP 5432 regardless of local-only PostgreSQL binding.
 - Validation performed: Server evidence showed PostgreSQL listening on `0.0.0.0` and `::`; the backup UNC path was reachable. No portal or database schema change occurred.
-- Deployment status: PostgreSQL is installed but not accepted; the compatibility portal remains unchanged.
-- Risks/blockers: The listener must be restricted and the actual service/tool paths verified before database initialization.
-- Exact next action: User applies the inbound firewall block, discovers the executable/service from PID ownership, sets `listen_addresses=localhost`, restarts, and returns verification output.
+- Deployment status: No new PostgreSQL installation was proven; the compatibility portal remains unchanged.
+- Risks/blockers: The existing listener's version and ownership required identification before any action.
+- Exact next action: Discover the executable and service from PID ownership without modifying the listener.
 
 ### 2026-06-19 - Target server inventoried and PostgreSQL bootstrap prepared
 
