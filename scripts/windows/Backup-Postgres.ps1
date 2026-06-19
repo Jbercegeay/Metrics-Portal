@@ -35,24 +35,32 @@ $previousPg = @{}
 @('PGHOST','PGPORT','PGUSER','PGPASSWORD','PGDATABASE') | ForEach-Object {
     $previousPg[$_] = [Environment]::GetEnvironmentVariable($_, 'Process')
 }
+$completed = $false
 try {
-    $env:PGHOST = $uri.Host
-    $env:PGPORT = $(if ($uri.IsDefaultPort) { '5432' } else { [string]$uri.Port })
-    $env:PGUSER = [uri]::UnescapeDataString($credentials[0])
-    $env:PGPASSWORD = $(if ($credentials.Count -gt 1) { [uri]::UnescapeDataString($credentials[1]) } else { '' })
-    $env:PGDATABASE = $databaseName
-    & $pgDumpExe --format=custom --no-owner --no-acl --file=$file
-    if ($LASTEXITCODE -ne 0) { throw "pg_dump failed with exit code $LASTEXITCODE." }
+    try {
+        $env:PGHOST = $uri.Host
+        $env:PGPORT = $(if ($uri.IsDefaultPort) { '5432' } else { [string]$uri.Port })
+        $env:PGUSER = [uri]::UnescapeDataString($credentials[0])
+        $env:PGPASSWORD = $(if ($credentials.Count -gt 1) { [uri]::UnescapeDataString($credentials[1]) } else { '' })
+        $env:PGDATABASE = $databaseName
+        & $pgDumpExe --format=custom --no-owner --no-acl --file=$file
+        if ($LASTEXITCODE -ne 0) { throw "pg_dump failed with exit code $LASTEXITCODE." }
+    } finally {
+        foreach ($name in $previousPg.Keys) {
+            [Environment]::SetEnvironmentVariable($name, $previousPg[$name], 'Process')
+        }
+    }
+
+    & $pgRestoreExe --list $file | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed.' }
+    $hash = Get-FileHash -LiteralPath $file -Algorithm SHA256
+    [pscustomobject]@{ File = $file; Bytes = (Get-Item -LiteralPath $file).Length; Sha256 = $hash.Hash; VerifiedAt = (Get-Date).ToString('o') } |
+        ConvertTo-Json | Set-Content -LiteralPath "$file.json" -Encoding UTF8
+    $completed = $true
 } finally {
-    foreach ($name in $previousPg.Keys) {
-        [Environment]::SetEnvironmentVariable($name, $previousPg[$name], 'Process')
+    if (-not $completed) {
+        Remove-Item -LiteralPath $file, "$file.json" -Force -ErrorAction SilentlyContinue
     }
 }
-
-& $pgRestoreExe --list $file | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'Backup verification failed.' }
-$hash = Get-FileHash -LiteralPath $file -Algorithm SHA256
-[pscustomobject]@{ File = $file; Bytes = (Get-Item -LiteralPath $file).Length; Sha256 = $hash.Hash; VerifiedAt = (Get-Date).ToString('o') } |
-    ConvertTo-Json | Set-Content -LiteralPath "$file.json" -Encoding UTF8
 
 Write-Output "Verified backup created: $file"
