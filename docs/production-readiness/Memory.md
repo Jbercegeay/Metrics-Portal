@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, migrated, and protected by a verified off-server baseline backup. Post-migration backup, restore proof, and controlled external validation remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is installed, secured, migrated, and protected by verified pre- and post-migration off-server backups. Restore proof and controlled external validation remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The existing portal remains active from the server's approved `main` deployment.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,14 +37,13 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Create the verified post-migration backup, prove restore and health behavior, and preserve the live compatibility portal until release gates are approved.
+- Prove isolated restore and health behavior, and preserve the live compatibility portal until release gates are approved.
 
 ## Next Actions
 
-1. Create and verify a post-migration backup.
-2. Execute an isolated restore drill and target health/preflight checks.
-3. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
-4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Execute an isolated restore drill and target health/preflight checks.
+2. Complete controlled non-production Smartsheet proof and PL UAT before enabling any production feature flag.
+3. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -97,6 +96,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - Verified post-migration backup created
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; backup tooling release candidate `b584521`.
+- Phase/work package: Phase 7 post-migration recovery protection.
+- Work completed: Created and independently verified an off-server custom-format backup after applying all target migrations.
+- Files or schema changed: One post-migration dump and SHA-256 metadata sidecar on the approved backup destination; program memory only in Git. No portal process or configuration changed.
+- Decisions made: Use this artifact for the isolated restore drill and retain the smaller pre-migration artifact as the original rollback baseline.
+- Validation performed: The 31,237-byte archive passed `pg_restore --list`, matched its recorded SHA-256, and contained `pgmigrations` plus all seven required operational tables.
+- Deployment status: Pre- and post-migration backups are verified; database remains unused by the unchanged compatibility portal.
+- Risks/blockers: Isolated restore proof, target preflight/health, and external release gates remain pending.
+- Exact next action: Restore the post-migration artifact into a disposable `_restore_drill` database, verify migration/data/runtime-access invariants, and remove the disposable database only after success.
 
 ### 2026-06-19 - Target migrations and runtime grants passed
 
