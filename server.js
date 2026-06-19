@@ -170,7 +170,14 @@ function normalizeDuplicateValue(value) {
     return text.replace(/\s+/g, ' ');
 }
 
-function buildSubmissionKey(dept, entries) {
+function buildSubmissionKey(dept, entries, clientSubmissionId = '') {
+    const normalizedClientId = String(clientSubmissionId || '').trim();
+    if (normalizedClientId) {
+        return crypto
+            .createHash('sha256')
+            .update(JSON.stringify([normalizeDept(dept), normalizedClientId]))
+            .digest('hex');
+    }
     const normalized = entries
         .filter(([title]) => title !== 'clientSubmissionId')
         .map(([title, value]) => [title, normalizeDuplicateValue(value)])
@@ -190,10 +197,10 @@ function pruneRecentMasterLogSubmissions(now = Date.now()) {
     }
 }
 
-function reserveMasterLogSubmission(dept, entries) {
+function reserveMasterLogSubmission(dept, entries, clientSubmissionId = '') {
     const now = Date.now();
     pruneRecentMasterLogSubmissions(now);
-    const key = buildSubmissionKey(dept, entries);
+    const key = buildSubmissionKey(dept, entries, clientSubmissionId);
     if (recentMasterLogSubmissions.has(key)) {
         return { duplicate: true, key, record: recentMasterLogSubmissions.get(key) };
     }
@@ -205,11 +212,16 @@ function reserveMasterLogSubmission(dept, entries) {
     return { duplicate: false, key };
 }
 
-function finishMasterLogSubmission(key, success) {
+function finishMasterLogSubmission(key, status) {
     const record = recentMasterLogSubmissions.get(key);
     if (!record) return;
-    if (success) {
+    if (status === true || status === 'success') {
         record.status = 'success';
+        record.completedAt = Date.now();
+        return;
+    }
+    if (status === 'unknown') {
+        record.status = 'unknown';
         record.completedAt = Date.now();
         return;
     }
@@ -231,6 +243,7 @@ function validateItemNumberPayload(data, keys = ['Item', 'Item Number']) {
 
 const SUBMISSION_SOURCE_COLUMN_TITLE = 'Submission Source';
 const SUBMISSION_SOURCE_VALUE = 'new metrics portal';
+const SUBMISSION_ID_COLUMN_TITLE = 'Portal Submission ID';
 const PORTAL_USAGE_LOG_SHEET_ID = process.env.PORTAL_USAGE_LOG_SHEET_ID || '';
 const PORTAL_USAGE_LOG_COLUMNS = [
     { title: 'Timestamp', type: 'TEXT_NUMBER', primary: true },
@@ -286,6 +299,29 @@ async function addSubmissionSourceCell(newRow, dept) {
         columnId,
         value: SUBMISSION_SOURCE_VALUE
     });
+}
+
+async function addSubmissionIdCell(newRow, dept, clientSubmissionId) {
+    if (!clientSubmissionId) return null;
+    const columnId = await getOrCreateSheetColumn({
+        dept,
+        sheetId: getMasterLogSheetId(dept),
+        title: SUBMISSION_ID_COLUMN_TITLE
+    });
+    newRow.cells.push({ columnId, value: clientSubmissionId });
+    return columnId;
+}
+
+async function masterLogHasSubmissionId(dept, columnId, clientSubmissionId) {
+    if (!columnId || !clientSubmissionId) return false;
+    const sheetId = getMasterLogSheetId(dept);
+    const client = getClientForDept(dept);
+    const response = await client.get(`sheets/${sheetId}`, { params: { columnIds: columnId } });
+    return (response.data.rows || []).some(row =>
+        (row.cells || []).some(cell =>
+            cell.columnId === columnId && String(cell.value || '').trim() === clientSubmissionId
+        )
+    );
 }
 
 async function getPortalUsageLogColumnMap() {
@@ -1159,6 +1195,8 @@ app.post('/api/submit', async (req, res) => {
         // Use module-level MASTER_LOG_COLUMN_MAP (includes dynamically created defect columns)
         const COLUMN_MAP = MASTER_LOG_COLUMN_MAP;
         const columnTypes = await getMasterLogColumnTypes('PL');
+        const clientSubmissionId = String(data.clientSubmissionId || '').trim().slice(0, 100);
+        const clientSubmissionAttempt = Math.max(1, toSmartsheetWholeNumber(data.clientSubmissionAttempt, 1));
 
         // Construct the row object for Smartsheet
         const newRow = {
@@ -1178,7 +1216,31 @@ app.post('/api/submit', async (req, res) => {
             }
         }
 
-        const reservation = reserveMasterLogSubmission('PL', submittedEntries);
+        const submissionIdColumn = await addSubmissionIdCell(newRow, 'PL', clientSubmissionId);
+        const retryKey = buildSubmissionKey('PL', submittedEntries, clientSubmissionId);
+        pruneRecentMasterLogSubmissions();
+        const priorReservation = recentMasterLogSubmissions.get(retryKey);
+        if (clientSubmissionId && clientSubmissionAttempt > 1) {
+            if (priorReservation?.status === 'pending') {
+                return res.status(409).json({
+                    success: false,
+                    pending: true,
+                    error: 'The original submission is still being processed. Wait a few seconds and try again.'
+                });
+            }
+            if (await masterLogHasSubmissionId('PL', submissionIdColumn, clientSubmissionId)) {
+                finishMasterLogSubmission(retryKey, true);
+                return res.json({
+                    success: true,
+                    duplicate: true,
+                    message: 'This PL submission was already saved. No duplicate row was added.',
+                    data: []
+                });
+            }
+            recentMasterLogSubmissions.delete(retryKey);
+        }
+
+        const reservation = reserveMasterLogSubmission('PL', submittedEntries, clientSubmissionId);
         submissionKey = reservation.key;
         if (reservation.duplicate) {
             return res.json({
@@ -1204,7 +1266,7 @@ app.post('/api/submit', async (req, res) => {
         res.json({ success: true, message: "Successfully logged data to Smartsheet.", data: response.data });
 
     } catch (error) {
-        if (submissionKey) finishMasterLogSubmission(submissionKey, false);
+        if (submissionKey) finishMasterLogSubmission(submissionKey, error.response ? false : 'unknown');
         console.error("Error submitting to Smartsheet:", error.response?.data || error.message);
         if (error.code === 'ECONNABORTED') {
             return res.status(504).json({ success: false, error: 'Smartsheet timed out. Please try again.' });

@@ -5555,7 +5555,10 @@
                     const saved = await submitToSmartsheet("Event", evT, evM);
                     if (!saved) {
                         state.sequenceStartTime = priorSequenceStartTime;
-                        updateSubmittingOverlay('Submission Failed', 'Event could not be saved. Please try again.', true);
+                        showPlEndShiftFailure(
+                            'The event could not be confirmed. Use Retry so the portal can check the original submission before sending it again.',
+                            handleEventSubmit
+                        );
                         endSubmitLock('pl-event');
                         return;
                     }
@@ -5670,7 +5673,10 @@
                         showSubmittingOverlay('Please Wait', 'Submitting to Smartsheet...');
                         const saved = await submitToSmartsheet("Job", "", 0, op);
                         if (!saved) {
-                            updateSubmittingOverlay('Submission Failed', 'Data could not be saved. Please try again.', true);
+                            showPlEndShiftFailure(
+                                'The job could not be confirmed. Use Retry so the portal can check the original submission before sending it again.',
+                                handleSubmitJob
+                            );
                             return;
                         }
                         updateSubmittingOverlay('Saved!', 'Data submitted successfully.');
@@ -5705,7 +5711,39 @@
             }
         }
 
+        const PL_PENDING_SUBMISSIONS_KEY = 'pl_pending_submissions_v1';
+
+        function getPlSubmissionSignature(payload) {
+            return JSON.stringify(Object.keys(payload).sort().map(key => [key, payload[key]]));
+        }
+
+        function preparePlSubmission(payload) {
+            const signature = getPlSubmissionSignature(payload);
+            let pending = {};
+            try { pending = JSON.parse(localStorage.getItem(PL_PENDING_SUBMISSIONS_KEY)) || {}; } catch (error) {}
+            const existing = pending[signature];
+            const id = existing?.id || (crypto.randomUUID
+                ? crypto.randomUUID()
+                : `pl-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+            const attempt = (existing?.attempt || 0) + 1;
+            pending[signature] = { id, attempt, createdAt: existing?.createdAt || Date.now() };
+            localStorage.setItem(PL_PENDING_SUBMISSIONS_KEY, JSON.stringify(pending));
+            return { signature, id, attempt };
+        }
+
+        function completePlSubmission(signature) {
+            let pending = {};
+            try { pending = JSON.parse(localStorage.getItem(PL_PENDING_SUBMISSIONS_KEY)) || {}; } catch (error) {}
+            delete pending[signature];
+            if (Object.keys(pending).length > 0) {
+                localStorage.setItem(PL_PENDING_SUBMISSIONS_KEY, JSON.stringify(pending));
+            } else {
+                localStorage.removeItem(PL_PENDING_SUBMISSIONS_KEY);
+            }
+        }
+
         async function submitToSmartsheet(typeOverride = "Job", eventName = "", manualMins = 0, opName = "") {
+            clearPlSubmissionError();
             // Defect column keys follow "Defect-{name}" format — built dynamically from config
             const defectMap = Object.fromEntries(DEFECTS.map(d => [d, 'Defect-' + d]));
 
@@ -5772,6 +5810,7 @@
                 }
 
                 let submittedCount = 0;
+                const submissionRecords = [];
 
                 for (const { seq, goodCount, seqDefs, badTotal, lotMins } of seqEntries) {
                     const isActiveRow = (seq === activeSeq);
@@ -5823,13 +5862,21 @@
                     }
 
                     try {
+                        const submission = preparePlSubmission(rowPayload);
+                        submissionRecords.push(submission);
                         const resp = await fetchWithTimeout(`${API_BASE_URL}/submit`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(rowPayload)
+                            body: JSON.stringify({
+                                ...rowPayload,
+                                clientSubmissionId: submission.id,
+                                clientSubmissionAttempt: submission.attempt
+                            })
                         });
                         const result = await resp.json();
-                        if (result.success) submittedCount++;
+                        if (result.success) {
+                            submittedCount++;
+                        }
                         else {
                             setPlSubmissionError(result.error || result.message || `Job row failed for sequence ${seq}.`);
                             console.error(`Submission failed for sequence ${seq}:`, result);
@@ -5850,6 +5897,7 @@
                     showToast(`⚠️ Partial save: ${submittedCount}/${totalExpected} sequences saved. Please contact your supervisor.`);
                     return false;
                 }
+                submissionRecords.forEach(submission => completePlSubmission(submission.signature));
                 showToast(isTestAccount(op)
                     ? `✅ (Training Mode) Simulated submission successful!`
                     : `✅ Data for ${op} saved to Smartsheet!`);
@@ -5866,10 +5914,15 @@
                 payload['Time worked (Min)'] = manualMins;
 
                 try {
+                    const submission = preparePlSubmission(payload);
                     const response = await fetchWithTimeout(`${API_BASE_URL}/submit`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({
+                            ...payload,
+                            clientSubmissionId: submission.id,
+                            clientSubmissionAttempt: submission.attempt
+                        })
                     });
                     const result = await response.json();
                     if (!result.success) {
@@ -5878,6 +5931,7 @@
                         showToast(`❌ Failed to save ${op}'s data.`);
                         return false;
                     }
+                    completePlSubmission(submission.signature);
                 } catch (err) {
                     setPlSubmissionError(err.message || `Network error submitting ${typeOverride}.`);
                     console.error(`API error for ${op}:`, err);

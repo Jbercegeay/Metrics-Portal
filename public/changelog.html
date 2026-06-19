@@ -132,6 +132,7 @@
         <section>
             <h2>v1.2.0 Testing</h2>
             <ul>
+                <li>Added retry-safe Precision Liner submission IDs so a delayed Smartsheet acknowledgement cannot cause duplicate job or event rows when an associate tries again.</li>
                 <li>Fixed Precision Liner confirmation modals so the shared Confirm button cannot stay disabled after a previous submit lock, preventing End Shift from appearing greyed out until browser refresh.</li>
                 <li>Updated Precision Liner End Shift to snapshot the active associate workspace before deciding whether to submit an active job, reducing cases where only event data is sent.</li>
                 <li>Improved Precision Liner saved-shift restore so hour-by-hour tracker buckets are preserved even when Smartsheet config finishes loading after the local shift state.</li>
