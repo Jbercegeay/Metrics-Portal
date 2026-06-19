@@ -17,6 +17,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added the PostgreSQL engineering foundation with versioned migrations, pooled transactional access, environment validation, structured correlation logging, and database-aware liveness/readiness endpoints.
 - Added automated unit, API, database, syntax, documentation-link, migration, dependency-audit, and GitHub Actions checks.
 - Added durable idempotent submission capture, a leased Smartsheet outbox worker, exact-ID uncertain-delivery checks, retry and `needs_review` handling, integration health, and a department-scoped supervisor status page behind disabled-by-default feature flags.
+- Added disabled-by-default PostgreSQL sessions, department-scoped kiosk locks, versioned server workspaces, stale-tab rejection, unsaved-work sign-out blocking, and audited discard/release controls for the PL migration.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.

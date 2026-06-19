@@ -38,7 +38,8 @@ Read and maintain these documents in order:
 9. [Risk and Decision Register](08-risk-and-decision-register.md) - known risks, assumptions, and architecture decisions.
 10. [Development and Database Setup](09-development-and-database-setup.md) - local runtime, PostgreSQL, migrations, CI, and health verification.
 11. [Durable Submissions](10-durable-submissions.md) - capture contract, outbox worker, supervisor controls, and failure behavior.
-12. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
+12. [Server Sessions and Workspaces](11-sessions-and-workspaces.md) - durable identity, kiosk locking, optimistic workspaces, and sign-out rules.
+13. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
 
 `AGENTS.md` contains the scoped enforcement instructions for coding agents working from this playbook.
 

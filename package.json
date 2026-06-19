@@ -14,7 +14,7 @@
     "check:html": "node scripts/check-html-scripts.js",
     "check:docs": "node scripts/check-markdown-links.js",
     "test": "node --test test/*.test.js",
-    "test:database": "node --test test/database.integration.test.js test/submission.database.integration.test.js"
+    "test:database": "node --test test/database.integration.test.js test/submission.database.integration.test.js test/session-workspace.database.integration.test.js"
   },
   "keywords": [],
   "author": "",
