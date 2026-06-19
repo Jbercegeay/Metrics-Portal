@@ -31,6 +31,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Proved the foundation migration and transaction behavior against clean PostgreSQL 18 in GitHub Actions.
 - Implemented the Phase 2 submission, outbox, delivery-attempt, and audit schema; idempotent capture API; leased worker; Smartsheet exact-ID check; retry classification; integration health; and supervisor status/retry/resolution interface behind a disabled-by-default feature gate.
 - Proved Phase 2 migrations, concurrent idempotency, worker leasing and expired-lease recovery, API authorization, and failure handling against clean PostgreSQL 18 in CI run 27828636152.
+- Implemented the Phase 3 server-session and versioned-workspace foundation with hashed opaque tokens, department rollout flags, durable kiosk locks, stale-tab protection, sign-out blocking, and audited discard/release behavior.
 
 ## Active Work
 
@@ -95,6 +96,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-19 - PL server sessions and workspaces implemented
+
+- Branch: `codex/pl-server-workspaces` stacked on the validated outbox branch.
+- Commit or PR: Not committed yet.
+- Phase/work package: Phase 3 PL server sessions and workspaces.
+- Work completed: Added users, server sessions, durable kiosk locks, and optimistic-versioned workspace schema and services. Integrated compatibility login with department-gated HTTP-only sessions, protected submission identity with the authenticated session, added session/workspace APIs, blocked unsafe sign-out, and audited discard and supervisor lock release.
+- Files or schema changed: Migration `003_sessions_and_workspaces.js`; identity/workspace repositories; session/workspace services and routes; server integration; runtime flags; tests; environment example; changelog; and session/workspace guide.
+- Decisions made: PL sessions are independently gated so enabling the PL pilot cannot strand PTFE or PI users; the database stores token hashes only; active requests extend inactivity expiry; one open workspace is allowed per user/department.
+- Validation performed: 36 JavaScript files passed syntax checks, 47 local tests passed with 3 expected PostgreSQL skips, and GitHub Actions run 27829232827 passed migration 003 and all 50 tests against clean PostgreSQL 18.
+- Deployment status: Not deployed; all new flags default false.
+- Risks/blockers: HTTPS remains required for production secure cookies. Existing PL frontend extraction and workspace binding are the next work package.
+- Exact next action: Extract and bind the PL page to the session/workspace and durable-submission APIs.
 
 ### 2026-06-19 - Phase 2 durable submission slice implemented
 

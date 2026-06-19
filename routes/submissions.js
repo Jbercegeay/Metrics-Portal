@@ -34,20 +34,34 @@ function createSubmissionRouter(options) {
         next();
     });
 
-    function requireSupervisor(req, res, next) {
-        const actor = options.getSupervisorActor(req);
+    async function requireSupervisor(req, res, next) {
+        const actor = await options.getSupervisorActor(req);
         if (!actor) return res.status(401).json({ success: false, error: 'Supervisor authorization required.' });
         req.actor = actor;
         next();
     }
 
-    router.post('/', async (req, res, next) => {
+    async function requirePortalSession(req, res, next) {
+        const actor = await options.getSessionActor(req);
+        if (!actor) return res.status(401).json({ success: false, error: 'Authenticated server session required.' });
+        req.actor = actor;
+        next();
+    }
+
+    router.post('/', requirePortalSession, async (req, res, next) => {
         try {
-            const result = await options.service.create(req.body, {
-                name: req.body.associateName,
-                role: 'Associate',
-                workstation: req.body.kioskId
+            const input = {
+                ...req.body,
+                department: req.actor.department,
+                associateName: req.actor.name,
+                kioskId: req.actor.kioskId
+            };
+            const result = await options.service.create(input, {
+                name: req.actor.name,
+                role: req.actor.role,
+                workstation: req.actor.kioskId
             });
+            await options.onCaptured?.(req.actor, result.submission);
             res.status(result.created ? 201 : 200).json({
                 success: true,
                 duplicate: result.duplicate,
@@ -78,10 +92,14 @@ function createSubmissionRouter(options) {
         }
     });
 
-    router.get('/:id', async (req, res, next) => {
+    router.get('/:id', requirePortalSession, async (req, res, next) => {
         try {
             const submission = await options.service.getById(req.params.id);
             if (!submission) return res.status(404).json({ success: false, error: 'Submission not found.' });
+            const supervisor = ['Supervisor', 'Administrator'].includes(req.actor.role);
+            if (submission.department !== req.actor.department || (!supervisor && submission.associateName !== req.actor.name)) {
+                return res.status(403).json({ success: false, error: 'Submission does not belong to the authenticated workspace.' });
+            }
             res.json({ success: true, submission: publicSubmission(submission) });
         } catch (error) {
             next(error);

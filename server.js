@@ -24,6 +24,12 @@ const { createHealthRouter } = require('./routes/health');
 const { createSubmissionRepository } = require('./repositories/submission-repository');
 const { createSubmissionService } = require('./services/submissions/submission-service');
 const { createSubmissionRouter } = require('./routes/submissions');
+const { createIdentityRepository } = require('./repositories/identity-repository');
+const { createWorkspaceRepository } = require('./repositories/workspace-repository');
+const { createSessionMiddleware, createSessionService } = require('./services/sessions/session-service');
+const { createWorkspaceService } = require('./services/workspaces/workspace-service');
+const { createSessionRouter } = require('./routes/sessions');
+const { createWorkspaceRouter } = require('./routes/workspaces');
 
 const app = express();
 validateApplicationEnvironment();
@@ -37,6 +43,15 @@ const logger = createLogger({
 const database = createDatabase(runtimeConfig.database, logger);
 const submissionRepository = createSubmissionRepository(database);
 const submissionService = createSubmissionService(submissionRepository);
+const identityRepository = createIdentityRepository(database);
+const workspaceRepository = createWorkspaceRepository(database);
+const sessionService = createSessionService({
+    repository: identityRepository,
+    ttlMs: runtimeConfig.sessions.ttlMs,
+    cookieName: runtimeConfig.sessions.cookieName,
+    secure: runtimeConfig.sessions.secureCookie
+});
+const workspaceService = createWorkspaceService(workspaceRepository);
 
 function isEnvTrue(name) {
     return ['1', 'true', 'yes', 'on'].includes(String(process.env[name] || '').trim().toLowerCase());
@@ -418,6 +433,10 @@ app.use('/api/v2', createHealthRouter({
     version: runtimeConfig.serviceVersion,
     integrationHealth: database.enabled ? () => submissionRepository.integrationHealth() : null
 }));
+app.use('/api/v2', createSessionMiddleware({
+    enabled: runtimeConfig.features.serverSessions,
+    service: sessionService
+}));
 
 // Serve static frontend files from 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -540,6 +559,35 @@ const MASTER_CONFIG_SHEET_ID = CONFIG_SHEET_ID;
 // Admin session store: token -> { name, expires }
 const adminSessions = new Map();
 
+function normalizeDatabaseRole(role) {
+    if (role === 'Supervisor') return 'Supervisor';
+    if (role === 'Administrator' || role === 'Admin') return 'Administrator';
+    return 'Associate';
+}
+
+async function attachDurableSession(res, user, kioskId, passwordHash = null) {
+    if (!runtimeConfig.features.serverSessions || !runtimeConfig.features.sessionDepartments[user.departmentKey]) {
+        return { enabled: false };
+    }
+    try {
+        const result = await sessionService.create({
+            name: user.name,
+            role: normalizeDatabaseRole(user.role),
+            department: user.departmentKey,
+            passwordHash
+        }, String(kioskId || '').trim());
+        if (result.conflict) {
+            releaseKioskLock({ dept: user.departmentKey, associate: user.name, kioskId });
+            return { enabled: true, conflict: true, lock: result.lock };
+        }
+        sessionService.setCookie(res, result.token);
+        return { enabled: true, session: result.session };
+    } catch (error) {
+        releaseKioskLock({ dept: user.departmentKey, associate: user.name, kioskId });
+        throw error;
+    }
+}
+
 // Config sheet cache — avoids hitting Smartsheet on every login request.
 // Populated on first login, expires after 5 minutes, invalidated on password changes.
 let _configCache = null;
@@ -653,7 +701,10 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-function getSupervisorActor(req) {
+async function getSupervisorActor(req) {
+    if (req.portalSession && ['Supervisor', 'Administrator'].includes(req.portalSession.role)) {
+        return req.portalSession;
+    }
     const token = req.headers['x-admin-token'];
     const session = token && adminSessions.get(token);
     if (!session || session.expires < Date.now()) return null;
@@ -668,7 +719,30 @@ function getSupervisorActor(req) {
 app.use('/api/v2/submissions', createSubmissionRouter({
     databaseEnabled: database.enabled && runtimeConfig.features.durableSubmissions,
     service: submissionService,
-    getSupervisorActor
+    getSupervisorActor,
+    getSessionActor: async (req) => req.portalSession || null,
+    onCaptured: runtimeConfig.features.serverWorkspaces
+        ? (session, submission) => workspaceService.markSubmitted(session, submission.id)
+        : null
+}));
+app.use('/api/v2/sessions', createSessionRouter({
+    enabled: runtimeConfig.features.serverSessions,
+    service: sessionService,
+    onRevoked: async (session) => releaseKioskLock({
+        dept: session.department,
+        associate: session.name,
+        kioskId: session.kioskId
+    }),
+    onLockReleased: async (lock) => releaseKioskLock({
+        dept: lock.department,
+        associate: lock.name,
+        kioskId: lock.kioskId,
+        force: true
+    })
+}));
+app.use('/api/v2/workspaces', createWorkspaceRouter({
+    enabled: runtimeConfig.features.serverWorkspaces,
+    service: workspaceService
 }));
 
 app.use('/api/admin', requireAdmin);
@@ -1013,6 +1087,11 @@ app.post('/api/login', async (req, res) => {
                 adminSessions.set(token, { name: username, deptKey: testAccount.departmentKey, expires: Date.now() + 8 * 60 * 60 * 1000 });
                 testResponse.adminToken = token;
             }
+            const durableSession = await attachDurableSession(res, testResponse.user, kioskId);
+            if (durableSession.conflict) {
+                return res.status(409).json({ success: false, error: 'Associate is active at another workstation.', lock: durableSession.lock });
+            }
+            testResponse.serverSession = durableSession.enabled;
             return res.json(testResponse);
         }
 
@@ -1072,6 +1151,11 @@ app.post('/api/login', async (req, res) => {
                 role,
                 kioskId
             });
+            const durableSession = await attachDurableSession(res, response.user, kioskId, pHash);
+            if (durableSession.conflict) {
+                return res.status(409).json({ success: false, error: 'Associate is active at another workstation.', lock: durableSession.lock });
+            }
+            response.serverSession = durableSession.enabled;
             res.json(response);
         } else {
             res.json({ success: false, error: 'Incorrect password' });
@@ -1137,6 +1221,11 @@ app.post('/api/setup-password', async (req, res) => {
             adminSessions.set(token, { name: username, deptKey: deptConfig.key, expires: Date.now() + 8 * 60 * 60 * 1000 });
             setupResponse.adminToken = token;
         }
+        const durableSession = await attachDurableSession(res, setupResponse.user, kioskId, hashed);
+        if (durableSession.conflict) {
+            return res.status(409).json({ success: false, error: 'Associate is active at another workstation.', lock: durableSession.lock });
+        }
+        setupResponse.serverSession = durableSession.enabled;
         res.json(setupResponse);
     } catch (error) {
         console.error("Error setting password:", error);
@@ -1760,6 +1849,12 @@ app.post('/api/submit-pi-jxj', async (req, res) => {
 // 5. Test Route just to check if server is working
 app.get('/api/status', (req, res) => {
     res.json({ status: 'Online', message: 'Smartsheet API Gateway is running.' });
+});
+
+app.use('/api/v2', (error, req, res, next) => {
+    req.log?.error({ err: error }, 'versioned API request failed');
+    if (res.headersSent) return next(error);
+    res.status(500).json({ success: false, error: 'The portal could not safely complete this request.' });
 });
 
 async function shutdown(signal, server) {

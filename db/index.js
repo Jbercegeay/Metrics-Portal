@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 
-const EXPECTED_TABLES = ['app_metadata', 'submissions', 'submission_outbox'];
+const EXPECTED_TABLES = ['app_metadata', 'submissions', 'submission_outbox', 'users', 'sessions', 'workspaces'];
 
 function createDatabase(config, logger) {
     if (!config.enabled) {

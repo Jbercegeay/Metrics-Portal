@@ -35,6 +35,24 @@ test('durable submissions cannot be enabled without the database', () => {
     );
 });
 
+test('department sessions require the server-session foundation', () => {
+    assert.throws(
+        () => getRuntimeConfig({ PL_SERVER_SESSIONS_ENABLED: 'true' }),
+        /SERVER_SESSIONS_ENABLED must be true/
+    );
+});
+
+test('PL database submissions require the complete feature chain', () => {
+    assert.throws(
+        () => getRuntimeConfig({
+            DATABASE_ENABLED: 'true', DATABASE_URL: 'postgresql://example',
+            SERVER_SESSIONS_ENABLED: 'true', PL_SERVER_SESSIONS_ENABLED: 'true',
+            SERVER_WORKSPACES_ENABLED: 'true', PL_DATABASE_SUBMISSIONS_ENABLED: 'true'
+        }),
+        /Durable submissions/
+    );
+});
+
 test('production TLS verification cannot be disabled', () => {
     assert.throws(
         () => getRuntimeConfig({

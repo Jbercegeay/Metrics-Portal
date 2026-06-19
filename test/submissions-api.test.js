@@ -11,7 +11,8 @@ function app(options = {}) {
     instance.use('/api/v2/submissions', createSubmissionRouter({
         databaseEnabled: options.databaseEnabled ?? true,
         service: options.service || {},
-        getSupervisorActor: (req) => req.get('x-admin-token') === 'valid' ? { name: 'Supervisor', role: 'Supervisor', department: 'PL', workstation: 'test' } : null
+        getSupervisorActor: (req) => req.get('x-admin-token') === 'valid' ? { name: 'Supervisor', role: 'Supervisor', department: 'PL', kioskId: 'test' } : null,
+        getSessionActor: async () => ({ name: 'Associate', role: 'Associate', department: 'PL', kioskId: 'test-kiosk' })
     }));
     return instance;
 }
