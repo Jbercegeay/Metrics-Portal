@@ -100,7 +100,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-19 - Target server inventoried and PostgreSQL bootstrap prepared
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; follow-up not committed yet.
+- Commit or PR: Draft PR #8; bootstrap commit `1422bc4`.
 - Phase/work package: Phase 1/7 target database and operations bootstrap.
 - Work completed: Recorded the target Windows 11 baseline; confirmed adequate disk, live compatibility portal, installed Node/Git/PM2, absent PostgreSQL tooling, and an identified off-server UNC backup destination. Added guarded scripts for separate owner/migration/application/backup roles and post-migration runtime grants, plus a target-specific bootstrap runbook.
 - Files or schema changed: PostgreSQL initialization/grant PowerShell scripts, target-server runbook, playbook index, changelog, and program memory. No server or production schema changed.
@@ -108,7 +108,20 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Validation performed: PowerShell AST parsing passed, 34 documentation files passed local-link checks, 62 tests ran with 59 passing and 3 expected local PostgreSQL skips, and diff formatting passed.
 - Deployment status: Not deployed; current production remains on `main` at its pre-readiness compatibility release.
 - Risks/blockers: PostgreSQL installation requires an interactive elevated server session. Backup-share permissions for the eventual task identity are not yet proven.
-- Exact next action: Commit and validate the bootstrap package in CI, then have the user install PostgreSQL 18 from the official Windows installer and return the non-secret verification output.
+- Exact next action: User installs PostgreSQL 18 from the official Windows installer and returns the non-secret verification output.
+
+### 2026-06-19 - Target bootstrap CI passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; bootstrap commit `1422bc4`.
+- Phase/work package: Phase 1/7 target database bootstrap validation.
+- Work completed: Closed the target bootstrap clean-environment CI gate.
+- Files or schema changed: Program memory only.
+- Decisions made: None.
+- Validation performed: GitHub Actions run 27831977151 passed PowerShell parsing, all migrations, application and PostgreSQL integration tests, syntax, HTML, documentation, and dependency audit against PostgreSQL 18.
+- Deployment status: Not deployed.
+- Risks/blockers: Interactive PostgreSQL installation is required on the target Windows host.
+- Exact next action: Install PostgreSQL 18 with server and command-line tools, then verify its service, versions, and local listener.
 
 ### 2026-06-19 - Backup verification and restore drill safeguards added
 
