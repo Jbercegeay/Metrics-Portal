@@ -250,7 +250,7 @@
     function renderSubmission(submission) {
         elements.submissionPanel.hidden = !submission;
         if (!submission) return;
-        const synced = submission.syncStatus === 'delivered';
+        const synced = submission.syncStatus === 'submitted';
         elements.submissionTitle.textContent = synced ? 'Database saved · Smartsheet synced' : 'Database saved · Smartsheet pending';
         elements.submissionDetail.textContent = synced
             ? 'The background worker confirmed the destination row.'

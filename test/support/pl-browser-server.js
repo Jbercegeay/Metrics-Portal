@@ -46,7 +46,7 @@ app.post('/api/v2/submissions', (req, res) => {
 app.get('/api/v2/submissions/:id', (req, res) => {
     const submission = submissions.get(req.params.id);
     if (!submission) return res.status(404).json({ success: false, error: 'Submission not found.' });
-    submission.syncStatus = 'delivered';
+    submission.syncStatus = 'submitted';
     res.json({ success: true, submission });
 });
 

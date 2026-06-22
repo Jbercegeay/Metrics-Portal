@@ -98,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-22 - PL UAT found synchronization-label mismatch
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; fix commit pending at session entry creation.
+- Phase/work package: Phase 7 supervised PL acceptance and rollback.
+- Work completed: Ran the initial isolated browser scenarios through durable job delivery. Corrected the browser banner to recognize the database contract's terminal `submitted` state instead of the unsupported `delivered` label.
+- Files or schema changed: PL browser rendering, browser preview support, focused contract test, changelog, and program memory. The isolated UAT database and test sheet contain one synthetic job pending final cleanup; production remained untouched.
+- Decisions made: Treat this as a UAT-blocking display defect until the corrected asset is loaded and the same submitted record renders as Smartsheet synced.
+- Validation performed: Empty-field validation, server-owned draft refresh, stale-tab rejection, unsent-work sign-out blocking, durable database capture, form clearing, and background delivery all passed. The API reported `syncStatus: submitted`; the stale headline incorrectly remained pending.
+- Deployment status: Not deployed to production. Isolated UAT remains active on loopback port 3102; both live portals remained unchanged.
+- Risks/blockers: Corrected banner retest, event entry, rollback, and cleanup remain before UAT completion.
+- Exact next action: Validate and publish the status fix, load the corrected static asset into the isolated worktree, and confirm the existing submitted job displays as synced.
+
 ### 2026-06-19 - Isolated PL browser UAT package prepared
 
 - Branch: `codex/windows-operations-tooling`.
