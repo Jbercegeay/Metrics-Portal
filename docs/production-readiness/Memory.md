@@ -114,7 +114,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-22 - Floor UAT confirmed low-yield root-cause rule
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; implementation commit `a402654`; GitHub Actions run 27957662030 passed.
+- Commit or PR: Draft PR #8; implementation commit `4c13fc9`; GitHub Actions run 27955998040 passed.
 - Phase/work package: Phase 7 PL floor acceptance.
 - Work completed: Verified the deployed compatibility behavior with Ashley West and Joey Cox, captured their intended rule, and updated the isolated PL page to open root-cause details and require at least one completed root-cause field at exactly 50% yield or lower.
 - Files or schema changed: PL browser page/model, focused boundary and dirty-state tests, UAT scenario, changelog, and program memory. No production portal, database, Smartsheet, or live process state changed.
@@ -168,7 +168,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-22 - PL UAT found synchronization-label mismatch
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; implementation commit `a402654`; GitHub Actions run 27957662030 passed.
+- Commit or PR: Draft PR #8; implementation commit `9928f7f`; GitHub Actions run 27952445024 passed.
 - Phase/work package: Phase 7 supervised PL acceptance and rollback.
 - Work completed: Ran the initial isolated browser scenarios through durable job delivery. Corrected the browser banner to recognize the database contract's terminal `submitted` state instead of the unsupported `delivered` label.
 - Files or schema changed: PL browser rendering, browser preview support, focused contract test, changelog, and program memory. The isolated UAT database and test sheet contain one synthetic job pending final cleanup; production remained untouched.
