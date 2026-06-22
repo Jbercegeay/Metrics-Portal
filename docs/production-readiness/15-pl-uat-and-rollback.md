@@ -100,9 +100,9 @@ Cleanup stops the isolated process, clears every row from the dedicated UAT shee
 | Release commit | |
 | Date and time | |
 | Device and browser | |
-| Associate representative | |
-| Department lead or supervisor | |
-| Technical observer | |
+| Associate representative | Ashley West |
+| Department lead or supervisor | Joey Cox |
+| Technical observer | Johnny Bercegeay |
 | PL-UAT-01 through PL-UAT-10 | |
 | Rollback returned new login to compatibility page | |
 | Test sheet empty after cleanup | |

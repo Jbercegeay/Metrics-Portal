@@ -53,7 +53,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Internal DNS name and certificate issuer.
 - Monitoring and alert transport destination.
 - Production maintenance and department cutover windows.
-- Named department representatives for UAT.
+- Named department representatives for PTFE and PI UAT.
 
 ## Known Risks And Blockers
 
@@ -61,7 +61,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - The current production page combines all three department interfaces.
 - Browser `localStorage` still owns substantial active-work state.
 - Current production submissions still depend on synchronous Smartsheet responses.
-- PL floor-UAT ownership, TLS, alerting, production destination expansion approval, and cutover approval remain external release gates.
+- PL floor-UAT execution and sign-off, TLS, alerting, production destination expansion approval, and cutover approval remain external release gates.
 
 ## Latest Validation
 
@@ -97,6 +97,20 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-22 - PL floor-UAT participants named
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; documentation commit pending at session entry creation.
+- Phase/work package: Phase 7 department acceptance.
+- Work completed: Recorded Ashley West as PL associate representative, Joey Cox as PL supervisor approver, and Johnny Bercegeay as technical observer.
+- Files or schema changed: PL UAT acceptance record and program memory only. No application, server, database, Smartsheet, or process state changed.
+- Decisions made: Final PL acceptance will use the isolated test account and destination through the supervised server browser; no unfinished application deployment to floor PCs is required.
+- Validation performed: Participant roles are now explicit; technical rehearsal evidence remains complete.
+- Deployment status: Not deployed to production.
+- Risks/blockers: Ashley and Joey must personally complete and approve the normal job/event workflow before production destination expansion.
+- Exact next action: Restart the isolated UAT environment at the latest approved commit and conduct the supervised floor workflow.
+
 
 ### 2026-06-22 - Guarded production Submission ID expansion prepared
 
