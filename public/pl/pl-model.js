@@ -26,10 +26,15 @@
         return Object.values(form.defects || {}).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
     }
 
+    function hasRootCauseDetails(rca = {}) {
+        const textFields = ['ptfeHead', 'ptfeOps', 'etchOps', 'tecoHead', 'tecoOps', 'pebaxHead', 'pebaxOps'];
+        return textFields.some((name) => String(rca[name] || '').trim()) || rca.commentStatus === 'Yes';
+    }
+
     function hasUnsavedWork(form, mode = 'job') {
         if (form.pendingSubmission) return true;
         if (mode === 'event') return Boolean(form.event || form.eventStart || form.eventEnd);
-        return Boolean(form.sequence || form.lotNumber || form.itemNumber || Number(form.goodParts) || Number(form.timeWorked) || defectTotal(form) || String(form.notes || '').trim());
+        return Boolean(form.sequence || form.lotNumber || form.itemNumber || Number(form.goodParts) || Number(form.timeWorked) || defectTotal(form) || String(form.notes || '').trim() || hasRootCauseDetails(form.rca));
     }
 
     function validateJob(form) {
@@ -41,6 +46,7 @@
         const start = (Number(form.goodParts) || 0) + defectTotal(form);
         const yieldValue = start > 0 ? (Number(form.goodParts) || 0) / start : 1;
         if (yieldValue < 0.75 && !String(form.notes || '').trim()) errors.notes = 'Notes are required when yield is below 75%.';
+        if (start > 0 && yieldValue <= 0.5 && !hasRootCauseDetails(form.rca)) errors.rootCause = 'At least one root-cause detail is required when yield is 50% or lower.';
         if (form.sequence === 'Spool Check' && (!form.spoolCheckSequence || !form.spoolCheckNumber)) {
             errors.spoolCheck = 'Spool Check sequence and check number are required.';
         }
@@ -103,5 +109,5 @@
         };
     }
 
-    return { buildEventPayload, buildJobPayload, defectTotal, emptyForm, emptyWorkspace, eventMinutes, hasUnsavedWork, today, validateEvent, validateJob };
+    return { buildEventPayload, buildJobPayload, defectTotal, emptyForm, emptyWorkspace, eventMinutes, hasRootCauseDetails, hasUnsavedWork, today, validateEvent, validateJob };
 }));

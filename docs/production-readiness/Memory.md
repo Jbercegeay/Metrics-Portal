@@ -98,6 +98,20 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-22 - Floor UAT confirmed low-yield root-cause rule
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; fix commit pending at session entry creation.
+- Phase/work package: Phase 7 PL floor acceptance.
+- Work completed: Verified the deployed compatibility behavior with Ashley West and Joey Cox, captured their intended rule, and updated the isolated PL page to open root-cause details and require at least one completed root-cause field at exactly 50% yield or lower.
+- Files or schema changed: PL browser page/model, focused boundary and dirty-state tests, UAT scenario, changelog, and program memory. No production portal, database, Smartsheet, or live process state changed.
+- Decisions made: Keep notes mandatory below 75%. At 50% yield or lower, require at least one of the seven root-cause text fields or an affirmative operator-comment indicator.
+- Validation performed: All 68 runnable tests passed with three expected database-dependent skips; the 50/50 boundary blocks without root cause, accepts one populated detail, and does not trigger at 51% yield. Syntax, HTML parsing, and diff checks passed.
+- Deployment status: Awaiting isolated floor retest; not deployed to production.
+- Risks/blockers: Ashley and Joey must retest PL-UAT-11 and then complete job/event approval before production destination expansion.
+- Exact next action: Publish the fix, load its static assets into the active isolated UAT worktree, and have Ashley verify the 50% boundary.
+
+
 ### 2026-06-22 - PL floor-UAT participants named
 
 - Branch: `codex/windows-operations-tooling`.

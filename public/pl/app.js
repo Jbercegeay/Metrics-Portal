@@ -18,7 +18,7 @@
             'submissionTitle', 'submissionDetail', 'refreshSubmissionButton', 'associateName', 'workDate',
             'jobForm', 'eventForm', 'sequence', 'lotNumber', 'itemNumber', 'timeWorked', 'spoolFields',
             'spoolCheckSequence', 'spoolCheckNumber', 'goodParts', 'startQuantity', 'endQuantity',
-            'totalDefects', 'qualityYield', 'notes', 'defectList', 'jobErrors', 'submitJobButton', 'event',
+            'totalDefects', 'qualityYield', 'notes', 'rootCauseDetails', 'defectList', 'jobErrors', 'submitJobButton', 'event',
             'eventStart', 'eventEnd', 'eventDuration', 'eventErrors', 'submitEventButton', 'toast']
             .forEach((id) => { elements[id] = byId(id); });
     }
@@ -143,6 +143,7 @@
         elements.endQuantity.textContent = good;
         elements.totalDefects.textContent = defects;
         elements.qualityYield.textContent = start ? `${((good / start) * 100).toFixed(1)}%` : '—';
+        elements.rootCauseDetails.open = start > 0 && good / start <= 0.5;
         elements.eventDuration.textContent = `${model.eventMinutes(form.eventStart, form.eventEnd)} minutes`;
         elements.spoolFields.hidden = form.sequence !== 'Spool Check';
     }

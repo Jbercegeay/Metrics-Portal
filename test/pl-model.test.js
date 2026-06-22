@@ -48,3 +48,27 @@ test('PL workspace dirty-state excludes synchronization status but includes pend
     form.pendingSubmission = { id: 'retry-me' };
     assert.equal(model.hasUnsavedWork(form), true);
 });
+
+test('PL requires at least one root-cause detail at exactly 50 percent yield or lower', () => {
+    const form = model.emptyForm(['Defect']);
+    Object.assign(form, {
+        sequence: 'Inspect', lotNumber: 'LOT-RCA', itemNumber: '123456', goodParts: 50,
+        timeWorked: 5, notes: 'Required low-yield note', defects: { Defect: 50 }
+    });
+
+    assert.match(model.validateJob(form).rootCause, /at least one root-cause detail/i);
+    form.rca.etchOps = 'Operator A';
+    assert.equal(model.validateJob(form).rootCause, undefined);
+    form.rca.etchOps = '';
+    form.goodParts = 51;
+    form.defects.Defect = 49;
+    assert.equal(model.validateJob(form).rootCause, undefined);
+});
+
+test('PL root-cause data participates in workspace dirty state', () => {
+    const form = model.emptyForm();
+    assert.equal(model.hasUnsavedWork(form), false);
+    form.rca.commentStatus = 'Yes';
+    assert.equal(model.hasRootCauseDetails(form.rca), true);
+    assert.equal(model.hasUnsavedWork(form), true);
+});
