@@ -111,3 +111,9 @@ Cleanup stops the isolated process, clears every row from the dedicated UAT shee
 | Legacy port 3000 process unchanged | |
 | Defects and severity | |
 | Approval decision and approver | |
+
+## Technical Rehearsal Result
+
+The isolated technical rehearsal passed on 2026-06-22 at release commit `9928f7f`. Required-field validation, refresh persistence, stale-tab protection, unsent-work sign-out blocking, job and event capture, background synchronization, rollback routing, and cleanup all passed. One display mismatch was found: the browser initially treated only an unsupported `delivered` value as synced while the database correctly reported `submitted`. Commit `9928f7f` corrected the label, passed CI, and was retested against the already-delivered synthetic job.
+
+The dedicated test sheet was returned to zero rows, the isolated UAT database was dropped, and live portal process identities on ports 3000 and 3002 were unchanged. This is technical evidence, not final department acceptance; the participant and approval fields above remain required from a PL associate representative and department lead or supervisor.

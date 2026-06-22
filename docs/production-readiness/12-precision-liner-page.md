@@ -93,3 +93,19 @@ npm run validate:pl-outbox-integration -- --confirmation="VALIDATE PL DATABASE O
 ```
 
 The command refuses the production destination and any pre-existing pending/processing queue. It captures one synthetic submission transactionally, processes exactly one worker lease, verifies the submission/outbox/delivery records converge to `submitted`, verifies no unexpected work remains, then removes its test-sheet row and related synthetic database records.
+
+## Production Destination Expansion
+
+Do not execute this step until PL floor-user approval is recorded. The default command is read-only and reports whether the configured production destination needs exactly one additive `Submission ID` column:
+
+```powershell
+npm run migrate:pl-submission-id
+```
+
+The utility blocks if any other required column is missing, if writable titles are duplicated, if writable columns contain formulas, or if an existing `Submission ID` has an incompatible type. After approval and a fresh verified backup, apply the one-column expansion with:
+
+```powershell
+npm run migrate:pl-submission-id -- --apply --confirmation="ADD PL PRODUCTION SUBMISSION ID"
+```
+
+The apply mode adds one empty `TEXT_NUMBER` column at the end of the configured PL master log, changes no existing row values, and immediately rereads the column contract. Rerun `npm run validate:pl-destination` after completion and retain the output with the release evidence.

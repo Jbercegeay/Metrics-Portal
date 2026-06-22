@@ -10,12 +10,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, and target database/outbox delivery proofs are complete. Supervised PL UAT, rollback rehearsal, production destination expansion, and final deployment infrastructure remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off, production destination expansion, and final deployment infrastructure remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
-- Last updated: 2026-06-19.
+- Last updated: 2026-06-22.
 
 ## Completed Work
 
@@ -37,12 +37,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Prepare supervised PL UAT and rollback rehearsal while preserving both live portals and all production feature flags.
+- Prepare PL associate and department-lead floor UAT while preserving both live portals and all production feature flags.
 
 ## Next Actions
 
-1. Run supervised PL browser UAT and rollback rehearsal in an isolated target environment.
-2. Add the expand-only production `Submission ID` column after UAT approval, then rerun the read-only production audit.
+1. Obtain PL associate and department-lead sign-off using the proven isolated browser workflow.
+2. Add the expand-only production `Submission ID` column after floor UAT approval, then rerun the read-only production audit.
 3. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
 4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
@@ -61,12 +61,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - The current production page combines all three department interfaces.
 - Browser `localStorage` still owns substantial active-work state.
 - Current production submissions still depend on synchronous Smartsheet responses.
-- Controlled Smartsheet schema/read-write proof, UAT ownership, TLS, alerting, and cutover approval remain external release gates.
+- PL floor-UAT ownership, TLS, alerting, production destination expansion approval, and cutover approval remain external release gates.
 
 ## Latest Validation
 
 - Syntax checked across application, migration, script, and test JavaScript files.
-- Local automated suite passes with 13 tests and one expected database test skip because PostgreSQL is not installed locally.
+- Local automated suite passes with 65 runnable tests and three expected database-dependent skips outside the CI database job.
 - Health endpoints pass against the assembled Express application, including compatibility-mode readiness.
 - Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
 - Draft PR #3 GitHub Actions run 27827283516 passed against PostgreSQL 18, including clean migration, database transaction, application, syntax, documentation-link, and dependency-audit checks.
@@ -97,6 +97,32 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-22 - Guarded production Submission ID expansion prepared
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; commit pending at session entry creation.
+- Phase/work package: Phase 7 production destination preparation.
+- Work completed: Added a dry-run-by-default production destination planner and command that can add exactly one empty `Submission ID` column after floor-UAT approval.
+- Files or schema changed: Migration planner, guarded command, focused tests, package command, PL migration runbook, changelog, and program memory. No Smartsheet, database, server, or live process state changed.
+- Decisions made: Production expansion remains prohibited before department approval. The command blocks unrelated missing columns, duplicates, formulas, and incompatible existing ID types rather than repairing broader drift.
+- Validation performed: All 65 runnable tests passed with three expected database-dependent skips; JavaScript syntax, HTML parsing, documentation links, and diff checks passed. The read-only production dry run found the existing 58-column destination ready for exactly one additive `Submission ID` column and changed zero rows.
+- Deployment status: Prepared only; not run against production.
+- Risks/blockers: PL associate and department-lead approval is required before apply mode. TLS/DNS, alert transport, and cutover window remain external gates.
+- Exact next action: Identify the PL associate representative and department lead or supervisor who will execute and sign the floor-UAT record.
+### 2026-06-22 - Isolated PL technical UAT and rollback passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; status fix `9928f7f`.
+- Phase/work package: Phase 7 technical browser acceptance and rollback.
+- Work completed: Completed the isolated PL job and event workflow, corrected and retested the synchronization label, rehearsed feature-flag rollback to the compatibility page, and removed all isolated artifacts.
+- Files or schema changed: During rehearsal, two visibly synthetic test-sheet rows and isolated database records were created. Cleanup removed both test-sheet rows and dropped the isolated database. Production data and both live portal processes remained unchanged.
+- Decisions made: Count the technical browser and rollback rehearsal as passed. Do not count this as final department acceptance until a PL associate representative and department lead or supervisor sign the same workflow record.
+- Validation performed: Required-field errors, autosaved draft persistence across refresh, stale-tab rejection, unsent-work sign-out blocking, durable job capture, durable event capture, background Smartsheet synchronization, corrected submitted-status display, clean sign-out, rollback routing to the compatibility page, test-sheet cleanup, isolated database removal, and live-process invariants all passed.
+- Deployment status: Not deployed to production; production database features remain disabled on the Metrics Portal at port 3002.
+- Risks/blockers: Named floor UAT participants, production `Submission ID` expansion approval, TLS/DNS, alert routing, and cutover window remain external gates.
+- Exact next action: Prepare the guarded expand-only production destination migration, but do not execute it until PL floor-user approval is recorded.
+
 
 ### 2026-06-22 - PL UAT found synchronization-label mismatch
 
