@@ -66,7 +66,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 ## Latest Validation
 
 - Syntax checked across application, migration, script, and test JavaScript files.
-- Local automated suite passes with 65 runnable tests and three expected database-dependent skips outside the CI database job.
+- Local automated suite passes with 70 runnable tests and three expected database-dependent skips outside the CI database job.
 - Health endpoints pass against the assembled Express application, including compatibility-mode readiness.
 - Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
 - Draft PR #3 GitHub Actions run 27827283516 passed against PostgreSQL 18, including clean migration, database transaction, application, syntax, documentation-link, and dependency-audit checks.
@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-22 - Floor UAT requested operator dropdowns and centered alerts
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; fix commit pending at session entry creation.
+- Phase/work package: Phase 7 PL floor acceptance feedback.
+- Work completed: Restored the four PL root-cause operator dropdowns using the existing department configuration associate roster and added a centered, keyboard-accessible blocking alert for validation and request failures.
+- Files or schema changed: Isolated PL HTML, CSS, browser controller, browser fixture, focused source-contract tests, UAT scenario, changelog, and program memory. No production portal, database, Smartsheet, or live process state changed.
+- Decisions made: PTFE, Etch, Teco, and Pebax operator fields are single-choice configured-associate dropdowns, matching the compatibility workflow; oven-head fields remain free text. Success remains a nonblocking toast/status banner, while warnings and failures use the centered alert.
+- Validation performed: All 70 runnable tests passed with three expected database-dependent skips; syntax, inline HTML parsing, documentation-link, and diff checks passed. An isolated local browser preview confirmed all four configured operator dropdowns and the centered validation alert with keyboard focus.
+- Deployment status: Awaiting isolated floor retest; not deployed to production.
+- Risks/blockers: Ashley and Joey must verify the revised controls in isolated UAT before approval.
+- Exact next action: Validate and publish the revision, then have Ashley confirm PL-UAT-11 and PL-UAT-12.
 
 ### 2026-06-22 - Floor UAT confirmed low-yield root-cause rule
 

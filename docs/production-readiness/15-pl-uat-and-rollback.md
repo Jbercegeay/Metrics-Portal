@@ -64,6 +64,7 @@ Use visibly synthetic values and never enter employee or production data.
 | PL-UAT-09 | Sign out after all work is clear | Sign-out succeeds and returns to login. |
 | PL-UAT-10 | At 768 by 1024 browser viewport, repeat basic navigation | No horizontal overflow blocks entry or submission. |
 | PL-UAT-11 | Create exactly 50% yield, enter the required low-yield note, and attempt submission without root-cause details; then complete one root-cause field | Root-cause details open automatically; the first submission is blocked; one completed root-cause field permits submission. |
+| PL-UAT-12 | Open root-cause details and inspect each operator field; then cause a required-field or low-yield validation warning | PTFE, Etch, Teco, and Pebax operator fields are alphabetical dropdowns from the PL associate configuration; the blocking warning appears in a centered dialog and is not easy to miss. |
 
 Stop and record a blocking defect for data loss, duplicate rows, cross-associate data, incorrect calculations, failed recovery, or an unusable common workflow. Do not proceed to production expansion with a Critical or High defect open.
 
@@ -104,7 +105,7 @@ Cleanup stops the isolated process, clears every row from the dedicated UAT shee
 | Associate representative | Ashley West |
 | Department lead or supervisor | Joey Cox |
 | Technical observer | Johnny Bercegeay |
-| PL-UAT-01 through PL-UAT-11 | |
+| PL-UAT-01 through PL-UAT-12 | |
 | Rollback returned new login to compatibility page | |
 | Test sheet empty after cleanup | |
 | Isolated database removed | |

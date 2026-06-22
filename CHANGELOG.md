@@ -30,6 +30,7 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Corrected the PL synchronization banner to treat the database contract's `submitted` state as Smartsheet synced.
 - Added a dry-run-by-default, expand-only production migration for the PL `Submission ID` column that blocks unrelated destination drift.
 - Added the floor-approved PL low-yield rule: at 50% yield or lower, root-cause details open automatically and at least one root-cause field is required.
+- Restored PL root-cause operator dropdowns from the configured associate roster and centered blocking warning dialogs for floor visibility.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.

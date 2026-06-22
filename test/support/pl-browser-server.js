@@ -16,6 +16,7 @@ app.get('/api/v2/sessions/current', (req, res) => res.json({ success: true, sess
 } }));
 app.delete('/api/v2/sessions/current', (req, res) => res.json({ success: true }));
 app.get('/api/config', (req, res) => res.json({ success: true, data: {
+    associates: [{ name: 'Operator A' }, { name: 'Operator B' }],
     sequences: [{ name: 'Inspect' }, { name: 'Spool Check' }],
     events: [{ name: 'Meeting' }, { name: 'Training' }, { name: 'Shift End' }],
     defects: [{ name: 'Wrinkle' }, { name: 'Cut' }]
