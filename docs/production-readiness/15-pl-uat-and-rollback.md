@@ -99,23 +99,23 @@ Cleanup stops the isolated process, clears every row from the dedicated UAT shee
 
 | Field | Result |
 | --- | --- |
-| Release commit | |
-| Date and time | |
-| Device and browser | |
-| Associate representative | Ashley West |
-| Department lead or supervisor | Joey Cox |
+| Release commit | `599007c` |
+| Date and time | 2026-06-22; floor retest completed |
+| Device and browser | Target-server console; Microsoft Edge |
+| Associate representative | Ashley West; approved |
+| Department lead or supervisor | Joey Cox; approved |
 | Technical observer | Johnny Bercegeay |
-| PL-UAT-01 through PL-UAT-12 | |
-| Rollback returned new login to compatibility page | |
-| Test sheet empty after cleanup | |
-| Isolated database removed | |
-| Live port 3002 process unchanged | |
-| Legacy port 3000 process unchanged | |
-| Defects and severity | |
-| Approval decision and approver | |
+| PL-UAT-01 through PL-UAT-12 | Passed |
+| Rollback returned new login to compatibility page | Passed during technical rehearsal; final rerun pending |
+| Test sheet empty after cleanup | Final cleanup pending |
+| Isolated database removed | Final cleanup pending |
+| Live port 3002 process unchanged | Passed during technical rehearsal; final verification pending |
+| Legacy port 3000 process unchanged | Passed during technical rehearsal; final verification pending |
+| Defects and severity | No open department-blocking defects; floor feedback was corrected and retested |
+| Approval decision and approver | Approved by Ashley West and Joey Cox |
 
 ## Technical Rehearsal Result
 
 The isolated technical rehearsal passed on 2026-06-22 at release commit `9928f7f`. Required-field validation, refresh persistence, stale-tab protection, unsent-work sign-out blocking, job and event capture, background synchronization, rollback routing, and cleanup all passed. One display mismatch was found: the browser initially treated only an unsupported `delivered` value as synced while the database correctly reported `submitted`. Commit `9928f7f` corrected the label, passed CI, and was retested against the already-delivered synthetic job.
 
-The dedicated test sheet was returned to zero rows, the isolated UAT database was dropped, and live portal process identities on ports 3000 and 3002 were unchanged. This is technical evidence, not final department acceptance; the participant and approval fields above remain required from a PL associate representative and department lead or supervisor.
+The dedicated test sheet was returned to zero rows, the isolated UAT database was dropped, and live portal process identities on ports 3000 and 3002 were unchanged. Final department acceptance was subsequently completed by Ashley West and Joey Cox at release commit `599007c`; the current isolated environment still requires its final rollback and cleanup run.

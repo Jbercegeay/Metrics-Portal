@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off, production destination expansion, and final deployment infrastructure remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off is complete; final UAT cleanup, production destination expansion, and deployment infrastructure remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,11 +37,11 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Prepare PL associate and department-lead floor UAT while preserving both live portals and all production feature flags.
+- Complete the approved PL UAT rollback and cleanup while preserving both live portals and all production feature flags.
 
 ## Next Actions
 
-1. Obtain PL associate and department-lead sign-off using the proven isolated browser workflow.
+1. Complete the final approved PL UAT rollback and cleanup; Ashley West and Joey Cox have approved the floor workflow.
 2. Add the expand-only production `Submission ID` column after floor UAT approval, then rerun the read-only production audit.
 3. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
 4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-22 - PL floor UAT approved
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; tested release commit `599007c`.
+- Phase/work package: Phase 7 PL floor acceptance.
+- Work completed: Ashley West completed the corrected isolated PL workflow and reported that everything worked; Joey Cox also approved the workflow. The accepted behavior includes the 50% root-cause requirement, configured operator dropdowns, centered blocking warnings, durable database save, and automatic background Smartsheet synchronization.
+- Files or schema changed: Acceptance documentation and program memory only. The isolated UAT database and test sheet remain active pending final rollback and cleanup; production remains unchanged.
+- Decisions made: Count PL associate and supervisor floor acceptance as passed. Operators may continue working after the database-save banner; Refresh status only updates the displayed synchronization state.
+- Validation performed: PL-UAT-01 through PL-UAT-12 passed with no open department-blocking defect; Ashley West and Joey Cox approved the tested workflow.
+- Deployment status: Not deployed to production; production feature flags remain disabled.
+- Risks/blockers: Final rollback rehearsal and guarded cleanup remain required before production destination expansion.
+- Exact next action: Run the isolated UAT rollback check, then remove the isolated database and clear the dedicated test sheet.
 
 ### 2026-06-22 - Floor UAT requested operator dropdowns and centered alerts
 
