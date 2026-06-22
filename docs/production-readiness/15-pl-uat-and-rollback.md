@@ -106,11 +106,11 @@ Cleanup stops the isolated process, clears every row from the dedicated UAT shee
 | Department lead or supervisor | Joey Cox; approved |
 | Technical observer | Johnny Bercegeay |
 | PL-UAT-01 through PL-UAT-12 | Passed |
-| Rollback returned new login to compatibility page | Passed during technical rehearsal; final rerun pending |
-| Test sheet empty after cleanup | Final cleanup pending |
-| Isolated database removed | Final cleanup pending |
-| Live port 3002 process unchanged | Passed during technical rehearsal; final verification pending |
-| Legacy port 3000 process unchanged | Passed during technical rehearsal; final verification pending |
+| Rollback returned new login to compatibility page | Passed; compatibility portal confirmed after final approval |
+| Test sheet empty after cleanup | Passed; three synthetic rows removed and zero remain |
+| Isolated database removed | Passed |
+| Live port 3002 process unchanged | Passed |
+| Legacy port 3000 process unchanged | Passed |
 | Defects and severity | No open department-blocking defects; floor feedback was corrected and retested |
 | Approval decision and approver | Approved by Ashley West and Joey Cox |
 
@@ -118,4 +118,4 @@ Cleanup stops the isolated process, clears every row from the dedicated UAT shee
 
 The isolated technical rehearsal passed on 2026-06-22 at release commit `9928f7f`. Required-field validation, refresh persistence, stale-tab protection, unsent-work sign-out blocking, job and event capture, background synchronization, rollback routing, and cleanup all passed. One display mismatch was found: the browser initially treated only an unsupported `delivered` value as synced while the database correctly reported `submitted`. Commit `9928f7f` corrected the label, passed CI, and was retested against the already-delivered synthetic job.
 
-The dedicated test sheet was returned to zero rows, the isolated UAT database was dropped, and live portal process identities on ports 3000 and 3002 were unchanged. Final department acceptance was subsequently completed by Ashley West and Joey Cox at release commit `599007c`; the current isolated environment still requires its final rollback and cleanup run.
+The dedicated test sheet was returned to zero rows, the isolated UAT database was dropped, and live portal process identities on ports 3000 and 3002 were unchanged. Final department acceptance was subsequently completed by Ashley West and Joey Cox at release commit `599007c`. The final rollback returned new PL logins to the compatibility portal, then guarded cleanup removed three synthetic rows, emptied the dedicated test sheet, removed the isolated database, and confirmed both live portals were unchanged.

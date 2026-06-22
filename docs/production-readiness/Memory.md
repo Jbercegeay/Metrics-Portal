@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off is complete; final UAT cleanup, production destination expansion, and deployment infrastructure remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off, rollback, and cleanup are complete; production destination expansion and deployment infrastructure remain gates.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,11 +37,11 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Complete the approved PL UAT rollback and cleanup while preserving both live portals and all production feature flags.
+- Take a fresh verified database backup, then perform the approved additive PL production destination expansion while production feature flags remain disabled.
 
 ## Next Actions
 
-1. Complete the final approved PL UAT rollback and cleanup; Ashley West and Joey Cox have approved the floor workflow.
+1. Take a fresh verified PostgreSQL backup before the approved PL production destination expansion.
 2. Add the expand-only production `Submission ID` column after floor UAT approval, then rerun the read-only production audit.
 3. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
 4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-22 - Approved PL UAT rollback and cleanup passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; tested release commit `599007c`.
+- Phase/work package: Phase 7 PL acceptance cleanup.
+- Work completed: Rehearsed final rollback after department approval, confirmed new PL login routing to the compatibility portal, then ran guarded cleanup. Cleanup removed all three synthetic test-sheet rows, removed the isolated UAT database, and left both live portals unchanged.
+- Files or schema changed: Dedicated non-production test sheet returned to zero rows; isolated UAT database removed; acceptance documentation and program memory updated. No production row, production database, or live portal process changed.
+- Decisions made: Close PL floor UAT and rollback as passed. Proceed to the separately guarded production destination expansion only after a fresh verified database backup.
+- Validation performed: Rollback reported READY; compatibility portal was visually confirmed; cleanup reported production destination untouched, test sheet empty, isolated database removed, and live portals unchanged.
+- Deployment status: Not deployed to production; production feature flags remain disabled.
+- Risks/blockers: Fresh verified backup and additive production `Submission ID` expansion remain the next controlled gates.
+- Exact next action: Create and verify a fresh PostgreSQL backup on the approved off-machine destination.
 
 ### 2026-06-22 - PL floor UAT approved
 
