@@ -101,7 +101,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-22 - Floor UAT requested operator dropdowns and centered alerts
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; fix commit pending at session entry creation.
+- Commit or PR: Draft PR #8; implementation commit `a402654`; GitHub Actions run 27957662030 passed.
 - Phase/work package: Phase 7 PL floor acceptance feedback.
 - Work completed: Restored the four PL root-cause operator dropdowns using the existing department configuration associate roster and added a centered, keyboard-accessible blocking alert for validation and request failures.
 - Files or schema changed: Isolated PL HTML, CSS, browser controller, browser fixture, focused source-contract tests, UAT scenario, changelog, and program memory. No production portal, database, Smartsheet, or live process state changed.
@@ -109,12 +109,12 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Validation performed: All 70 runnable tests passed with three expected database-dependent skips; syntax, inline HTML parsing, documentation-link, and diff checks passed. An isolated local browser preview confirmed all four configured operator dropdowns and the centered validation alert with keyboard focus.
 - Deployment status: Awaiting isolated floor retest; not deployed to production.
 - Risks/blockers: Ashley and Joey must verify the revised controls in isolated UAT before approval.
-- Exact next action: Validate and publish the revision, then have Ashley confirm PL-UAT-11 and PL-UAT-12.
+- Exact next action: Load the validated commit into the active isolated UAT worktree, refresh the browser, and have Ashley confirm PL-UAT-11 and PL-UAT-12.
 
 ### 2026-06-22 - Floor UAT confirmed low-yield root-cause rule
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; fix commit pending at session entry creation.
+- Commit or PR: Draft PR #8; implementation commit `a402654`; GitHub Actions run 27957662030 passed.
 - Phase/work package: Phase 7 PL floor acceptance.
 - Work completed: Verified the deployed compatibility behavior with Ashley West and Joey Cox, captured their intended rule, and updated the isolated PL page to open root-cause details and require at least one completed root-cause field at exactly 50% yield or lower.
 - Files or schema changed: PL browser page/model, focused boundary and dirty-state tests, UAT scenario, changelog, and program memory. No production portal, database, Smartsheet, or live process state changed.
@@ -168,7 +168,7 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ### 2026-06-22 - PL UAT found synchronization-label mismatch
 
 - Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; fix commit pending at session entry creation.
+- Commit or PR: Draft PR #8; implementation commit `a402654`; GitHub Actions run 27957662030 passed.
 - Phase/work package: Phase 7 supervised PL acceptance and rollback.
 - Work completed: Ran the initial isolated browser scenarios through durable job delivery. Corrected the browser banner to recognize the database contract's terminal `submitted` state instead of the unsupported `delivered` label.
 - Files or schema changed: PL browser rendering, browser preview support, focused contract test, changelog, and program memory. The isolated UAT database and test sheet contain one synthetic job pending final cleanup; production remained untouched.
