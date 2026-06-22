@@ -109,3 +109,5 @@ npm run migrate:pl-submission-id -- --apply --confirmation="ADD PL PRODUCTION SU
 ```
 
 The apply mode adds one empty `TEXT_NUMBER` column at the end of the configured PL master log, changes no existing row values, and immediately rereads the column contract. Rerun `npm run validate:pl-destination` after completion and retain the output with the release evidence.
+
+Completion evidence (2026-06-22): the approved apply expanded the production PL destination from 58 to 59 columns, changed zero existing row values, verified Submission ID as TEXT_NUMBER, and the complete read-only destination contract returned READY.

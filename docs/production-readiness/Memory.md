@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off, rollback, and cleanup are complete; production destination expansion and deployment infrastructure remain gates.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off, rollback, cleanup, fresh backup, and production destination expansion are complete; deployment infrastructure remains the gate.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,11 +37,11 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Take a fresh verified database backup, then perform the approved additive PL production destination expansion while production feature flags remain disabled.
+- Complete target health and deployment preflight while production feature flags remain disabled.
 
 ## Next Actions
 
-1. Take a fresh verified PostgreSQL backup before the approved PL production destination expansion.
+1. Complete target health and deployment preflight against the actual Metrics Portal on port 3002.
 2. Add the expand-only production `Submission ID` column after floor UAT approval, then rerun the read-only production audit.
 3. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
 4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-22 - PL production destination expansion passed
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; production utility validated at tested release lineage `599007c`.
+- Phase/work package: Phase 7 PL production destination preparation.
+- Work completed: Created a fresh off-machine PostgreSQL backup, independently verified its age and SHA-256 metadata, then ran the approved production expansion. The guarded utility added exactly one empty `Submission ID` column and the read-only destination audit passed afterward.
+- Files or schema changed: One verified PostgreSQL dump and sidecar on the approved backup destination; PL production Smartsheet expanded from 58 to 59 columns with `Submission ID` as `TEXT_NUMBER`; program memory updated. Existing production row values changed: zero.
+- Decisions made: Count the PL destination prerequisite as complete. Keep every database/session/workspace/PL rollout feature disabled until deployment preflight and cutover approval.
+- Validation performed: Backup age was 0 hours with hash verification true. Expansion dry run planned only ADD; apply verified 59 columns and zero existing rows changed; destination audit found all 36 expected writable columns and returned READY.
+- Deployment status: Production destination expanded; application code and feature flags not deployed or enabled.
+- Risks/blockers: Target deployment preflight, TLS/DNS, alert transport, maintenance window, and controlled release deployment remain.
+- Exact next action: Run target prerequisite and health preflight against the actual Metrics Portal process on port 3002.
 
 ### 2026-06-22 - Approved PL UAT rollback and cleanup passed
 
