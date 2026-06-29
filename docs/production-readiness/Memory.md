@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, and live-process preflight baseline are complete. Controlled release deployment remains the gate.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, and live-process preflight baseline are complete. Controlled release deployment is deferred while the department continues using the current live `main`; local/isolated testing will continue before the planned July 4 office-closure window.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,14 +37,15 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Prepare controlled release deployment while production feature flags remain disabled.
+- Keep release PR #9 draft and green, support local/isolated validation, and prepare for the July 4 office-closure deployment window while production feature flags remain disabled.
 
 ## Next Actions
 
-1. Obtain final release and maintenance-window approval for release PR #9.
-2. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled.
-3. Complete post-deployment health/preflight after the release code exists on the live process path.
-4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Run additional local/isolated validation from release PR #9 without changing the current live production deployment.
+2. Obtain final release approval for the July 4 office-closure window.
+3. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled.
+4. Complete post-deployment health/preflight after the release code exists on the live process path.
+5. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -110,6 +111,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 - Deployment status: Not deployed to production; production feature flags remain disabled and live users remain on the existing Metrics Portal process.
 - Risks/blockers: Final release approval, CI confirmation on the release commit, maintenance window, TLS/DNS, alert transport, deployment restart, and post-deployment health checks remain.
 - Exact next action: Obtain final release/maintenance-window approval, then merge the release PR or tag the approved commit and deploy to `metrics-portal` on port 3002 with feature flags still disabled.
+
+### 2026-06-29 - Production deployment deferred for active operations
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; release candidate commit `f24bdbf`.
+- Phase/work package: Phase 7 release scheduling.
+- Work completed: Recorded the deployment decision after confirming the department is actively running on the current live `main`.
+- Files or schema changed: Program memory only. No production portal code, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: Do not merge, pull, migrate, or restart production during current active operations. Keep PR #9 draft and use local/isolated testing over the next few days. Target the July 4 office closure for merge and production pull if testing remains clean and final approval is given.
+- Validation performed: No new validation in this entry; prior PR #9 CI passed on commit `f24bdbf`.
+- Deployment status: Not deployed to production; current live `main` remains in service.
+- Risks/blockers: Final office-closure approval, fresh pre-deployment backup/freshness check, production merge/tag, deployment restart, and post-deployment health checks remain.
+- Exact next action: Launch or relaunch the isolated local/UAT portal for extended testing without touching production.
 
 ### 2026-06-22 - PL production destination expansion passed
 
