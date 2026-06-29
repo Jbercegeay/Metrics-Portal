@@ -41,8 +41,8 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Next Actions
 
-1. Confirm the final release commit, pull request state, and CI status.
-2. Choose the production maintenance window for pulling the approved release onto `C:\ServerData\Repos\Metrics-Portal`, applying migrations, and restarting PM2.
+1. Obtain final release and maintenance-window approval for release PR #9.
+2. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled.
 3. Complete post-deployment health/preflight after the release code exists on the live process path.
 4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
@@ -100,16 +100,16 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ### 2026-06-29 - Live process preflight baseline recorded
 
-- Branch: `codex/windows-operations-tooling`.
-- Commit or PR: Draft PR #8; commit `2177509`; live production process remains on approved `main` commit `2e936a4fe0c53564cc455843b53b48386aba81b4`.
+- Branch: `codex/pl-release-candidate`, created from validated stack branch `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #9 to `main`; stacked draft PRs #3 through #8; release candidate commit `7311d51`; live production process remains on approved `main` commit `2e936a4fe0c53564cc455843b53b48386aba81b4`.
 - Phase/work package: Phase 7 target deployment preflight.
 - Work completed: Ran the production prerequisite script and follow-up HTTP identity diagnostics against the actual Metrics Portal process on port 3002, confirmed the stacked PR chain is clean/green, and reconciled stale readiness dashboard/cutover status text with the completed PL validation gates.
 - Files or schema changed: Program memory, operations documentation, readiness index, PL migration notes, and cutover documentation only. No production portal code, database schema, Smartsheet data, PM2 process, or feature flag changed.
 - Decisions made: Treat the target prerequisites, backup root, PostgreSQL tooling, local-only PostgreSQL listener, clean production checkout, and root-page identity as ready. Treat `/api/v2/health` returning 404 as expected for the currently live compatibility release because that approved commit predates the v2 health endpoints.
-- Validation performed: Required commands were present, `.env` existed, backup root was reachable, free disk was 76.7 GB, PostgreSQL listened only on loopback, the production Git worktree was clean at `2e936a4`, port 3002 listened under the `metrics-portal` PM2 process, and `curl http://127.0.0.1:3002/` returned title `Metrics Portal - v1.2.0`. `curl http://127.0.0.1:3002/api/v2/health` returned 404 until the release code is deployed. GitHub CI run 28396278012 passed on commit `2177509`; all stacked PRs #3 through #8 were open, draft, clean, and green.
+- Validation performed: Required commands were present, `.env` existed, backup root was reachable, free disk was 76.7 GB, PostgreSQL listened only on loopback, the production Git worktree was clean at `2e936a4`, port 3002 listened under the `metrics-portal` PM2 process, and `curl http://127.0.0.1:3002/` returned title `Metrics Portal - v1.2.0`. `curl http://127.0.0.1:3002/api/v2/health` returned 404 until the release code is deployed. GitHub CI runs 28396278012 and 28396434176 passed on the stacked branch; release PR #9 CI run 28396612198 passed against `main`.
 - Deployment status: Not deployed to production; production feature flags remain disabled and live users remain on the existing Metrics Portal process.
 - Risks/blockers: Final release approval, CI confirmation on the release commit, maintenance window, TLS/DNS, alert transport, deployment restart, and post-deployment health checks remain.
-- Exact next action: Confirm the release commit and CI state, then prepare the controlled production deployment checklist.
+- Exact next action: Obtain final release/maintenance-window approval, then merge the release PR or tag the approved commit and deploy to `metrics-portal` on port 3002 with feature flags still disabled.
 
 ### 2026-06-22 - PL production destination expansion passed
 
