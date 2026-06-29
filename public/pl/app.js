@@ -10,6 +10,7 @@
     let conflicted = false;
     let submitting = false;
     let alertReturnFocus = null;
+    const portalThemes = ['precision', 'light', 'dark', 'high-contrast'];
 
     const byId = (id) => document.getElementById(id);
     const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -21,8 +22,16 @@
             'spoolCheckSequence', 'spoolCheckNumber', 'goodParts', 'startQuantity', 'endQuantity',
             'totalDefects', 'qualityYield', 'notes', 'rootCauseDetails', 'defectList', 'jobErrors', 'submitJobButton', 'event',
             'eventStart', 'eventEnd', 'eventDuration', 'eventErrors', 'submitEventButton', 'alertOverlay',
-            'alertTitle', 'alertMessages', 'alertCloseButton', 'toast']
+            'alertTitle', 'alertMessages', 'alertCloseButton', 'themeSelect', 'toast']
             .forEach((id) => { elements[id] = byId(id); });
+    }
+
+    function setPortalTheme(theme) {
+        const safeTheme = portalThemes.includes(theme) ? theme : 'precision';
+        document.body.classList.remove('theme-precision', 'theme-light', 'theme-dark', 'theme-high-contrast');
+        document.body.classList.add(`theme-${safeTheme}`);
+        localStorage.setItem('portalTheme', safeTheme);
+        if (elements.themeSelect) elements.themeSelect.value = safeTheme;
     }
 
     function showToast(message) {
@@ -183,6 +192,10 @@
         queueSave();
     }
 
+    function selectZeroValue(input) {
+        if (input.value === '0') setTimeout(() => input.select(), 0);
+    }
+
     function saveWorkspace() {
         clearTimeout(saveTimer);
         if (conflicted) return Promise.resolve(false);
@@ -324,9 +337,18 @@
             elements.spoolCheckSequence, elements.spoolCheckNumber, elements.goodParts, elements.notes,
             elements.event, elements.eventStart, elements.eventEnd]
             .forEach((input) => input.addEventListener('input', captureAndQueueSave));
+        document.querySelectorAll('[data-replace-zero]').forEach((input) => {
+            input.addEventListener('focus', () => selectZeroValue(input));
+            input.addEventListener('mouseup', (event) => {
+                if (input.value !== '0') return;
+                event.preventDefault();
+                selectZeroValue(input);
+            });
+        });
         document.querySelectorAll('[data-rca]').forEach((input) => {
             input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', captureAndQueueSave);
         });
+        elements.themeSelect.addEventListener('change', () => setPortalTheme(elements.themeSelect.value));
         elements.alertCloseButton.addEventListener('click', closeAlert);
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && !elements.alertOverlay.hidden) closeAlert();
@@ -351,6 +373,7 @@
 
     async function initialize() {
         cacheElements();
+        setPortalTheme(localStorage.getItem('portalTheme') || 'precision');
         try {
             const [featureResult, sessionResult, configResult] = await Promise.all([api.getFeatures(), api.getSession(), api.getPlConfig()]);
             const features = featureResult.features;

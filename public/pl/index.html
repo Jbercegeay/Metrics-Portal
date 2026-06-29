@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="/pl/styles.css">
 </head>
 <body>
+    <script>
+        const savedPortalTheme = ['precision', 'light', 'dark', 'high-contrast'].includes(localStorage.getItem('portalTheme'))
+            ? localStorage.getItem('portalTheme')
+            : 'precision';
+        document.body.classList.add(`theme-${savedPortalTheme}`);
+    </script>
     <header class="topbar">
         <div>
             <p class="eyebrow">Metrics Portal</p>
@@ -14,6 +20,12 @@
             <p id="identity" class="muted">Loading authenticated workspace…</p>
         </div>
         <div class="top-actions">
+            <label class="theme-control">Theme<select id="themeSelect" class="theme-select">
+                <option value="precision">Precision</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="high-contrast">High Contrast</option>
+            </select></label>
             <span id="saveState" class="status neutral">Connecting</span>
             <a class="button secondary" href="/changelog.html">Changelog</a>
             <button id="signOutButton" class="button danger" type="button">Sign out</button>
@@ -56,7 +68,7 @@
                             <label>Sequence<select id="sequence"><option value="">Select sequence…</option></select></label>
                             <label>Lot number<input id="lotNumber" autocomplete="off"></label>
                             <label>Item number<input id="itemNumber" inputmode="numeric" maxlength="6" autocomplete="off"></label>
-                            <label>Time worked (minutes)<input id="timeWorked" type="number" min="0" step="1"></label>
+                            <label>Time worked (minutes)<input id="timeWorked" class="operator-number" type="number" min="0" step="1" data-replace-zero></label>
                         </div>
                         <div id="spoolFields" class="subsection" hidden>
                             <h3>Spool Check quality details</h3>

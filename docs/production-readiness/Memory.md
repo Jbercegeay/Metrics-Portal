@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-29 - PL UAT polish restored theme selector and time entry
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 extended PL UAT polish.
+- Work completed: Updated the isolated PL migration page so the Time worked field selects and replaces the default zero on focus/click, hides spinner controls for that operator-entry field, and restores the existing portal Theme selector with the same saved `portalTheme` preference used by the compatibility portal.
+- Files or schema changed: PL page HTML, PL page CSS, PL browser controller, focused PL browser contract tests, changelog, and program memory only. No production portal, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: Preserve the existing operator theme choice in the PL migration page because it is current portal behavior. Treat the Time worked default-zero replacement as low-risk UAT polish, while keeping greater-than-zero validation unchanged.
+- Validation performed: JavaScript syntax, HTML script parsing, focused PL browser contract tests, full local automated tests, documentation links, and diff checks passed.
+- Deployment status: Not deployed to production; PR #9 remains draft for extended UAT and the planned July 4 office-closure deployment window.
+- Risks/blockers: Server UAT checkout must be refreshed to this commit before floor testing sees the polish; final release approval and deployment window remain.
+- Exact next action: Commit and push the polish, wait for PR #9 CI, then provide the server update command for the UAT checkout.
+
 ### 2026-06-29 - Live process preflight baseline recorded
 
 - Branch: `codex/pl-release-candidate`, created from validated stack branch `codex/windows-operations-tooling`.

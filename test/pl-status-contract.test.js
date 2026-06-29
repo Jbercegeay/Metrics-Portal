@@ -37,3 +37,30 @@ test('PL blocking feedback uses a centered alert dialog', () => {
     assert.match(appSource, /showAlert\('Action required', Object\.values\(errors\)\)/);
     assert.match(appSource, /showAlert\('Submission not completed'/);
 });
+
+test('PL time worked field replaces the default zero for operator entry', () => {
+    const appSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'app.js'), 'utf8');
+    const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'index.html'), 'utf8');
+    const cssSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'styles.css'), 'utf8');
+
+    assert.match(htmlSource, /id="timeWorked"[^>]*class="operator-number"[^>]*data-replace-zero/);
+    assert.match(appSource, /function selectZeroValue\(input\)/);
+    assert.match(appSource, /input\.addEventListener\('focus', \(\) => selectZeroValue\(input\)\)/);
+    assert.match(appSource, /input\.addEventListener\('mouseup'/);
+    assert.match(cssSource, /input\.operator-number::-webkit-inner-spin-button/);
+    assert.match(cssSource, /input\.operator-number \{ appearance:textfield; -moz-appearance:textfield; \}/);
+});
+
+test('PL migration page preserves the existing portal theme selector', () => {
+    const appSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'app.js'), 'utf8');
+    const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'index.html'), 'utf8');
+    const cssSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'styles.css'), 'utf8');
+
+    assert.match(htmlSource, /id="themeSelect"/);
+    ['precision', 'light', 'dark', 'high-contrast'].forEach((theme) => {
+        assert.match(htmlSource, new RegExp(`value="${theme}"`));
+        assert.match(cssSource, new RegExp(`theme-${theme}`));
+    });
+    assert.match(appSource, /localStorage\.setItem\('portalTheme', safeTheme\)/);
+    assert.match(appSource, /elements\.themeSelect\.addEventListener\('change'/);
+});
