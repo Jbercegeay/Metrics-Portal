@@ -9,6 +9,7 @@
     let savePromise = Promise.resolve();
     let conflicted = false;
     let submitting = false;
+    let alertReturnFocus = null;
 
     const byId = (id) => document.getElementById(id);
     const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -18,8 +19,9 @@
             'submissionTitle', 'submissionDetail', 'refreshSubmissionButton', 'associateName', 'workDate',
             'jobForm', 'eventForm', 'sequence', 'lotNumber', 'itemNumber', 'timeWorked', 'spoolFields',
             'spoolCheckSequence', 'spoolCheckNumber', 'goodParts', 'startQuantity', 'endQuantity',
-            'totalDefects', 'qualityYield', 'notes', 'defectList', 'jobErrors', 'submitJobButton', 'event',
-            'eventStart', 'eventEnd', 'eventDuration', 'eventErrors', 'submitEventButton', 'toast']
+            'totalDefects', 'qualityYield', 'notes', 'rootCauseDetails', 'defectList', 'jobErrors', 'submitJobButton', 'event',
+            'eventStart', 'eventEnd', 'eventDuration', 'eventErrors', 'submitEventButton', 'alertOverlay',
+            'alertTitle', 'alertMessages', 'alertCloseButton', 'toast']
             .forEach((id) => { elements[id] = byId(id); });
     }
 
@@ -28,6 +30,27 @@
         elements.toast.hidden = false;
         clearTimeout(showToast.timer);
         showToast.timer = setTimeout(() => { elements.toast.hidden = true; }, 4200);
+    }
+
+    function showAlert(title, messages) {
+        const items = Array.isArray(messages) ? messages : [messages];
+        alertReturnFocus = document.activeElement;
+        elements.alertTitle.textContent = title;
+        const list = document.createElement('ul');
+        items.filter(Boolean).forEach((message) => {
+            const item = document.createElement('li');
+            item.textContent = message;
+            list.appendChild(item);
+        });
+        elements.alertMessages.replaceChildren(list);
+        elements.alertOverlay.hidden = false;
+        elements.alertCloseButton.focus();
+    }
+
+    function closeAlert() {
+        elements.alertOverlay.hidden = true;
+        if (alertReturnFocus && typeof alertReturnFocus.focus === 'function') alertReturnFocus.focus();
+        alertReturnFocus = null;
     }
 
     function setSaveState(text, type) {
@@ -143,6 +166,7 @@
         elements.endQuantity.textContent = good;
         elements.totalDefects.textContent = defects;
         elements.qualityYield.textContent = start ? `${((good / start) * 100).toFixed(1)}%` : '—';
+        elements.rootCauseDetails.open = start > 0 && good / start <= 0.5;
         elements.eventDuration.textContent = `${model.eventMinutes(form.eventStart, form.eventEnd)} minutes`;
         elements.spoolFields.hidden = form.sequence !== 'Spool Check';
     }
@@ -178,7 +202,7 @@
                     setSaveState('Tab conflict', 'error');
                 } else {
                     setSaveState('Save failed', 'error');
-                    showToast(error.message);
+                    showAlert('Save failed', error.message);
                 }
                 return false;
             }
@@ -210,7 +234,10 @@
         const form = workspace.formData;
         const errors = entryType === 'job' ? model.validateJob(form) : model.validateEvent(form);
         renderErrors(entryType === 'job' ? elements.jobErrors : elements.eventErrors, errors);
-        if (Object.keys(errors).length) return;
+        if (Object.keys(errors).length) {
+            showAlert('Action required', Object.values(errors));
+            return;
+        }
 
         const payload = entryType === 'job' ? model.buildJobPayload(form) : model.buildEventPayload(form);
         const pending = submissionRequest(entryType, payload);
@@ -238,7 +265,7 @@
             renderWorkspace();
             showToast(result.duplicate ? 'Original database record confirmed. No duplicate was created.' : 'Saved to database. Smartsheet sync will continue in the background.');
         } catch (error) {
-            showToast(`${error.message} Retry will use the same submission ID.`);
+            showAlert('Submission not completed', `${error.message} Retry will use the same submission ID.`);
             setSaveState('Submission needs retry', 'error');
         } finally {
             submitting = false;
@@ -250,7 +277,7 @@
     function renderSubmission(submission) {
         elements.submissionPanel.hidden = !submission;
         if (!submission) return;
-        const synced = submission.syncStatus === 'delivered';
+        const synced = submission.syncStatus === 'submitted';
         elements.submissionTitle.textContent = synced ? 'Database saved · Smartsheet synced' : 'Database saved · Smartsheet pending';
         elements.submissionDetail.textContent = synced
             ? 'The background worker confirmed the destination row.'
@@ -265,7 +292,7 @@
             workspace.formData.lastSubmission = result.submission;
             renderSubmission(result.submission);
             await saveWorkspace();
-        } catch (error) { showToast(error.message); }
+        } catch (error) { showAlert('Status refresh failed', error.message); }
     }
 
     async function signOut() {
@@ -276,14 +303,14 @@
         if (workspace.hasUnsavedWork) {
             if (!window.confirm('This workspace contains unsent work. Stay signed in unless you intentionally want to discard it. Discard and sign out?')) return;
             reason = window.prompt('Enter the reason this work is being discarded:')?.trim() || '';
-            if (!reason) return showToast('A discard reason is required.');
+            if (!reason) return showAlert('Sign-out blocked', 'A discard reason is required.');
             discard = true;
         }
         try {
             await api.signOut(discard, reason);
             localStorage.removeItem('currentUser');
             window.location.href = '/login.html';
-        } catch (error) { showToast(error.message); }
+        } catch (error) { showAlert('Sign-out failed', error.message); }
     }
 
     function bindEvents() {
@@ -297,7 +324,13 @@
             elements.spoolCheckSequence, elements.spoolCheckNumber, elements.goodParts, elements.notes,
             elements.event, elements.eventStart, elements.eventEnd]
             .forEach((input) => input.addEventListener('input', captureAndQueueSave));
-        document.querySelectorAll('[data-rca]').forEach((input) => input.addEventListener('input', captureAndQueueSave));
+        document.querySelectorAll('[data-rca]').forEach((input) => {
+            input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', captureAndQueueSave);
+        });
+        elements.alertCloseButton.addEventListener('click', closeAlert);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !elements.alertOverlay.hidden) closeAlert();
+        });
         byId('addOne').addEventListener('click', () => { elements.goodParts.value = String((Number(elements.goodParts.value) || 0) + 1); captureAndQueueSave(); });
         byId('addFive').addEventListener('click', () => { elements.goodParts.value = String((Number(elements.goodParts.value) || 0) + 5); captureAndQueueSave(); });
         elements.jobForm.addEventListener('submit', (event) => { event.preventDefault(); submit('job'); });
@@ -327,6 +360,10 @@
             }
             const config = configResult.data || {};
             defectNames = (config.defects || []).map((item) => item.name).filter(Boolean);
+            const operatorNames = Array.from(new Set((config.associates || []).map((item) => item.name).filter(Boolean)));
+            document.querySelectorAll('[data-operator-select]').forEach((select) => {
+                populateSelect(select, operatorNames, 'Select operator…');
+            });
             populateSelect(elements.sequence, (config.sequences || []).map((item) => item.name), 'Select sequence…');
             populateSelect(elements.event, (config.events || []).map((item) => item.name).filter((name) => name.toLowerCase() !== 'shift end'), 'Select event…');
             workspace = normalizeWorkspace((await api.getWorkspace()).workspace);

@@ -85,16 +85,16 @@
                     <section class="card">
                         <h2>Notes and root cause</h2>
                         <label>Notes<textarea id="notes" rows="4" placeholder="Required below 75% yield"></textarea></label>
-                        <details>
-                            <summary>Root-cause details</summary>
+                        <details id="rootCauseDetails">
+                            <summary>Root-cause details (one required at 50% yield or lower)</summary>
                             <div class="field-grid details-grid">
                                 <label>PTFE Oven Head<input data-rca="ptfeHead"></label>
-                                <label>PTFE Operators<input data-rca="ptfeOps"></label>
-                                <label>Etch Operators<input data-rca="etchOps"></label>
+                                <label>PTFE Operators<select data-rca="ptfeOps" data-operator-select><option value="">Select operator…</option></select></label>
+                                <label>Etch Operators<select data-rca="etchOps" data-operator-select><option value="">Select operator…</option></select></label>
                                 <label>Teco Oven Head<input data-rca="tecoHead"></label>
-                                <label>Teco Operators<input data-rca="tecoOps"></label>
+                                <label>Teco Operators<select data-rca="tecoOps" data-operator-select><option value="">Select operator…</option></select></label>
                                 <label>Pebax Oven Head<input data-rca="pebaxHead"></label>
-                                <label>Pebax Operators<input data-rca="pebaxOps"></label>
+                                <label>Pebax Operators<select data-rca="pebaxOps" data-operator-select><option value="">Select operator…</option></select></label>
                                 <label>Operators left a comment<select data-rca="commentStatus"><option>No</option><option>Yes</option></select></label>
                             </div>
                         </details>
@@ -124,6 +124,13 @@
         </form>
     </main>
 
+    <div id="alertOverlay" class="alert-overlay" role="alertdialog" aria-modal="true" aria-labelledby="alertTitle" hidden>
+        <section class="alert-dialog">
+            <h2 id="alertTitle">Action required</h2>
+            <div id="alertMessages"></div>
+            <button id="alertCloseButton" class="button primary" type="button">OK</button>
+        </section>
+    </div>
     <div id="toast" class="toast" role="status" hidden></div>
     <script src="/shared/api-client.js"></script>
     <script src="/pl/pl-model.js"></script>

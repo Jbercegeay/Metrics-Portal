@@ -49,12 +49,19 @@ Job payloads preserve the existing master-log titles for entry type, sequence, l
 - Real-browser validation covers server autosave, job capture, event capture, form reset, pending/synced messaging, and a 768 by 1024 responsive kiosk viewport without horizontal overflow.
 - Clean PostgreSQL migration and API validation is required in CI before this branch can be considered ready for controlled test-sheet validation.
 
+## Completed Validation Gates
+
+- The controlled PL test destination and production master log have the exact `Submission ID` column contract required for idempotent delivery.
+- Worker delivery was validated against a controlled PL test sheet, including full-column mapped values, exact-ID replay, and synthetic row cleanup.
+- Target database/outbox delivery was validated against the controlled test destination with no unexpected pending work.
+- Supervised PL floor UAT, associate/supervisor sign-off, rollback rehearsal, guarded cleanup, fresh backup, and production destination expansion are complete.
+
 ## Remaining Cutover Gates
 
-- Add and verify the exact `Submission ID` destination column on the controlled PL test and production master logs.
-- Run worker delivery against the controlled PL test sheet and compare every mapped column with the compatibility output.
-- Complete supervised PL floor UAT, owner sign-off, and rollback rehearsal.
-- Enable only during the approved PL window after HTTPS, database backup, monitoring, and worker process prerequisites are verified.
+- Merge the approved stacked pull requests into `main` and create the release commit or tag.
+- Deploy the release to the Metrics Portal process on port 3002 with PL database/session flags still disabled.
+- Run post-deployment health checks and compatibility smoke tests.
+- Enable PL only during the approved PL window after TLS/DNS, alert routing, backup freshness, monitoring, and worker process prerequisites are verified.
 
 Run the read-only destination audit from an environment configured for the intended PL sheet:
 
@@ -63,3 +70,51 @@ npm run validate:pl-destination
 ```
 
 The audit reads the PL configuration and master-log columns only. It does not read or print row contents and does not change the destination. A nonzero exit identifies missing exact titles, duplicate writable titles, formulas in writable columns, or an invalid `Submission ID` type.
+
+When no approved non-production destination exists, generate an empty contract-only sheet. The dry run reads only the configured PL defect names and creates nothing:
+
+```powershell
+npm run create:pl-integration-sheet
+```
+
+Create the sheet only after reviewing the name and column count:
+
+```powershell
+npm run create:pl-integration-sheet -- --apply --confirmation="CREATE EMPTY PL INTEGRATION SHEET"
+```
+
+The generated sheet contains the exact PL destination columns as text-compatible fields, with `Submission ID` as its primary column. It contains no rows and copies no production values, formulas, automation, attachments, sharing, or employee data. Record the returned sheet ID in the approved integration environment only, never in Git or program memory.
+
+With `PL_INTEGRATION_SHEET_ID` set only in the current process, validate a synthetic delivery, exact-ID replay, mapped values, and cleanup:
+
+```powershell
+npm run validate:pl-integration-delivery -- --confirmation="WRITE AND DELETE PL INTEGRATION ROW"
+```
+
+The command refuses the configured production master-log ID. It writes one visibly synthetic row covering every destination column, waits up to ten minutes for Smartsheet search indexing, proves a replay finds the same row without another insert, verifies every mapped cell value, and deletes every row it created. Smartsheet documents that new data may not be immediately searchable and that an API search index that has not been provisioned recently can take substantially longer; a timeout is therefore a pending external-index gate, not permission to retry an insert in production.
+
+After the target database is migrated, run a one-shot database-to-outbox-to-test-sheet proof with the application-role `DATABASE_URL` and `PL_INTEGRATION_SHEET_ID` set only in the current process:
+
+```powershell
+npm run validate:pl-outbox-integration -- --confirmation="VALIDATE PL DATABASE OUTBOX"
+```
+
+The command refuses the production destination and any pre-existing pending/processing queue. It captures one synthetic submission transactionally, processes exactly one worker lease, verifies the submission/outbox/delivery records converge to `submitted`, verifies no unexpected work remains, then removes its test-sheet row and related synthetic database records.
+
+## Production Destination Expansion
+
+Do not execute this step until PL floor-user approval is recorded. The default command is read-only and reports whether the configured production destination needs exactly one additive `Submission ID` column:
+
+```powershell
+npm run migrate:pl-submission-id
+```
+
+The utility blocks if any other required column is missing, if writable titles are duplicated, if writable columns contain formulas, or if an existing `Submission ID` has an incompatible type. After approval and a fresh verified backup, apply the one-column expansion with:
+
+```powershell
+npm run migrate:pl-submission-id -- --apply --confirmation="ADD PL PRODUCTION SUBMISSION ID"
+```
+
+The apply mode adds one empty `TEXT_NUMBER` column at the end of the configured PL master log, changes no existing row values, and immediately rereads the column contract. Rerun `npm run validate:pl-destination` after completion and retain the output with the release evidence.
+
+Completion evidence (2026-06-22): the approved apply expanded the production PL destination from 58 to 59 columns, changed zero existing row values, verified Submission ID as TEXT_NUMBER, and the complete read-only destination contract returned READY.

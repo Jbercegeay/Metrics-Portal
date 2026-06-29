@@ -16,6 +16,7 @@ app.get('/api/v2/sessions/current', (req, res) => res.json({ success: true, sess
 } }));
 app.delete('/api/v2/sessions/current', (req, res) => res.json({ success: true }));
 app.get('/api/config', (req, res) => res.json({ success: true, data: {
+    associates: [{ name: 'Operator A' }, { name: 'Operator B' }],
     sequences: [{ name: 'Inspect' }, { name: 'Spool Check' }],
     events: [{ name: 'Meeting' }, { name: 'Training' }, { name: 'Shift End' }],
     defects: [{ name: 'Wrinkle' }, { name: 'Cut' }]
@@ -46,7 +47,7 @@ app.post('/api/v2/submissions', (req, res) => {
 app.get('/api/v2/submissions/:id', (req, res) => {
     const submission = submissions.get(req.params.id);
     if (!submission) return res.status(404).json({ success: false, error: 'Submission not found.' });
-    submission.syncStatus = 'delivered';
+    submission.syncStatus = 'submitted';
     res.json({ success: true, submission });
 });
 

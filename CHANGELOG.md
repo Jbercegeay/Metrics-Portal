@@ -20,6 +20,17 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Added disabled-by-default PostgreSQL sessions, department-scoped kiosk locks, versioned server workspaces, stale-tab rejection, unsaved-work sign-out blocking, and audited discard/release controls for the PL migration.
 - Added an isolated Precision Liner page backed by authenticated server workspaces and durable job/event capture, with explicit database-versus-Smartsheet status, permanent retry IDs, and responsive kiosk controls.
 - Added a read-only PL destination contract audit for exact static/configured defect columns, duplicate titles, writable formulas, and the required `Submission ID` type.
+- Added Windows production preflight, verified PostgreSQL backup, health smoke-test, and PowerShell syntax-check tooling.
+- Added verified-backup freshness checks and a guarded isolated PostgreSQL restore drill that refuses nonempty or improperly named targets.
+- Added guarded least-privilege PostgreSQL database/role bootstrap and post-migration runtime grants for the Windows production host.
+- Added guarded creation of an empty PL integration Smartsheet from contract metadata only, without copying production rows or employee data.
+- Added controlled PL Smartsheet delivery validation that proves mapped values and exact-ID replay behavior, then deletes its synthetic non-production row.
+- Added a guarded one-shot PL database/outbox/Smartsheet validation that refuses a nonempty queue or production destination and removes its synthetic database and test-sheet rows.
+- Added a guarded, isolated PL browser-UAT and feature-rollback rehearsal on loopback port 3102, including dedicated test-sheet cleanup and live-portal process invariants.
+- Corrected the PL synchronization banner to treat the database contract's `submitted` state as Smartsheet synced.
+- Added a dry-run-by-default, expand-only production migration for the PL `Submission ID` column that blocks unrelated destination drift.
+- Added the floor-approved PL low-yield rule: at 50% yield or lower, root-cause details open automatically and at least one root-cause field is required.
+- Restored PL root-cause operator dropdowns from the configured associate roster and centered blocking warning dialogs for floor visibility.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.
@@ -36,6 +47,8 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 
 ### Fixed
 
+- Renamed the legacy npm package and login-page branding to Metrics Portal, and made Windows health tooling require an explicit URL plus Metrics Portal page-identity verification so the co-hosted legacy PL portal cannot be checked accidentally.
+- Fixed the Windows PostgreSQL backup script so the supplied database URL explicitly controls the host, port, user, password, and database instead of inheriting the Windows service account's PostgreSQL identity; failed or unverified attempts now remove partial dump artifacts.
 - Updated supervisor reset to clear the current multi-associate Job x Job tracker storage for PL, PTFE, and Polyimide.
 - Allowed shared-workstation associate names to submit to PTFE/PI Smartsheet logs even when the destination sheet's Associate Name column has strict picklist validation.
 - Improved PTFE/Polyimide Job x Job trackers so submissions jump to the matching sequence tab, tabs show job counts, and each associate remembers their active tracker tab.

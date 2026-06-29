@@ -40,7 +40,10 @@ Read and maintain these documents in order:
 11. [Durable Submissions](10-durable-submissions.md) - capture contract, outbox worker, supervisor controls, and failure behavior.
 12. [Server Sessions and Workspaces](11-sessions-and-workspaces.md) - durable identity, kiosk locking, optimistic workspaces, and sign-out rules.
 13. [Precision Liner Page Migration](12-precision-liner-page.md) - isolated page, server workspace, durable capture, validation, and rollback behavior.
-14. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
+14. [Windows Operations Tooling](13-windows-operations-tooling.md) - preflight, verified backup, health smoke tests, and manual server gates.
+15. [Target Server Bootstrap](14-target-server-bootstrap.md) - verified host baseline, PostgreSQL installation, roles, first migration, and stop conditions.
+16. [Precision Liner UAT and Rollback](15-pl-uat-and-rollback.md) - isolated browser acceptance, rollback rehearsal, cleanup, and sign-off record.
+17. [Program Memory](Memory.md) - current state, completed work, open decisions, deployment status, and session-to-session handoff.
 
 `AGENTS.md` contains the scoped enforcement instructions for coding agents working from this playbook.
 
@@ -91,10 +94,10 @@ A department is production ready only when all of the following are true:
 | Requirements | Approved | Stakeholder approval recorded |
 | Architecture | Approved | Decisions approved and prerequisites confirmed |
 | Foundation | Complete | Database, migrations, health checks, and CI operational |
-| Durable submissions | In progress | Failure tests prove no loss or duplicates |
-| PL migration | In progress | Isolated workflow implemented; test-sheet comparison, UAT, and cutover approval pending |
+| Durable submissions | Complete | CI, target database/outbox proof, exact-ID delivery validation, and restart/retry tests passed |
+| PL migration | In progress | PL floor UAT, rollback rehearsal, cleanup, backup, and production destination expansion passed; release deployment pending |
 | PTFE migration | Not started | PTFE user acceptance and cutover approval |
 | PI migration | Not started | PI user acceptance and cutover approval |
-| Operations handoff | Not started | Restore drill and support handoff completed |
+| Operations handoff | In progress | PostgreSQL bootstrap, verified backups, restore drill, and preflight baseline passed; alerting/TLS/support handoff pending |
 
 Update this table when a phase changes state. Allowed states are `Draft`, `Approved`, `In progress`, `Blocked`, and `Complete`.

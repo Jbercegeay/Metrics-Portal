@@ -1,5 +1,5 @@
 {
-  "name": "pl-portal-full-app",
+  "name": "metrics-portal",
   "version": "1.1.0",
   "description": "",
   "main": "server.js",
@@ -11,9 +11,16 @@
     "migrate:down": "node-pg-migrate down -m db/migrations",
     "validate:pi": "node scripts/validate-pi-smartsheet.js",
     "validate:pl-destination": "node scripts/validate-pl-destination.js",
+    "migrate:pl-submission-id": "node scripts/add-pl-submission-id-column.js",
+    "create:pl-integration-sheet": "node scripts/create-pl-integration-sheet.js",
+    "validate:pl-integration-delivery": "node scripts/validate-pl-integration-delivery.js",
+    "validate:pl-outbox-integration": "node scripts/validate-pl-outbox-integration.js",
+    "validate:pl-uat-sheet": "node scripts/manage-pl-uat-sheet.js",
+    "cleanup:pl-uat-sheet": "node scripts/manage-pl-uat-sheet.js --clear",
     "check:syntax": "node scripts/check-javascript-syntax.js",
     "check:html": "node scripts/check-html-scripts.js",
     "check:docs": "node scripts/check-markdown-links.js",
+    "check:powershell": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-powershell-syntax.ps1",
     "test": "node --test test/*.test.js",
     "test:database": "node --test test/database.integration.test.js test/submission.database.integration.test.js test/session-workspace.database.integration.test.js"
   },

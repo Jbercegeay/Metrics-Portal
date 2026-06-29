@@ -45,8 +45,8 @@ jobs:
       DEPT_PI_ITEMS_SHEET_ID: "12"
       DEPT_PI_JOB_LOG_SHEET_ID: "13"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -54,6 +54,8 @@ jobs:
       - run: npm run check:syntax
       - run: npm run check:html
       - run: npm run check:docs
+      - run: ./scripts/check-powershell-syntax.ps1
+        shell: pwsh
       - run: npm run migrate:up
       - run: npm test
       - run: npm run test:database

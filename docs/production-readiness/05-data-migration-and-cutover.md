@@ -81,6 +81,8 @@ The PL pilot must test:
 - Sign-out with saved, open, pending, and failed work.
 - Exact Smartsheet field mapping and submission ID.
 
+As of the PL floor acceptance record, the isolated browser workflow, exact-ID delivery proof, target database/outbox proof, rollback rehearsal, guarded cleanup, fresh backup, and production `Submission ID` expansion have passed. The remaining PL pilot gate is controlled release deployment with production feature flags disabled, followed by the approved PL cutover window and post-cutover observation.
+
 ## Reconciliation
 
 During each observation window, compare:
@@ -110,4 +112,3 @@ If rollback occurs:
 8. Correct the issue on a new branch and repeat acceptance testing.
 
 Never manually remove production rows merely to make counts match. Corrections must be auditable.
-
