@@ -12,6 +12,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/windows/Test-Product
 
 The preflight checks required commands, `.env`, an existing backup destination, free disk, clean Git state, current commit, application identity, and application liveness. `BaseUrl` is mandatory so a host running multiple Node portals cannot silently validate the wrong process. It does not print environment values.
 
+When the live production checkout still predates the v2 health endpoints, the prerequisite script may report application liveness as not reachable even though the root Metrics Portal page is serving correctly. In that pre-release state, verify the listener and root-page identity with `curl http://127.0.0.1:3002/` and record the expected `/api/v2/health` 404. Full health acceptance remains a post-deployment gate after the approved release code is on the live process path.
+
 ## Verified Database Backup
 
 ```powershell

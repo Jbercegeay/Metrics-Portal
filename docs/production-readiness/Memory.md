@@ -10,12 +10,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, and rollback rehearsal are complete. PL floor-user sign-off, rollback, cleanup, fresh backup, and production destination expansion are complete; deployment infrastructure remains the gate.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, and live-process preflight baseline are complete. Controlled release deployment remains the gate.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
-- Last updated: 2026-06-22.
+- Last updated: 2026-06-29.
 
 ## Completed Work
 
@@ -37,13 +37,13 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Complete target health and deployment preflight while production feature flags remain disabled.
+- Prepare controlled release deployment while production feature flags remain disabled.
 
 ## Next Actions
 
-1. Complete target health and deployment preflight against the actual Metrics Portal on port 3002.
-2. Add the expand-only production `Submission ID` column after floor UAT approval, then rerun the read-only production audit.
-3. Complete target health/preflight during the approved deployment rehearsal, after the release code exists on the live process path.
+1. Confirm the final release commit, pull request state, and CI status.
+2. Choose the production maintenance window for pulling the approved release onto `C:\ServerData\Repos\Metrics-Portal`, applying migrations, and restarting PM2.
+3. Complete post-deployment health/preflight after the release code exists on the live process path.
 4. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
@@ -61,19 +61,19 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - The current production page combines all three department interfaces.
 - Browser `localStorage` still owns substantial active-work state.
 - Current production submissions still depend on synchronous Smartsheet responses.
-- PL floor-UAT execution and sign-off, TLS, alerting, production destination expansion approval, and cutover approval remain external release gates.
+- TLS, alerting, maintenance-window approval, final release approval, and department cutover approval remain external release gates.
 
 ## Latest Validation
 
 - Syntax checked across application, migration, script, and test JavaScript files.
 - Local automated suite passes with 70 runnable tests and three expected database-dependent skips outside the CI database job.
-- Health endpoints pass against the assembled Express application, including compatibility-mode readiness.
+- Health endpoints pass against the assembled Express application, including compatibility-mode readiness. The current live port 3002 deployment predates the v2 health endpoints, so the deployment preflight can verify prerequisites and root-page identity before release, but full `/api/v2/health` acceptance must run after the approved release is deployed.
 - Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
 - Draft PR #3 GitHub Actions run 27827283516 passed against PostgreSQL 18, including clean migration, database transaction, application, syntax, documentation-link, and dependency-audit checks.
 
 ## Deployment State
 
-- PostgreSQL 18.4 and the migrated application schema are installed on the target; no portal application code or feature flag has been deployed.
+- PostgreSQL 18.4 and the migrated application schema are installed on the target; the PL production Smartsheet destination has the required empty `Submission ID` column; no portal application code or feature flag has been deployed.
 - Do not pull planning or incomplete implementation work onto the production server.
 - Production deployments must use an approved commit or release tag and the documented release checklist.
 
@@ -97,6 +97,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-29 - Live process preflight baseline recorded
+
+- Branch: `codex/windows-operations-tooling`.
+- Commit or PR: Draft PR #8; live production process remains on approved `main` commit `2e936a4fe0c53564cc455843b53b48386aba81b4`.
+- Phase/work package: Phase 7 target deployment preflight.
+- Work completed: Ran the production prerequisite script and follow-up HTTP identity diagnostics against the actual Metrics Portal process on port 3002.
+- Files or schema changed: Program memory and operations documentation only. No production portal code, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: Treat the target prerequisites, backup root, PostgreSQL tooling, local-only PostgreSQL listener, clean production checkout, and root-page identity as ready. Treat `/api/v2/health` returning 404 as expected for the currently live compatibility release because that approved commit predates the v2 health endpoints.
+- Validation performed: Required commands were present, `.env` existed, backup root was reachable, free disk was 76.7 GB, PostgreSQL listened only on loopback, the production Git worktree was clean at `2e936a4`, port 3002 listened under the `metrics-portal` PM2 process, and `curl http://127.0.0.1:3002/` returned title `Metrics Portal - v1.2.0`. `curl http://127.0.0.1:3002/api/v2/health` returned 404 until the release code is deployed.
+- Deployment status: Not deployed to production; production feature flags remain disabled and live users remain on the existing Metrics Portal process.
+- Risks/blockers: Final release approval, CI confirmation on the release commit, maintenance window, TLS/DNS, alert transport, deployment restart, and post-deployment health checks remain.
+- Exact next action: Confirm the release commit and CI state, then prepare the controlled production deployment checklist.
 
 ### 2026-06-22 - PL production destination expansion passed
 
