@@ -94,10 +94,10 @@ A department is production ready only when all of the following are true:
 | Requirements | Approved | Stakeholder approval recorded |
 | Architecture | Approved | Decisions approved and prerequisites confirmed |
 | Foundation | Complete | Database, migrations, health checks, and CI operational |
-| Durable submissions | In progress | Failure tests prove no loss or duplicates |
-| PL migration | In progress | Isolated workflow implemented; test-sheet comparison, UAT, and cutover approval pending |
+| Durable submissions | Complete | CI, target database/outbox proof, exact-ID delivery validation, and restart/retry tests passed |
+| PL migration | In progress | PL floor UAT, rollback rehearsal, cleanup, backup, and production destination expansion passed; release deployment pending |
 | PTFE migration | Not started | PTFE user acceptance and cutover approval |
 | PI migration | Not started | PI user acceptance and cutover approval |
-| Operations handoff | Not started | Restore drill and support handoff completed |
+| Operations handoff | In progress | PostgreSQL bootstrap, verified backups, restore drill, and preflight baseline passed; alerting/TLS/support handoff pending |
 
 Update this table when a phase changes state. Allowed states are `Draft`, `Approved`, `In progress`, `Blocked`, and `Complete`.

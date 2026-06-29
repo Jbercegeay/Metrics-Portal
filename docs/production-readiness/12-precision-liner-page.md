@@ -49,12 +49,19 @@ Job payloads preserve the existing master-log titles for entry type, sequence, l
 - Real-browser validation covers server autosave, job capture, event capture, form reset, pending/synced messaging, and a 768 by 1024 responsive kiosk viewport without horizontal overflow.
 - Clean PostgreSQL migration and API validation is required in CI before this branch can be considered ready for controlled test-sheet validation.
 
+## Completed Validation Gates
+
+- The controlled PL test destination and production master log have the exact `Submission ID` column contract required for idempotent delivery.
+- Worker delivery was validated against a controlled PL test sheet, including full-column mapped values, exact-ID replay, and synthetic row cleanup.
+- Target database/outbox delivery was validated against the controlled test destination with no unexpected pending work.
+- Supervised PL floor UAT, associate/supervisor sign-off, rollback rehearsal, guarded cleanup, fresh backup, and production destination expansion are complete.
+
 ## Remaining Cutover Gates
 
-- Add and verify the exact `Submission ID` destination column on the controlled PL test and production master logs.
-- Run worker delivery against the controlled PL test sheet and compare every mapped column with the compatibility output.
-- Complete supervised PL floor UAT, owner sign-off, and rollback rehearsal.
-- Enable only during the approved PL window after HTTPS, database backup, monitoring, and worker process prerequisites are verified.
+- Merge the approved stacked pull requests into `main` and create the release commit or tag.
+- Deploy the release to the Metrics Portal process on port 3002 with PL database/session flags still disabled.
+- Run post-deployment health checks and compatibility smoke tests.
+- Enable PL only during the approved PL window after TLS/DNS, alert routing, backup freshness, monitoring, and worker process prerequisites are verified.
 
 Run the read-only destination audit from an environment configured for the intended PL sheet:
 
