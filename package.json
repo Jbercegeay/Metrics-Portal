@@ -12,6 +12,7 @@
     "validate:pi": "node scripts/validate-pi-smartsheet.js",
     "validate:pl-destination": "node scripts/validate-pl-destination.js",
     "migrate:pl-submission-id": "node scripts/add-pl-submission-id-column.js",
+    "migrate:pl-operators": "node scripts/add-pl-operators-config-column.js",
     "create:pl-integration-sheet": "node scripts/create-pl-integration-sheet.js",
     "validate:pl-integration-delivery": "node scripts/validate-pl-integration-delivery.js",
     "validate:pl-outbox-integration": "node scripts/validate-pl-outbox-integration.js",

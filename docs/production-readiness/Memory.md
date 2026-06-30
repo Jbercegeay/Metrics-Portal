@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-30 - PL RCA operators moved to configuration
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 extended PL UAT polish.
+- Work completed: Traced original RCA operator dropdowns to the legacy hardcoded `ROSTER`, added parser support for a PL config-sheet `Operators` column, changed the isolated PL page to use `config.operators`, added a guarded Smartsheet migration script, and seeded the PL configuration sheet from the legacy roster.
+- Files or schema changed: PL configuration Smartsheet gained one `Operators` column; 33 existing config rows were updated in that new column and 7 bottom rows were added to hold the full 40-name roster. Local code changed in config parsing, PL page controller, migration script, tests, changelog, and production-readiness documentation. No production master-log rows, portal deployment, PM2 process, database schema, or feature flag changed.
+- Decisions made: RCA operator choices are operational configuration, not department associates. Keep the legacy roster as code fallback only so the page remains safe if an environment has not yet received the config column.
+- Validation performed: Dry run reported the column missing and planned 40 seeded operators. Apply verified 17 columns, 40 operators, 33 rows updated, 7 rows added, and result READY. A follow-up dry run reported READY with no change required. Config fetch returned 40 operators and 33 associates as separate lists.
+- Deployment status: Not deployed to production; PR #9 remains draft for extended UAT and the planned July 4 office-closure deployment window.
+- Risks/blockers: Server UAT checkout must be refreshed to this commit before floor testing sees the configuration-backed operator list; final release approval and deployment window remain.
+- Exact next action: Run full local validation, commit and push, wait for PR #9 CI, then provide the server update command for the UAT checkout.
+
 ### 2026-06-29 - PL UAT polish restored theme selector and time entry
 
 - Branch: `codex/pl-release-candidate`.

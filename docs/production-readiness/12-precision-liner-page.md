@@ -52,6 +52,7 @@ Job payloads preserve the existing master-log titles for entry type, sequence, l
 ## Completed Validation Gates
 
 - The controlled PL test destination and production master log have the exact `Submission ID` column contract required for idempotent delivery.
+- The PL configuration sheet has an `Operators` column seeded from the legacy RCA roster, and the isolated PL page reads that column for root-cause operator dropdowns instead of department associates.
 - Worker delivery was validated against a controlled PL test sheet, including full-column mapped values, exact-ID replay, and synthetic row cleanup.
 - Target database/outbox delivery was validated against the controlled test destination with no unexpected pending work.
 - Supervised PL floor UAT, associate/supervisor sign-off, rollback rehearsal, guarded cleanup, fresh backup, and production destination expansion are complete.
