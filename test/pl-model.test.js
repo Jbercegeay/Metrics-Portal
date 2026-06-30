@@ -41,6 +41,7 @@ test('PL Spool Check maps reason for fail, sequence, and check number', () => {
 
     const payload = model.buildJobPayload(form);
     assert.equal(payload['Reason for Fail'], '7/8 Pass, Failed for Channel');
+    assert.equal(payload['Notes'], undefined);
     assert.equal(payload['Spool Check Sequence'], '20');
     assert.equal(payload['Check #'], '3rd');
 });

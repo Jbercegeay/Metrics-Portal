@@ -40,11 +40,11 @@ The operator sees two separate states:
 1. Database saved: the portal has durably accepted the entry and the form may clear.
 2. Smartsheet pending or synced: the background worker owns delivery and exact-ID confirmation.
 
-Job payloads preserve the existing master-log titles for entry type, sequence, lot, item, quantities, minutes, notes, defects, Spool Check details, yield indicator, and root-cause fields. Associate, department, kiosk, and work date ownership are enforced by the authenticated API envelope.
+Job payloads preserve the existing master-log titles for entry type, sequence, lot, item, quantities, minutes, notes, defects, Spool Check details, yield indicator, and root-cause fields. For Spool Check jobs, the relabeled failure text maps to `Reason for Fail` instead of duplicating into the general `Notes` column; `Spool Check Sequence` and `Check #` are sent with the same titles as the compatibility portal. Associate, department, kiosk, and work date ownership are enforced by the authenticated API envelope.
 
 ## Validation Evidence
 
-- PL model tests cover field validation, six-digit items, low-yield notes, Spool Check requirements, defect totals, quantity/yield calculations, exact Smartsheet titles, event duration, dirty state, and pending retry identity.
+- PL model tests cover field validation, six-digit items, low-yield notes/reason-for-fail behavior, Spool Check requirements, defect totals, quantity/yield calculations, exact Smartsheet titles, event duration, dirty state, and pending retry identity.
 - API coverage verifies the safe rollout-state endpoint.
 - Real-browser validation covers server autosave, job capture, event capture, form reset, pending/synced messaging, and a 768 by 1024 responsive kiosk viewport without horizontal overflow.
 - Clean PostgreSQL migration and API validation is required in CI before this branch can be considered ready for controlled test-sheet validation.

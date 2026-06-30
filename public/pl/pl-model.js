@@ -45,7 +45,11 @@
         if ((Number(form.timeWorked) || 0) <= 0) errors.timeWorked = 'Time worked must be greater than zero.';
         const start = (Number(form.goodParts) || 0) + defectTotal(form);
         const yieldValue = start > 0 ? (Number(form.goodParts) || 0) / start : 1;
-        if (yieldValue < 0.75 && !String(form.notes || '').trim()) errors.notes = 'Notes are required when yield is below 75%.';
+        if (yieldValue < 0.75 && !String(form.notes || '').trim()) {
+            errors.notes = form.sequence === 'Spool Check'
+                ? 'Reason for Fail is required when yield is below 75%.'
+                : 'Notes are required when yield is below 75%.';
+        }
         if (start > 0 && yieldValue <= 0.5 && !hasRootCauseDetails(form.rca)) errors.rootCause = 'At least one root-cause detail is required when yield is 50% or lower.';
         if (form.sequence === 'Spool Check' && (!form.spoolCheckSequence || !form.spoolCheckNumber)) {
             errors.spoolCheck = 'Spool Check sequence and check number are required.';
@@ -64,7 +68,6 @@
             'End Quantity': good,
             'Start Quantity': good + bad,
             'Time worked (Min)': Math.max(0, Number(form.timeWorked) || 0),
-            'Notes': String(form.notes || '').trim(),
             'PTFE Oven Head': form.rca?.ptfeHead || '',
             'PTFE  Operators': form.rca?.ptfeOps || '',
             'Etch Operators': form.rca?.etchOps || '',
@@ -79,6 +82,8 @@
             payload['Reason for Fail'] = String(form.notes || '').trim();
             payload['Spool Check Sequence'] = form.spoolCheckSequence;
             payload['Check #'] = form.spoolCheckNumber;
+        } else {
+            payload['Notes'] = String(form.notes || '').trim();
         }
         Object.entries(form.defects || {}).forEach(([name, value]) => {
             payload[`Defect-${name}`] = Math.max(0, Number(value) || 0);

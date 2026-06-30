@@ -15,7 +15,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
-- Last updated: 2026-06-29.
+- Last updated: 2026-06-30.
 
 ## Completed Work
 
@@ -98,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-30 - PL Spool Check notes mapping matched compatibility behavior
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 extended PL UAT polish.
+- Work completed: Verified the compatibility portal writes Spool Check failure text to `Reason for Fail`, uses `Spool Check Sequence` and `Check #`, and only writes the general `Notes` column from a separate next-shift note value. Updated the new PL page model so Spool Check submissions no longer duplicate the reason text into `Notes`.
+- Files or schema changed: PL model, PL model tests, Precision Liner production-readiness page, and program memory only. No production portal deployment, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: Treat the PL page's Spool Check text area as `Reason for Fail`; leave the general `Notes` field absent for Spool Check jobs until/unless a distinct next-shift note input is added.
+- Validation performed: `npm run check:syntax`, `npm run check:html`, `npm run check:docs`, `git diff --check`, and `npm test` passed locally; the suite reported 77 passing tests and three expected database-dependent skips.
+- Deployment status: Not deployed to production; PR #9 remains draft for extended UAT and the planned July 4 office-closure deployment window.
+- Risks/blockers: Server UAT checkout must be refreshed after commit/push before floor testing sees the corrected mapping; final release approval and deployment window remain.
+- Exact next action: Commit and push, wait for PR #9 CI, then provide the server UAT refresh command if requested.
 
 ### 2026-06-30 - PL Spool Check and theme contrast matched compatibility behavior
 
