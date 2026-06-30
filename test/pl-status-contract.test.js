@@ -85,6 +85,19 @@ test('PL Spool Check uses compatibility toggle buttons and reason-for-fail notes
     assert.match(cssSource, /\.spool-toggle-button\.active/);
 });
 
+test('PL event entry uses direct duration instead of start and end time', () => {
+    const appSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'app.js'), 'utf8');
+    const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'index.html'), 'utf8');
+
+    assert.match(htmlSource, /id="eventDuration"[^>]*type="number"/);
+    assert.match(htmlSource, /Duration \(minutes\)/);
+    assert.doesNotMatch(htmlSource, /id="eventStart"/);
+    assert.doesNotMatch(htmlSource, /id="eventEnd"/);
+    assert.match(appSource, /form\.eventDuration = Math\.max\(0, Number\(elements\.eventDuration\.value\) \|\| 0\)/);
+    assert.doesNotMatch(appSource, /elements\.eventStart/);
+    assert.doesNotMatch(appSource, /elements\.eventEnd/);
+});
+
 test('PL themes use readable variables for banners, buttons, and controls', () => {
     const cssSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'styles.css'), 'utf8');
 

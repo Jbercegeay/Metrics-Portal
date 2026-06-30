@@ -139,9 +139,7 @@
             <h2>Event entry</h2>
             <div class="field-grid">
                 <label>Event<select id="event"><option value="">Select event…</option></select></label>
-                <label>Start time<input id="eventStart" type="time"></label>
-                <label>End time<input id="eventEnd" type="time"></label>
-                <div class="calculated"><span>Duration</span><strong id="eventDuration">0 minutes</strong></div>
+                <label>Duration (minutes)<input id="eventDuration" class="operator-number" type="number" min="0" step="1" data-replace-zero></label>
             </div>
             <div id="eventErrors" class="errors" role="alert" hidden></div>
             <div class="sticky-submit"><button id="submitEventButton" class="button primary submit" type="submit">Save event to database</button></div>

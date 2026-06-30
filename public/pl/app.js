@@ -21,7 +21,7 @@
             'jobForm', 'eventForm', 'sequence', 'lotNumber', 'itemNumber', 'timeWorked', 'spoolFields',
             'spoolCheckSequence', 'spoolCheckNumber', 'goodParts', 'startQuantity', 'endQuantity',
             'totalDefects', 'qualityYield', 'notesLabel', 'notes', 'rootCauseDetails', 'defectList', 'jobErrors', 'submitJobButton', 'event',
-            'eventStart', 'eventEnd', 'eventDuration', 'eventErrors', 'submitEventButton', 'alertOverlay',
+            'eventDuration', 'eventErrors', 'submitEventButton', 'alertOverlay',
             'alertTitle', 'alertMessages', 'alertCloseButton', 'themeSelect', 'toast']
             .forEach((id) => { elements[id] = byId(id); });
     }
@@ -69,12 +69,16 @@
 
     function normalizedForm(source = {}) {
         const fresh = model.emptyForm(defectNames);
-        return {
+        const normalized = {
             ...fresh,
             ...source,
             defects: { ...fresh.defects, ...(source.defects || {}) },
             rca: { ...fresh.rca, ...(source.rca || {}) }
         };
+        if (!Number(normalized.eventDuration) && normalized.eventStart && normalized.eventEnd) {
+            normalized.eventDuration = model.eventMinutes(normalized.eventStart, normalized.eventEnd);
+        }
+        return normalized;
     }
 
     function normalizeWorkspace(source) {
@@ -133,8 +137,7 @@
         elements.spoolCheckSequence.value = form.spoolCheckSequence;
         elements.spoolCheckNumber.value = form.spoolCheckNumber;
         elements.event.value = form.event;
-        elements.eventStart.value = form.eventStart;
-        elements.eventEnd.value = form.eventEnd;
+        elements.eventDuration.value = form.eventDuration;
         document.querySelectorAll('[data-rca]').forEach((input) => { input.value = form.rca[input.dataset.rca] || ''; });
         document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === workspace.mode));
         elements.jobForm.hidden = workspace.mode !== 'job';
@@ -158,8 +161,7 @@
         form.spoolCheckSequence = elements.spoolCheckSequence.value;
         form.spoolCheckNumber = elements.spoolCheckNumber.value;
         form.event = elements.event.value;
-        form.eventStart = elements.eventStart.value;
-        form.eventEnd = elements.eventEnd.value;
+        form.eventDuration = Math.max(0, Number(elements.eventDuration.value) || 0);
         document.querySelectorAll('[data-defect]').forEach((input) => { form.defects[input.dataset.defect] = Math.max(0, Number(input.value) || 0); });
         document.querySelectorAll('[data-rca]').forEach((input) => { form.rca[input.dataset.rca] = input.value; });
         updateSpoolCheckUi(true);
@@ -177,7 +179,6 @@
         elements.totalDefects.textContent = defects;
         elements.qualityYield.textContent = start ? `${((good / start) * 100).toFixed(1)}%` : '—';
         elements.rootCauseDetails.open = start > 0 && good / start <= 0.5;
-        elements.eventDuration.textContent = `${model.eventMinutes(form.eventStart, form.eventEnd)} minutes`;
         updateSpoolCheckUi(false);
     }
 
@@ -355,8 +356,7 @@
             queueSave();
         }));
         [elements.workDate, elements.sequence, elements.lotNumber, elements.itemNumber, elements.timeWorked,
-            elements.goodParts, elements.notes,
-            elements.event, elements.eventStart, elements.eventEnd]
+            elements.goodParts, elements.notes, elements.event, elements.eventDuration]
             .forEach((input) => input.addEventListener('input', captureAndQueueSave));
         document.querySelectorAll('[data-spool-sequence]').forEach((button) => {
             button.addEventListener('click', () => {

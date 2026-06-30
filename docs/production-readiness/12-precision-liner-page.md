@@ -2,7 +2,7 @@
 
 ## Scope
 
-The Precision Liner migration page is served from `/pl/` and is isolated from the combined compatibility page. It owns PL job and event entry only. PTFE and Polyimide continue using the compatibility page until their rollout phases.
+The Precision Liner migration page is served from `/pl/` and is isolated from the combined compatibility page. It owns PL job and event entry only. PTFE and Polyimide continue using the compatibility page until their rollout phases. PL event entry records a direct duration in minutes, matching the destination `Time worked (Min)` field without requiring operators to enter start and end times.
 
 The isolated module intentionally does not contain the legacy hour-by-hour tracker, End Shift workflow, browser-local associate switching, supervisor PIN reset, or `localStorage` production workspace. Shared-kiosk transfer occurs through authenticated sign-out and the next associate's sign-in.
 

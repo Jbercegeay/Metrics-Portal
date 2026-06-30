@@ -14,7 +14,7 @@
             defects: Object.fromEntries(defects.map((name) => [name, 0])), notes: '',
             spoolCheckSequence: '', spoolCheckNumber: '',
             rca: { ptfeHead: '', ptfeOps: '', etchOps: '', tecoHead: '', tecoOps: '', pebaxHead: '', pebaxOps: '', commentStatus: 'No' },
-            event: '', eventStart: '', eventEnd: '', pendingSubmission: null, lastSubmission: null
+            event: '', eventDuration: 0, eventStart: '', eventEnd: '', pendingSubmission: null, lastSubmission: null
         };
     }
 
@@ -33,7 +33,7 @@
 
     function hasUnsavedWork(form, mode = 'job') {
         if (form.pendingSubmission) return true;
-        if (mode === 'event') return Boolean(form.event || form.eventStart || form.eventEnd);
+        if (mode === 'event') return Boolean(form.event || Number(form.eventDuration) || form.eventStart || form.eventEnd);
         return Boolean(form.sequence || form.lotNumber || form.itemNumber || Number(form.goodParts) || Number(form.timeWorked) || defectTotal(form) || String(form.notes || '').trim() || hasRootCauseDetails(form.rca));
     }
 
@@ -101,7 +101,7 @@
     function validateEvent(form) {
         const errors = {};
         if (!form.event) errors.event = 'Event is required.';
-        if (eventMinutes(form.eventStart, form.eventEnd) <= 0) errors.eventTime = 'End time must be after start time.';
+        if ((Number(form.eventDuration) || 0) <= 0) errors.eventDuration = 'Duration must be greater than zero.';
         return errors;
     }
 
@@ -109,7 +109,7 @@
         return {
             'Entry Type': 'Event',
             'Event': form.event,
-            'Time worked (Min)': eventMinutes(form.eventStart, form.eventEnd),
+            'Time worked (Min)': Math.max(0, Number(form.eventDuration) || 0),
             'Notes': String(form.notes || '').trim()
         };
     }

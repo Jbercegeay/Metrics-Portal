@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-30 - PL event duration simplified for UAT
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 extended PL UAT polish.
+- Work completed: Replaced PL event entry start/end time inputs with a single direct `Duration (minutes)` field, preserved one-time compatibility for existing drafts that still have start/end times, and recorded the change in the testing changelog and PL readiness documentation.
+- Files or schema changed: PL page HTML, browser controller, PL model, focused tests, changelog, Precision Liner production-readiness page, and program memory only. No production portal deployment, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: The floor workflow only needs `Time worked (Min)` for event submissions, so direct duration entry is simpler and less error-prone than start/end time entry.
+- Validation performed: `npm run check:syntax`, `npm run check:html`, `npm run check:docs`, `git diff --check`, and `npm test` passed locally; the suite reported 78 passing tests and three expected database-dependent skips.
+- Deployment status: Not deployed to production; PR #9 remains draft for extended UAT and the planned July 4 office-closure deployment window.
+- Risks/blockers: The UAT server must be refreshed to this commit before testers see the duration input. The latest tester observation that Spool Check still writes to `Notes` likely indicates the running UAT process is not yet on the corrected commit, but it must be verified after refresh.
+- Exact next action: Commit and push, wait for PR #9 CI, then provide a UAT refresh and commit-verification command.
+
 ### 2026-06-30 - PL Spool Check notes mapping matched compatibility behavior
 
 - Branch: `codex/pl-release-candidate`.

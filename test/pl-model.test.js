@@ -48,8 +48,7 @@ test('PL Spool Check maps reason for fail, sequence, and check number', () => {
 
 test('PL event model rejects non-positive durations and maps a valid event', () => {
     const form = model.emptyForm();
-    Object.assign(form, { event: 'Meeting', eventStart: '09:10', eventEnd: '09:40', notes: 'Daily review' });
-    assert.equal(model.eventMinutes(form.eventStart, form.eventEnd), 30);
+    Object.assign(form, { event: 'Meeting', eventDuration: 30, notes: 'Daily review' });
     assert.deepEqual(model.validateEvent(form), {});
     assert.deepEqual(model.buildEventPayload(form), {
         'Entry Type': 'Event', 'Event': 'Meeting', 'Time worked (Min)': 30, 'Notes': 'Daily review'
