@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 
 ## Session History
 
+### 2026-06-30 - PL Spool Check and theme contrast matched compatibility behavior
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 extended PL UAT polish.
+- Work completed: Traced compatibility Spool Check behavior, replaced the new page's Spool Check dropdowns with the original-style sequence/check toggle buttons, relabeled Notes to Reason for Fail when Spool Check is selected, preserved payload mapping for `Reason for Fail`, `Spool Check Sequence`, and `Check #`, and made notices, status pills, buttons, toggles, errors, dialogs, and toast messages theme-readable across all four themes.
+- Files or schema changed: PL page HTML, CSS, browser controller, PL model/browser contract tests, UAT scenarios, changelog, and program memory only. No production portal deployment, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: Match the compatibility portal's Spool Check interaction exactly enough for floor muscle memory: button toggles instead of dropdowns and Reason for Fail labeling. Treat theme readability as a cross-control contract, not just banner text.
+- Validation performed: Focused PL model/browser contract tests, JavaScript syntax, and HTML script parsing passed before this entry.
+- Deployment status: Not deployed to production; PR #9 remains draft for extended UAT and the planned July 4 office-closure deployment window.
+- Risks/blockers: Server UAT checkout must be refreshed to this commit before floor testing sees the Spool Check/theme polish; final release approval and deployment window remain.
+- Exact next action: Run full local validation, commit and push, wait for PR #9 CI, then provide the server update command for the UAT checkout.
+
 ### 2026-06-30 - PL RCA operators moved to configuration
 
 - Branch: `codex/pl-release-candidate`.

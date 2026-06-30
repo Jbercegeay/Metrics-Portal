@@ -31,6 +31,20 @@ test('PL job validation requires notes below 75 percent and complete Spool Check
     assert.equal(model.buildJobPayload(form)['=< 50% Yield'], 'true');
 });
 
+test('PL Spool Check maps reason for fail, sequence, and check number', () => {
+    const form = model.emptyForm(['Defect']);
+    Object.assign(form, {
+        sequence: 'Spool Check', lotNumber: 'LOT-3', itemNumber: '123456', goodParts: 8,
+        timeWorked: 5, notes: '7/8 Pass, Failed for Channel', spoolCheckSequence: '20',
+        spoolCheckNumber: '3rd'
+    });
+
+    const payload = model.buildJobPayload(form);
+    assert.equal(payload['Reason for Fail'], '7/8 Pass, Failed for Channel');
+    assert.equal(payload['Spool Check Sequence'], '20');
+    assert.equal(payload['Check #'], '3rd');
+});
+
 test('PL event model rejects non-positive durations and maps a valid event', () => {
     const form = model.emptyForm();
     Object.assign(form, { event: 'Meeting', eventStart: '09:10', eventEnd: '09:40', notes: 'Daily review' });

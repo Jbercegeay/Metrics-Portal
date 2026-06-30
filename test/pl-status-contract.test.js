@@ -65,3 +65,44 @@ test('PL migration page preserves the existing portal theme selector', () => {
     assert.match(appSource, /localStorage\.setItem\('portalTheme', safeTheme\)/);
     assert.match(appSource, /elements\.themeSelect\.addEventListener\('change'/);
 });
+
+test('PL Spool Check uses compatibility toggle buttons and reason-for-fail notes', () => {
+    const appSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'app.js'), 'utf8');
+    const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'index.html'), 'utf8');
+    const cssSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'styles.css'), 'utf8');
+
+    assert.match(htmlSource, /data-spool-sequence="10"/);
+    assert.match(htmlSource, /data-spool-sequence="20"/);
+    assert.match(htmlSource, /data-spool-sequence="30"/);
+    assert.match(htmlSource, /data-spool-check="1st"/);
+    assert.match(htmlSource, /data-spool-check="5th"/);
+    assert.match(htmlSource, /id="spoolCheckSequence" type="hidden"/);
+    assert.match(htmlSource, /id="notesLabel">Notes/);
+    assert.match(appSource, /notesLabel\.textContent = isSpoolCheck \? 'Reason for Fail' : 'Notes'/);
+    assert.match(appSource, /Failed for Channel/);
+    assert.match(appSource, /dataset\.spoolSequence/);
+    assert.match(appSource, /dataset\.spoolCheck/);
+    assert.match(cssSource, /\.spool-toggle-button\.active/);
+});
+
+test('PL themes use readable variables for banners, buttons, and controls', () => {
+    const cssSource = fs.readFileSync(path.join(__dirname, '..', 'public', 'pl', 'styles.css'), 'utf8');
+
+    ['info', 'warning', 'status-neutral', 'status-saved', 'status-dirty', 'status-error',
+        'primary', 'secondary', 'danger', 'active', 'error', 'toast'].forEach((token) => {
+        assert.match(cssSource, new RegExp(`--${token}-bg`));
+        assert.match(cssSource, new RegExp(`--${token}-text`));
+    });
+    assert.match(cssSource, /\.info \{ background:var\(--info-bg\);[^}]*color:var\(--info-text\)/);
+    assert.match(cssSource, /\.warning \{ background:var\(--warning-bg\);[^}]*color:var\(--warning-text\)/);
+    assert.match(cssSource, /\.primary \{ background:var\(--primary-bg\); color:var\(--primary-text\); \}/);
+    assert.match(cssSource, /\.secondary \{ background:var\(--secondary-bg\);[^}]*color:var\(--secondary-text\); \}/);
+    assert.match(cssSource, /\.danger \{ background:var\(--danger-bg\);[^}]*color:var\(--danger-text\); \}/);
+    assert.match(cssSource, /\.mode-tab\.active \{ background:var\(--active-bg\); color:var\(--active-text\);/);
+    assert.match(cssSource, /\.spool-toggle-button\.active \{ background:var\(--blue\);[^}]*color:var\(--active-control-text\); \}/);
+    assert.match(cssSource, /\.status\.saved \{ background:var\(--status-saved-bg\); color:var\(--status-saved-text\); \}/);
+    assert.match(cssSource, /\.errors \{[^}]*background:var\(--error-bg\); color:var\(--error-text\);/);
+    assert.match(cssSource, /\.alert-dialog \{[^}]*background:var\(--dialog-bg\); color:var\(--text\);/);
+    assert.match(cssSource, /\.toast \{[^}]*background:var\(--toast-bg\); color:var\(--toast-text\);/);
+    assert.match(cssSource, /\.notice span \{ display:block; color:inherit; \}/);
+});

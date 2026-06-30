@@ -20,7 +20,7 @@
             'submissionTitle', 'submissionDetail', 'refreshSubmissionButton', 'associateName', 'workDate',
             'jobForm', 'eventForm', 'sequence', 'lotNumber', 'itemNumber', 'timeWorked', 'spoolFields',
             'spoolCheckSequence', 'spoolCheckNumber', 'goodParts', 'startQuantity', 'endQuantity',
-            'totalDefects', 'qualityYield', 'notes', 'rootCauseDetails', 'defectList', 'jobErrors', 'submitJobButton', 'event',
+            'totalDefects', 'qualityYield', 'notesLabel', 'notes', 'rootCauseDetails', 'defectList', 'jobErrors', 'submitJobButton', 'event',
             'eventStart', 'eventEnd', 'eventDuration', 'eventErrors', 'submitEventButton', 'alertOverlay',
             'alertTitle', 'alertMessages', 'alertCloseButton', 'themeSelect', 'toast']
             .forEach((id) => { elements[id] = byId(id); });
@@ -139,7 +139,7 @@
         document.querySelectorAll('[data-mode]').forEach((button) => button.classList.toggle('active', button.dataset.mode === workspace.mode));
         elements.jobForm.hidden = workspace.mode !== 'job';
         elements.eventForm.hidden = workspace.mode !== 'event';
-        elements.spoolFields.hidden = form.sequence !== 'Spool Check';
+        updateSpoolCheckUi(false);
         renderDefects();
         renderMetrics();
         renderSubmission(form.lastSubmission);
@@ -162,6 +162,7 @@
         form.eventEnd = elements.eventEnd.value;
         document.querySelectorAll('[data-defect]').forEach((input) => { form.defects[input.dataset.defect] = Math.max(0, Number(input.value) || 0); });
         document.querySelectorAll('[data-rca]').forEach((input) => { form.rca[input.dataset.rca] = input.value; });
+        updateSpoolCheckUi(true);
         workspace.hasUnsavedWork = model.hasUnsavedWork(form, workspace.mode);
         renderMetrics();
     }
@@ -177,7 +178,27 @@
         elements.qualityYield.textContent = start ? `${((good / start) * 100).toFixed(1)}%` : '—';
         elements.rootCauseDetails.open = start > 0 && good / start <= 0.5;
         elements.eventDuration.textContent = `${model.eventMinutes(form.eventStart, form.eventEnd)} minutes`;
-        elements.spoolFields.hidden = form.sequence !== 'Spool Check';
+        updateSpoolCheckUi(false);
+    }
+
+    function updateSpoolCheckUi(resetWhenHidden) {
+        const form = workspace.formData;
+        const isSpoolCheck = form.sequence === 'Spool Check';
+        if (!isSpoolCheck && resetWhenHidden) {
+            form.spoolCheckSequence = '';
+            form.spoolCheckNumber = '';
+        }
+        elements.spoolCheckSequence.value = form.spoolCheckSequence || '';
+        elements.spoolCheckNumber.value = form.spoolCheckNumber || '';
+        elements.spoolFields.hidden = !isSpoolCheck;
+        elements.notesLabel.textContent = isSpoolCheck ? 'Reason for Fail' : 'Notes';
+        elements.notes.placeholder = isSpoolCheck ? 'e.g., 7/8 Pass, Failed for Channel' : 'Required below 75% yield';
+        document.querySelectorAll('[data-spool-sequence]').forEach((button) => {
+            button.classList.toggle('active', button.dataset.spoolSequence === form.spoolCheckSequence);
+        });
+        document.querySelectorAll('[data-spool-check]').forEach((button) => {
+            button.classList.toggle('active', button.dataset.spoolCheck === form.spoolCheckNumber);
+        });
     }
 
     function queueSave() {
@@ -334,9 +355,23 @@
             queueSave();
         }));
         [elements.workDate, elements.sequence, elements.lotNumber, elements.itemNumber, elements.timeWorked,
-            elements.spoolCheckSequence, elements.spoolCheckNumber, elements.goodParts, elements.notes,
+            elements.goodParts, elements.notes,
             elements.event, elements.eventStart, elements.eventEnd]
             .forEach((input) => input.addEventListener('input', captureAndQueueSave));
+        document.querySelectorAll('[data-spool-sequence]').forEach((button) => {
+            button.addEventListener('click', () => {
+                workspace.formData.spoolCheckSequence = button.dataset.spoolSequence;
+                elements.spoolCheckSequence.value = button.dataset.spoolSequence;
+                captureAndQueueSave();
+            });
+        });
+        document.querySelectorAll('[data-spool-check]').forEach((button) => {
+            button.addEventListener('click', () => {
+                workspace.formData.spoolCheckNumber = button.dataset.spoolCheck;
+                elements.spoolCheckNumber.value = button.dataset.spoolCheck;
+                captureAndQueueSave();
+            });
+        });
         document.querySelectorAll('[data-replace-zero]').forEach((input) => {
             input.addEventListener('focus', () => selectZeroValue(input));
             input.addEventListener('mouseup', (event) => {

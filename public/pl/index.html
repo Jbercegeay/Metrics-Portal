@@ -72,9 +72,21 @@
                         </div>
                         <div id="spoolFields" class="subsection" hidden>
                             <h3>Spool Check quality details</h3>
-                            <div class="field-grid">
-                                <label>Spool Check sequence<select id="spoolCheckSequence"><option value="">Select…</option><option>10</option><option>20</option><option>30</option></select></label>
-                                <label>Check number<select id="spoolCheckNumber"><option value="">Select…</option><option>1st</option><option>2nd</option><option>3rd</option><option>4th</option><option>5th</option></select></label>
+                            <input id="spoolCheckSequence" type="hidden">
+                            <input id="spoolCheckNumber" type="hidden">
+                            <div class="spool-toggle-row">
+                                <span class="spool-toggle-label">Spool Check Seq</span>
+                                <button class="spool-toggle-button" data-spool-sequence="10" type="button">10</button>
+                                <button class="spool-toggle-button" data-spool-sequence="20" type="button">20</button>
+                                <button class="spool-toggle-button" data-spool-sequence="30" type="button">30</button>
+                            </div>
+                            <div class="spool-toggle-row">
+                                <span class="spool-toggle-label">Check #</span>
+                                <button class="spool-toggle-button" data-spool-check="1st" type="button">1st</button>
+                                <button class="spool-toggle-button" data-spool-check="2nd" type="button">2nd</button>
+                                <button class="spool-toggle-button" data-spool-check="3rd" type="button">3rd</button>
+                                <button class="spool-toggle-button" data-spool-check="4th" type="button">4th</button>
+                                <button class="spool-toggle-button" data-spool-check="5th" type="button">5th</button>
                             </div>
                         </div>
                     </section>
@@ -96,7 +108,7 @@
 
                     <section class="card">
                         <h2>Notes and root cause</h2>
-                        <label>Notes<textarea id="notes" rows="4" placeholder="Required below 75% yield"></textarea></label>
+                        <label><span id="notesLabel">Notes</span><textarea id="notes" rows="4" placeholder="Required below 75% yield"></textarea></label>
                         <details id="rootCauseDetails">
                             <summary>Root-cause details (one required at 50% yield or lower)</summary>
                             <div class="field-grid details-grid">

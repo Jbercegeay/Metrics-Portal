@@ -33,6 +33,8 @@ Changelog entries are not required for every commit. Add entries under `Testing`
 - Restored PL root-cause operator dropdowns from the configured associate roster and centered blocking warning dialogs for floor visibility.
 - Restored the PL theme selector in the isolated database-backed portal and made the Time worked field replace the default zero on first entry while hiding spinner controls.
 - Added PL configuration-backed RCA operators so root-cause operator dropdowns read the new `Operators` config column instead of department associates, with the legacy roster seeded into Smartsheet.
+- Restored PL Spool Check controls to match the compatibility portal, including sequence/check toggle buttons, Reason for Fail labeling, and mapped Spool Check payload fields.
+- Improved PL theme colors for notices, status pills, buttons, toggles, errors, dialogs, and toast messages so controls remain readable across Precision, Light, Dark, and High Contrast themes.
 - Prepared the v1.2.0 multi-associate shared-workstation release across Precision Liner, PTFE, and Polyimide with independent associate workspaces, active-associate submit attribution, open-work badges, and per-associate Job x Job tracking.
 - Moved Precision Liner associate switching into a dedicated Associate Workspaces panel and added matching PTFE/Polyimide workspace panels for the shared-workstation rollout.
 - Added active kiosk locks so an associate cannot be signed into two different workstations at the same time.
