@@ -56,6 +56,25 @@ Alert messages should identify the affected component, department, first failure
 - Monitor backup completion and age.
 - Keep database migration files and application releases in Git; backups protect production data, not source code.
 
+## Current Backup Implementation Status
+
+The repository includes Windows backup tooling, and the target server has already produced verified off-machine backups during readiness work. The backup script creates a PostgreSQL custom-format dump, verifies it with `pg_restore --list`, writes a SHA-256 metadata sidecar, and removes partial artifacts if backup or verification fails.
+
+Current state:
+
+- Manual verified backups have been proven against the approved off-server backup share.
+- Backup freshness/hash verification tooling exists.
+- An isolated restore drill has been proven against a disposable PostgreSQL database.
+- Automatic Windows Task Scheduler registration is still a manual operations gate; it must be completed before or as part of the PL database cutover, not assumed merely because the script exists.
+
+Before enabling production PL database submissions, confirm:
+
+1. The scheduled backup task exists and runs as the approved Windows identity.
+2. The task identity can read the protected environment file or otherwise receive the backup-role database URL without printing secrets.
+3. The task identity can write to the approved off-server backup share.
+4. `Test-BackupFreshness.ps1` passes with the agreed maximum age.
+5. At least one recent backup has either passed a restore drill or is covered by the documented restore-drill cadence.
+
 ## Restore Testing
 
 A backup is not considered valid until restored successfully.
@@ -107,4 +126,3 @@ At least quarterly:
 - Escalation contacts and after-hours responsibilities.
 
 The initial recommendation is an RPO of 24 hours for catastrophic server loss with daily backups, improved later with more frequent backups or replication. Acknowledged submissions since the last backup remain at risk if the server disk is completely lost, so the final RPO must be explicitly accepted or improved.
-

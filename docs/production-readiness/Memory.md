@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, and live-process preflight baseline are complete. Controlled release deployment is deferred while the department continues using the current live `main`; local/isolated testing will continue before the planned July 4 office-closure window.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. Controlled release deployment is deferred while the department continues using the current live `main`; local/isolated testing will continue before the planned July 4 office-closure window.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,15 +37,16 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Keep release PR #9 draft and green, support local/isolated validation, and prepare for the July 4 office-closure deployment window while production feature flags remain disabled.
+- Keep release PR #9 draft and green, support local/isolated validation, and prepare for the July 4 office-closure code deployment while production database workflow feature flags remain disabled. Treat the PL database cutover as a separate supervised window after the code deployment is healthy.
 
 ## Next Actions
 
 1. Run additional local/isolated validation from release PR #9 without changing the current live production deployment.
 2. Obtain final release approval for the July 4 office-closure window.
-3. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled.
+3. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled so production remains on direct-Smartsheet compatibility behavior.
 4. Complete post-deployment health/preflight after the release code exists on the live process path.
-5. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+5. Before the separate PL database cutover, register and verify recurring database backups, confirm backup freshness, confirm the worker process, and verify the production PL destination contract.
+6. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -67,14 +68,14 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 ## Latest Validation
 
 - Syntax checked across application, migration, script, and test JavaScript files.
-- Local automated suite passes with 70 runnable tests and three expected database-dependent skips outside the CI database job.
+- Local automated suite passes with 78 runnable tests and three expected database-dependent skips outside the CI database job.
 - Health endpoints pass against the assembled Express application, including compatibility-mode readiness. The current live port 3002 deployment predates the v2 health endpoints, so the deployment preflight can verify prerequisites and root-page identity before release, but full `/api/v2/health` acceptance must run after the approved release is deployed.
 - Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
-- Draft PR #3 GitHub Actions run 27827283516 passed against PostgreSQL 18, including clean migration, database transaction, application, syntax, documentation-link, and dependency-audit checks.
+- Draft release PR #9 GitHub Actions run 28455571764 passed against PostgreSQL 18 after the direct event-duration update.
 
 ## Deployment State
 
-- PostgreSQL 18.4 and the migrated application schema are installed on the target; the PL production Smartsheet destination has the required empty `Submission ID` column; no portal application code or feature flag has been deployed.
+- PostgreSQL 18.4 and the migrated application schema are installed on the target; manual off-server backups and an isolated restore drill have passed; recurring Windows scheduled backups still need registration before PL database cutover. The PL production Smartsheet destination has the required empty `Submission ID` column; no portal application code or feature flag has been deployed to production.
 - Do not pull planning or incomplete implementation work onto the production server.
 - Production deployments must use an approved commit or release tag and the documented release checklist.
 
@@ -98,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-06-30 - July 4 staged deployment and backup scheduling documented
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 deployment planning and operations handoff.
+- Work completed: Documented the July 4 plan as a code deployment with production database workflow flags disabled, clarified that PL database cutover is a separate supervised action, documented that production database-backed PL submissions still synchronize to the production PL master log through the worker, and clarified that the UAT test sheet is never a production destination. Documented backup implementation status: manual verified off-server backups and restore drill have passed, while Windows Task Scheduler registration remains a required operations gate before PL database cutover.
+- Files or schema changed: Production-readiness cutover plan, operations/recovery guide, Windows tooling guide, readiness index, and program memory only. No production portal deployment, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: July 4 should deploy the approved code and migrations without enabling PL database traffic. PL database cutover should happen later only after recurring backups are registered/verified and the first real entries can be supervised.
+- Validation performed: `npm run check:docs` and `git diff --check` passed locally.
+- Deployment status: Not deployed to production; PR #9 remains draft for extended UAT and planned July 4 code deployment.
+- Risks/blockers: Recurring backup schedule, TLS/DNS, alert transport, final release approval, production code deployment, and separate PL database cutover approval remain.
+- Exact next action: Commit and push the documentation update, then keep UAT running for continued testing.
 
 ### 2026-06-30 - PL event duration simplified for UAT
 

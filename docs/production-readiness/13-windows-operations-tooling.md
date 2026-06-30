@@ -24,6 +24,8 @@ The backup command uses PostgreSQL custom format, verifies the archive with `pg_
 
 For a scheduled task, provide `-EnvironmentFile 'C:\path\to\.env'`; the script reads only `DATABASE_URL` and never prints it. The task identity must have read access to that file and write access to the backup destination.
 
+Scheduling status: the script is production-ready and has been proven manually, but the Windows Task Scheduler job remains an explicit manual setup gate. Before PL database cutover, register a daily task that runs this script with the backup role connection, then verify the resulting dump with `Test-BackupFreshness.ps1`. Do not treat manual backup success as proof that recurring backups are active.
+
 Verify backup age and integrity independently:
 
 ```powershell
