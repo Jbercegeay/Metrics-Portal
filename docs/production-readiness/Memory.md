@@ -10,8 +10,8 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. The originally planned July 4 code deployment was delayed; as of July 20, 2026, the release branch is being refreshed against current `main` before a staged production code deployment with database workflow feature flags disabled.
-- Current phase: Phase 7 - Deployment preparation and controlled validation.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. The delayed staged production code deployment completed on July 20, 2026 at release merge commit `2638a89`; production database workflow feature flags remain disabled, so PL, PTFE, and PI continue using direct-Smartsheet compatibility behavior.
+- Current phase: Phase 7 - Post-deployment observation and PL database cutover preparation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
@@ -37,16 +37,15 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Refresh release PR #9 against current `main`, rerun validation, and prepare for a delayed staged production code deployment while production database workflow feature flags remain disabled. Treat the PL database cutover as a separate supervised window after the code deployment is healthy.
+- Observe the staged production code deployment with database workflow feature flags disabled. Prepare for the separate supervised PL database cutover only after recurring backups, worker readiness, and final cutover checks are verified.
 
 ## Next Actions
 
-1. Complete release-branch refresh against current `main` and rerun local/GitHub validation.
-2. Obtain final release approval for the delayed production code-deployment window.
-3. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled so production remains on direct-Smartsheet compatibility behavior.
-4. Complete post-deployment health/preflight after the release code exists on the live process path.
-5. Before the separate PL database cutover, register and verify recurring database backups, confirm backup freshness, confirm the worker process, and verify the production PL destination contract.
-6. Keep certificate issuer, alert transport, cutover windows, and department UAT representatives on the deployment-prerequisite checklist.
+1. Monitor the live `metrics-portal` process and direct-Smartsheet production workflow after the July 20 code deployment.
+2. Confirm operators can continue normal PL, PTFE, and PI submissions from the compatibility pages.
+3. Before the separate PL database cutover, register and verify recurring database backups, confirm backup freshness, confirm the worker process, and verify the production PL destination contract.
+4. Schedule the supervised PL database cutover window and first-entry verification with Johnny, Ashley West, and/or Joey Cox.
+5. Keep certificate issuer, alert transport, cutover windows, and PTFE/PI UAT representatives on the deployment-prerequisite checklist.
 
 ## Open Decisions
 
@@ -62,21 +61,21 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 - The application and proposed database will initially share one physical server.
 - The current production page combines all three department interfaces.
 - Browser `localStorage` still owns substantial active-work state.
-- Current production submissions still depend on synchronous Smartsheet responses.
+- Current production submissions still depend on synchronous Smartsheet responses until the separate department database cutover is enabled.
 - TLS, alerting, maintenance-window approval, final release approval, and department cutover approval remain external release gates.
 
 ## Latest Validation
 
 - Syntax checked across application, migration, script, and test JavaScript files.
 - Local automated suite passes with 78 runnable tests and three expected database-dependent skips outside the CI database job.
-- Health endpoints pass against the assembled Express application, including compatibility-mode readiness. The current live port 3002 deployment predates the v2 health endpoints, so the deployment preflight can verify prerequisites and root-page identity before release, but full `/api/v2/health` acceptance must run after the approved release is deployed.
+- Health endpoints pass against the assembled Express application, including compatibility-mode readiness. After the July 20 production code deployment, `GET /api/v2/health` returned HTTP 200 from the live `metrics-portal` process.
 - Local Markdown links pass validation and the production dependency audit reports zero vulnerabilities.
-- Draft release PR #9 GitHub Actions run 28455571764 passed against PostgreSQL 18 after the direct event-duration update.
+- Release PR #9 GitHub Actions run 29741738237 passed against PostgreSQL 18 on July 20, 2026 after refreshing the branch against current `main`.
 
 ## Deployment State
 
-- PostgreSQL 18.4 and the migrated application schema are installed on the target; manual off-server backups and an isolated restore drill have passed; recurring Windows scheduled backups still need registration before PL database cutover. The PL production Smartsheet destination has the required empty `Submission ID` column; no portal application code or feature flag has been deployed to production.
-- Do not pull planning or incomplete implementation work onto the production server.
+- PostgreSQL 18.4 and the migrated application schema are installed on the target; manual off-server backups and an isolated restore drill have passed; recurring Windows scheduled backups still need registration before PL database cutover. The PL production Smartsheet destination has the required empty `Submission ID` column. Release commit `2638a89` is deployed to production on port 3002 with database workflow feature flags disabled.
+- Do not enable PL database workflow flags or start the worker until the separate PL database cutover is approved.
 - Production deployments must use an approved commit or release tag and the documented release checklist.
 
 ## Session Update Template
@@ -99,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-07-20 - Staged production code deployment completed
+
+- Branch: `main`.
+- Commit or PR: PR #9 merged to `main` as release commit `2638a89`.
+- Phase/work package: Phase 7 staged production code deployment.
+- Work completed: Marked PR #9 ready, merged it to `main`, pulled the approved release commit onto `C:\serverdata\repos\metrics-portal`, installed locked dependencies, created a fresh verified off-server PostgreSQL backup, confirmed migrations were already current, granted runtime database access, restarted only the `metrics-portal` PM2 web process, and verified the live application on port 3002.
+- Files or schema changed: Production server checkout advanced from `1cb14df` to `2638a89`; npm dependencies installed from the lockfile; no new database migrations were applied because all migrations were already current. Program memory updated after deployment. No production Smartsheet rows, PL database workflow flags, or worker process were changed.
+- Decisions made: Keep `PL_DATABASE_SUBMISSIONS_ENABLED`, server sessions, server workspaces, and durable submissions disabled for this staged deployment. Do not start `metrics-portal-worker` until the separate PL database cutover is approved.
+- Validation performed: Fresh backup `metrics-portal-20260720-083325.dump` was created on the approved UNC backup destination and passed hash freshness verification. `npm ci` reported zero vulnerabilities. `npm run migrate:up` reported no migrations to run. Runtime grants succeeded. PM2 showed `metrics-portal` online. Root page at `http://10.15.3.47:3002/` returned title `Metrics Portal - v1.2.0`; `/api/v2/health` returned HTTP 200; `/api/v2/features` returned all database/session workflow flags disabled.
+- Deployment status: Production code deployment complete; production remains on direct-Smartsheet compatibility behavior for PL, PTFE, and PI.
+- Risks/blockers: Recurring Windows scheduled backups, worker-process readiness, final PL database cutover approval, alert transport, TLS/DNS, and PTFE/PI UAT representatives remain before broader database-backed rollout.
+- Exact next action: Monitor normal production use on the deployed code, then prepare the separate supervised PL database cutover checklist when ready.
 
 ### 2026-07-20 - Delayed deployment prep refreshed against main
 
