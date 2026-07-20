@@ -50,11 +50,11 @@ PI_DATABASE_SUBMISSIONS_ENABLED=false
 
 Feature flags must default to the safest known behavior and be documented per environment. Removing a flag occurs only after the rollback window closes.
 
-## July 4 Staged Release Plan
+## Delayed Staged Release Plan
 
-The July 4 office-closure deployment is a code deployment and migration-preparation event, not the automatic PL database cutover.
+The originally planned July 4 office-closure deployment was delayed. As of July 20, 2026, the release remains staged: the first production deployment is a code deployment and migration-preparation event, not the automatic PL database cutover.
 
-Planned July 4 production action:
+Planned production code-deployment action:
 
 1. Merge or tag the approved release commit after UAT remains clean.
 2. Pull the exact approved commit onto `C:\ServerData\Repos\Metrics-Portal`.
@@ -64,7 +64,7 @@ Planned July 4 production action:
 6. Run production health/preflight checks.
 7. Keep department database workflow flags disabled unless the PL cutover is separately approved.
 
-Expected behavior immediately after the July 4 code deployment with PL database flags disabled:
+Expected behavior immediately after the code deployment with PL database flags disabled:
 
 - PL, PTFE, and PI production users remain on the compatibility/direct-Smartsheet workflow.
 - Production submissions continue writing directly to the existing production Smartsheet destinations.
@@ -120,7 +120,7 @@ As of the PL floor acceptance record and extended UAT, the isolated browser work
 
 Recommended post-deployment PL cutover timing:
 
-- If July 4 code deployment is healthy and UAT remains clean, PL database cutover can occur in a separate supervised window without waiting weeks.
+- If the delayed code deployment is healthy and UAT remains clean, PL database cutover can occur in a separate supervised window without waiting weeks.
 - Prefer a low-traffic start-of-shift or office-closure window where Johnny, Ashley West, and/or Joey Cox can verify the first real entries.
 - Before enabling PL database flags, take and verify a fresh off-machine backup, verify the production PL destination contract, confirm the worker process is running, and record the exact release commit.
 - After enabling PL database flags, verify one normal job, one Spool Check job, and one event entry in PostgreSQL and the production PL master log before broad use continues.

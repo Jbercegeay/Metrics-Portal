@@ -10,12 +10,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. Controlled release deployment is deferred while the department continues using the current live `main`; local/isolated testing will continue before the planned July 4 office-closure window.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. The originally planned July 4 code deployment was delayed; as of July 20, 2026, the release branch is being refreshed against current `main` before a staged production code deployment with database workflow feature flags disabled.
 - Current phase: Phase 7 - Deployment preparation and controlled validation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
 - First department migration: Precision Liner.
-- Last updated: 2026-06-30.
+- Last updated: 2026-07-20.
 
 ## Completed Work
 
@@ -37,12 +37,12 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Keep release PR #9 draft and green, support local/isolated validation, and prepare for the July 4 office-closure code deployment while production database workflow feature flags remain disabled. Treat the PL database cutover as a separate supervised window after the code deployment is healthy.
+- Refresh release PR #9 against current `main`, rerun validation, and prepare for a delayed staged production code deployment while production database workflow feature flags remain disabled. Treat the PL database cutover as a separate supervised window after the code deployment is healthy.
 
 ## Next Actions
 
-1. Run additional local/isolated validation from release PR #9 without changing the current live production deployment.
-2. Obtain final release approval for the July 4 office-closure window.
+1. Complete release-branch refresh against current `main` and rerun local/GitHub validation.
+2. Obtain final release approval for the delayed production code-deployment window.
 3. Merge or tag the approved release commit, then pull the exact approved release onto `C:\ServerData\Repos\Metrics-Portal`, apply migrations, and restart PM2 with feature flags still disabled so production remains on direct-Smartsheet compatibility behavior.
 4. Complete post-deployment health/preflight after the release code exists on the live process path.
 5. Before the separate PL database cutover, register and verify recurring database backups, confirm backup freshness, confirm the worker process, and verify the production PL destination contract.
@@ -99,6 +99,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-07-20 - Delayed deployment prep refreshed against main
+
+- Branch: `codex/pl-release-candidate`.
+- Commit or PR: Draft PR #9 to `main`; pending commit in this change.
+- Phase/work package: Phase 7 delayed release preparation.
+- Work completed: Began the delayed production code-deployment prep by merging current `origin/main` into the PL release candidate. The mainline merge brought forward the numbered-associate-name parser change. Updated readiness documentation to replace stale July 4 wording with the July 20 delayed staged-deployment plan.
+- Files or schema changed: `lib/config.js` through the `origin/main` merge, production-readiness cutover plan, readiness index, and program memory. No production portal deployment, database schema, Smartsheet data, PM2 process, or feature flag changed.
+- Decisions made: Do not deploy the stale June 30 release candidate directly; refresh it against current `main`, validate, and keep PL database workflow flags disabled for the first production code deployment.
+- Validation performed: `npm run check:syntax`, `npm run check:html`, `npm run check:docs`, `npm run check:powershell`, `npm test`, and `git diff --check` passed locally; the suite reported 78 passing tests and three expected database-dependent skips.
+- Deployment status: Not deployed to production; production remains on current `main` direct-Smartsheet behavior.
+- Risks/blockers: Final release approval, fresh pre-deployment backup, production merge/tag, production pull, migration execution, PM2 restart, and post-deployment health checks remain.
+- Exact next action: Commit and push the refreshed release candidate, then wait for PR #9 CI.
 
 ### 2026-06-30 - July 4 staged deployment and backup scheduling documented
 
