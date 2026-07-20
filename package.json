@@ -1,12 +1,29 @@
 {
-  "name": "pl-portal-full-app",
+  "name": "metrics-portal",
   "version": "1.1.0",
   "description": "",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:worker": "node workers/smartsheet-worker.js",
+    "migrate:create": "node-pg-migrate create -m db/migrations",
+    "migrate:up": "node-pg-migrate up -m db/migrations",
+    "migrate:down": "node-pg-migrate down -m db/migrations",
     "validate:pi": "node scripts/validate-pi-smartsheet.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "validate:pl-destination": "node scripts/validate-pl-destination.js",
+    "migrate:pl-submission-id": "node scripts/add-pl-submission-id-column.js",
+    "migrate:pl-operators": "node scripts/add-pl-operators-config-column.js",
+    "create:pl-integration-sheet": "node scripts/create-pl-integration-sheet.js",
+    "validate:pl-integration-delivery": "node scripts/validate-pl-integration-delivery.js",
+    "validate:pl-outbox-integration": "node scripts/validate-pl-outbox-integration.js",
+    "validate:pl-uat-sheet": "node scripts/manage-pl-uat-sheet.js",
+    "cleanup:pl-uat-sheet": "node scripts/manage-pl-uat-sheet.js --clear",
+    "check:syntax": "node scripts/check-javascript-syntax.js",
+    "check:html": "node scripts/check-html-scripts.js",
+    "check:docs": "node scripts/check-markdown-links.js",
+    "check:powershell": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check-powershell-syntax.ps1",
+    "test": "node --test test/*.test.js",
+    "test:database": "node --test test/database.integration.test.js test/submission.database.integration.test.js test/session-workspace.database.integration.test.js"
   },
   "keywords": [],
   "author": "",
@@ -18,6 +35,12 @@
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "pg": "^8.22.0",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^8.0.4",
+    "supertest": "^7.2.2"
   }
 }

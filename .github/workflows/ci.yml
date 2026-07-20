@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: metrics_portal
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: metrics_portal_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U metrics_portal -d metrics_portal_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      DATABASE_ENABLED: "true"
+      DATABASE_REQUIRED: "true"
+      DATABASE_URL: postgresql://metrics_portal:test-password@127.0.0.1:5432/metrics_portal_test
+      REQUIRE_DATABASE_TESTS: "true"
+      DEPT_PL_API_TOKEN: test-token
+      DEPT_PL_CONFIG_SHEET_ID: "1"
+      DEPT_PL_MASTER_LOG_SHEET_ID: "2"
+      DEPT_PL_DEFECT_SEEDS_SHEET_ID: "3"
+      DEPT_PTFE_API_TOKEN: test-token
+      DEPT_PTFE_CONFIG_SHEET_ID: "4"
+      DEPT_PTFE_MASTER_LOG_SHEET_ID: "5"
+      DEPT_PTFE_STANDARDS_SHEET_ID: "6"
+      DEPT_PTFE_ITEMS_SHEET_ID: "7"
+      DEPT_PTFE_JOB_LOG_SHEET_ID: "8"
+      DEPT_PI_API_TOKEN: test-token
+      DEPT_PI_CONFIG_SHEET_ID: "9"
+      DEPT_PI_MASTER_LOG_SHEET_ID: "10"
+      DEPT_PI_STANDARDS_SHEET_ID: "11"
+      DEPT_PI_ITEMS_SHEET_ID: "12"
+      DEPT_PI_JOB_LOG_SHEET_ID: "13"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:syntax
+      - run: npm run check:html
+      - run: npm run check:docs
+      - run: ./scripts/check-powershell-syntax.ps1
+        shell: pwsh
+      - run: npm run migrate:up
+      - run: npm test
+      - run: npm run test:database
+      - run: npm audit --omit=dev

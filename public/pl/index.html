@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Precision Liner Production Portal</title>
+    <link rel="stylesheet" href="/pl/styles.css">
+</head>
+<body>
+    <script>
+        const savedPortalTheme = ['precision', 'light', 'dark', 'high-contrast'].includes(localStorage.getItem('portalTheme'))
+            ? localStorage.getItem('portalTheme')
+            : 'precision';
+        document.body.classList.add(`theme-${savedPortalTheme}`);
+    </script>
+    <header class="topbar">
+        <div>
+            <p class="eyebrow">Metrics Portal</p>
+            <h1>Precision Liner</h1>
+            <p id="identity" class="muted">Loading authenticated workspace…</p>
+        </div>
+        <div class="top-actions">
+            <label class="theme-control">Theme<select id="themeSelect" class="theme-select">
+                <option value="precision">Precision</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="high-contrast">High Contrast</option>
+            </select></label>
+            <span id="saveState" class="status neutral">Connecting</span>
+            <a class="button secondary" href="/changelog.html">Changelog</a>
+            <button id="signOutButton" class="button danger" type="button">Sign out</button>
+        </div>
+    </header>
+
+    <main class="shell" hidden>
+        <section id="conflictPanel" class="notice warning" hidden>
+            <div><strong>This workspace changed in another tab.</strong><br>Reload the server copy before entering more data.</div>
+            <button id="reloadWorkspaceButton" class="button warning-button" type="button">Load server copy</button>
+        </section>
+
+        <section id="submissionPanel" class="notice info" hidden>
+            <div>
+                <strong id="submissionTitle">Saved to database</strong>
+                <span id="submissionDetail">Waiting for Smartsheet synchronization.</span>
+            </div>
+            <button id="refreshSubmissionButton" class="button secondary" type="button">Refresh status</button>
+        </section>
+
+        <section class="workspace-heading card">
+            <div>
+                <p class="eyebrow">Authenticated workspace</p>
+                <h2 id="associateName">Associate</h2>
+            </div>
+            <label>Work date<input id="workDate" type="date"></label>
+        </section>
+
+        <nav class="mode-tabs" aria-label="Entry type">
+            <button class="mode-tab active" data-mode="job" type="button">Job entry</button>
+            <button class="mode-tab" data-mode="event" type="button">Event entry</button>
+        </nav>
+
+        <form id="jobForm" novalidate>
+            <div class="layout">
+                <div class="stack">
+                    <section class="card">
+                        <h2>Job details</h2>
+                        <div class="field-grid">
+                            <label>Sequence<select id="sequence"><option value="">Select sequence…</option></select></label>
+                            <label>Lot number<input id="lotNumber" autocomplete="off"></label>
+                            <label>Item number<input id="itemNumber" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+                            <label>Time worked (minutes)<input id="timeWorked" class="operator-number" type="number" min="0" step="1" data-replace-zero></label>
+                        </div>
+                        <div id="spoolFields" class="subsection" hidden>
+                            <h3>Spool Check quality details</h3>
+                            <input id="spoolCheckSequence" type="hidden">
+                            <input id="spoolCheckNumber" type="hidden">
+                            <div class="spool-toggle-row">
+                                <span class="spool-toggle-label">Spool Check Seq</span>
+                                <button class="spool-toggle-button" data-spool-sequence="10" type="button">10</button>
+                                <button class="spool-toggle-button" data-spool-sequence="20" type="button">20</button>
+                                <button class="spool-toggle-button" data-spool-sequence="30" type="button">30</button>
+                            </div>
+                            <div class="spool-toggle-row">
+                                <span class="spool-toggle-label">Check #</span>
+                                <button class="spool-toggle-button" data-spool-check="1st" type="button">1st</button>
+                                <button class="spool-toggle-button" data-spool-check="2nd" type="button">2nd</button>
+                                <button class="spool-toggle-button" data-spool-check="3rd" type="button">3rd</button>
+                                <button class="spool-toggle-button" data-spool-check="4th" type="button">4th</button>
+                                <button class="spool-toggle-button" data-spool-check="5th" type="button">5th</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <h2>Production quantities</h2>
+                        <div class="quantity-row">
+                            <button id="addOne" class="button secondary large" type="button">+1 good</button>
+                            <button id="addFive" class="button primary large" type="button">+5 good</button>
+                            <label>Good parts<input id="goodParts" type="number" min="0" step="1"></label>
+                        </div>
+                        <div class="metrics">
+                            <div><span>Start quantity</span><strong id="startQuantity">0</strong></div>
+                            <div><span>End quantity</span><strong id="endQuantity">0</strong></div>
+                            <div><span>Total defects</span><strong id="totalDefects">0</strong></div>
+                            <div><span>Quality yield</span><strong id="qualityYield">—</strong></div>
+                        </div>
+                    </section>
+
+                    <section class="card">
+                        <h2>Notes and root cause</h2>
+                        <label><span id="notesLabel">Notes</span><textarea id="notes" rows="4" placeholder="Required below 75% yield"></textarea></label>
+                        <details id="rootCauseDetails">
+                            <summary>Root-cause details (one required at 50% yield or lower)</summary>
+                            <div class="field-grid details-grid">
+                                <label>PTFE Oven Head<input data-rca="ptfeHead"></label>
+                                <label>PTFE Operators<select data-rca="ptfeOps" data-operator-select><option value="">Select operator…</option></select></label>
+                                <label>Etch Operators<select data-rca="etchOps" data-operator-select><option value="">Select operator…</option></select></label>
+                                <label>Teco Oven Head<input data-rca="tecoHead"></label>
+                                <label>Teco Operators<select data-rca="tecoOps" data-operator-select><option value="">Select operator…</option></select></label>
+                                <label>Pebax Oven Head<input data-rca="pebaxHead"></label>
+                                <label>Pebax Operators<select data-rca="pebaxOps" data-operator-select><option value="">Select operator…</option></select></label>
+                                <label>Operators left a comment<select data-rca="commentStatus"><option>No</option><option>Yes</option></select></label>
+                            </div>
+                        </details>
+                    </section>
+                </div>
+
+                <section class="card defects-card">
+                    <h2>Defects</h2>
+                    <p class="muted">Defect choices come from the PL configuration sheet.</p>
+                    <div id="defectList" class="defect-list"></div>
+                </section>
+            </div>
+            <div id="jobErrors" class="errors" role="alert" hidden></div>
+            <div class="sticky-submit"><button id="submitJobButton" class="button primary submit" type="submit">Save job to database</button></div>
+        </form>
+
+        <form id="eventForm" class="card" novalidate hidden>
+            <h2>Event entry</h2>
+            <div class="field-grid">
+                <label>Event<select id="event"><option value="">Select event…</option></select></label>
+                <label>Duration (minutes)<input id="eventDuration" class="operator-number" type="number" min="0" step="1" data-replace-zero></label>
+            </div>
+            <div id="eventErrors" class="errors" role="alert" hidden></div>
+            <div class="sticky-submit"><button id="submitEventButton" class="button primary submit" type="submit">Save event to database</button></div>
+        </form>
+    </main>
+
+    <div id="alertOverlay" class="alert-overlay" role="alertdialog" aria-modal="true" aria-labelledby="alertTitle" hidden>
+        <section class="alert-dialog">
+            <h2 id="alertTitle">Action required</h2>
+            <div id="alertMessages"></div>
+            <button id="alertCloseButton" class="button primary" type="button">OK</button>
+        </section>
+    </div>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <script src="/shared/api-client.js"></script>
+    <script src="/pl/pl-model.js"></script>
+    <script src="/pl/app.js"></script>
+</body>
+</html>
