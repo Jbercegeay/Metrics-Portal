@@ -2673,6 +2673,10 @@
             return PTFE_RESULTS.yieldPercent > 0 && PTFE_RESULTS.yieldPercent < 75;
         }
 
+        function isPtfeLowPullYield() {
+            return PTFE_RESULTS.yieldPercent > 0 && PTFE_RESULTS.yieldPercent <= 85;
+        }
+
         function isPtfeInspectionSequence(sequence) {
             return sequence === 'Inspection' || sequence === 'EV3 Inspection';
         }
@@ -2792,7 +2796,7 @@
             if (recutsField) recutsField.style.display = showRecuts ? 'block' : 'none';
             const lowYield = isPtfeLowYield();
             const showInspectionPareto = lowYield && isPtfeInspectionSequence(sequence);
-            const showPullingPareto = lowYield && showPull;
+            const showPullingPareto = isPtfeLowPullYield() && showPull;
             if (inspectionSection) inspectionSection.style.display = showInspectionPareto ? 'block' : 'none';
             if (pullingSection) pullingSection.style.display = showPullingPareto ? 'block' : 'none';
 
@@ -2911,7 +2915,7 @@
                 return false;
             }
 
-            if (isPtfeLowYield() && sequence === 'Pull' && getCheckedValues('ptfePullingPareto').length === 0) {
+            if (isPtfeLowPullYield() && sequence === 'Pull' && getCheckedValues('ptfePullingPareto').length === 0) {
                 showToast('At least one Pulling Pareto is required for low-yield pull jobs.');
                 return false;
             }
@@ -3417,6 +3421,10 @@
             return PI_RESULTS.yieldPercent > 0 && PI_RESULTS.yieldPercent < 75;
         }
 
+        function isPiLowPullYield() {
+            return PI_RESULTS.yieldPercent > 0 && PI_RESULTS.yieldPercent <= 85;
+        }
+
         function getPiStandard(item, sequence) {
             return PI_STANDARDS[`${item}::${sequence}`] || {};
         }
@@ -3523,7 +3531,7 @@
             setPiDisplay('piSpoolFields', showPull ? 'block' : 'none');
             setPiDisplay('piRecutsField', showRecuts ? 'block' : 'none');
             setPiDisplay('piInspectionParetoSection', isPiLowYield() && isPiInspectionSequence(sequence) ? 'block' : 'none');
-            setPiDisplay('piPullingParetoSection', isPiLowYield() && showPull ? 'block' : 'none');
+            setPiDisplay('piPullingParetoSection', isPiLowPullYield() && showPull ? 'block' : 'none');
 
             setPiText('piLengthInches', lengthInches > 0 ? fmtPtfe(lengthInches, 2) : '-');
             setPiText('piTotalInches', totalInches > 0 ? fmtPtfe(totalInches, 0) : '-');
@@ -3623,7 +3631,7 @@
                 showToast('At least one Inspection Pareto is required for low-yield inspection jobs.');
                 return false;
             }
-            if (isPiLowYield() && isPiPullSequence(sequence) && getCheckedValues('piPullingPareto').length === 0) {
+            if (isPiLowPullYield() && isPiPullSequence(sequence) && getCheckedValues('piPullingPareto').length === 0) {
                 showToast('At least one Pulling Pareto is required for low-yield pull jobs.');
                 return false;
             }
