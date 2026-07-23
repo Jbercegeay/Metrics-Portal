@@ -10,7 +10,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Current Program State
 
-- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, and restore-proven. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. The delayed staged production code deployment completed on July 20, 2026 at release merge commit `2638a89`; production database workflow feature flags remain disabled, so PL, PTFE, and PI continue using direct-Smartsheet compatibility behavior.
+- Status: PL migration implementation and Windows operations tooling are validated in CI; target PostgreSQL 18 is secured, migrated, manually backed up, restore-proven, and covered by a verified daily scheduled backup task. Standalone test-sheet, full-column exact-ID replay, target database/outbox delivery, isolated technical browser UAT, rollback rehearsal, PL floor-user sign-off, UAT cleanup, fresh backup, production destination expansion, live-process preflight baseline, extended event-duration testing, Spool Check mapping verification, stale-tab conflict testing, and database/Smartsheet spot checks are complete. The delayed staged production code deployment completed on July 20, 2026 at release merge commit `2638a89`; production database workflow feature flags remain disabled, so PL, PTFE, and PI continue using direct-Smartsheet compatibility behavior.
 - Current phase: Phase 7 - Post-deployment observation and PL database cutover preparation.
 - Production: The three-department Metrics Portal remains active from `C:\ServerData\Repos\Metrics-Portal` on PM2 process `metrics-portal`, port 3002, at the approved `main` deployment. The separate legacy `PL-Portal` on port 3000 is out of scope.
 - Target architecture: One platform with separate PL, PTFE, and PI applications, PostgreSQL as the operational system of record, and asynchronous Smartsheet synchronization.
@@ -37,13 +37,13 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Active Work
 
-- Observe the staged production code deployment with database workflow feature flags disabled. Prepare for the separate supervised PL database cutover only after recurring backups, worker readiness, and final cutover checks are verified.
+- Observe the staged production code deployment with database workflow feature flags disabled. Prepare for the separate supervised PL database cutover after worker readiness and final cutover checks are verified.
 
 ## Next Actions
 
 1. Monitor the live `metrics-portal` process and direct-Smartsheet production workflow after the July 20 code deployment.
 2. Confirm operators can continue normal PL, PTFE, and PI submissions from the compatibility pages.
-3. Before the separate PL database cutover, register and verify recurring database backups, confirm backup freshness, confirm the worker process, and verify the production PL destination contract.
+3. Before the separate PL database cutover, confirm backup freshness, confirm the worker process, and verify the production PL destination contract.
 4. Schedule the supervised PL database cutover window and first-entry verification with Johnny, Ashley West, and/or Joey Cox.
 5. Keep certificate issuer, alert transport, cutover windows, and PTFE/PI UAT representatives on the deployment-prerequisite checklist.
 
@@ -74,7 +74,7 @@ Do not store passwords, tokens, connection strings, employee-sensitive data, or 
 
 ## Deployment State
 
-- PostgreSQL 18.4 and the migrated application schema are installed on the target; manual off-server backups and an isolated restore drill have passed; recurring Windows scheduled backups still need registration before PL database cutover. The PL production Smartsheet destination has the required empty `Submission ID` column. Release commit `2638a89` is deployed to production on port 3002 with database workflow feature flags disabled.
+- PostgreSQL 18.4 and the migrated application schema are installed on the target; manual off-server backups, an isolated restore drill, and a daily Windows scheduled backup task have passed. The PL production Smartsheet destination has the required empty `Submission ID` column. Release commit `2638a89` is deployed to production on port 3002 with database workflow feature flags disabled.
 - Do not enable PL database workflow flags or start the worker until the separate PL database cutover is approved.
 - Production deployments must use an approved commit or release tag and the documented release checklist.
 
@@ -98,6 +98,19 @@ Append a concise entry below whenever work is performed. Keep the current-state 
 ```
 
 ## Session History
+
+### 2026-07-23 - Daily PostgreSQL backup scheduling verified
+
+- Branch: `main`.
+- Commit or PR: Pending documentation commit in this change.
+- Phase/work package: Phase 7 operations hardening before PL database cutover.
+- Work completed: Created the protected backup environment file `C:\serverdata\secrets\metrics-portal-backup.env` on the production server, proved `Backup-Postgres.ps1` can read it without printing secrets, registered the Windows scheduled task `Metrics Portal PostgreSQL Backup`, ran the scheduled task once, and verified the resulting backup.
+- Files or schema changed: Production server secret file and Windows scheduled task were created; program memory/readiness docs updated locally. No production portal deployment, database schema, Smartsheet data, PM2 process, PL database workflow flag, or worker process changed.
+- Decisions made: Use the current server account with `LogonType Interactive` for the initial daily scheduled backup task. This is acceptable for the current kiosk/server account model, but a future IT-owned service account is still preferable for unattended operation.
+- Validation performed: Backup env file exists and contains `DATABASE_URL` without printing the value. Manual backup through `-EnvironmentFile` created `metrics-portal-20260723-082846.dump` and passed freshness/hash verification. Scheduled task run returned `LastTaskResult = 0`, next run `2026-07-24 01:00:00`, and freshness JSON verified `metrics-portal-20260723-083005.dump` with `AgeHours = 0.03` and `HashVerified = true`.
+- Deployment status: Production remains on staged code deployment with database workflow feature flags disabled and direct-Smartsheet compatibility behavior active.
+- Risks/blockers: Worker-process readiness, final PL database cutover approval, alert transport, TLS/DNS, and PTFE/PI UAT representatives remain before broader database-backed rollout.
+- Exact next action: Confirm production PL destination contract and worker readiness, then schedule the supervised PL database cutover window.
 
 ### 2026-07-20 - Staged production code deployment completed
 

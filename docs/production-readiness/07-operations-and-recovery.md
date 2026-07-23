@@ -60,20 +60,23 @@ Alert messages should identify the affected component, department, first failure
 
 The repository includes Windows backup tooling, and the target server has already produced verified off-machine backups during readiness work. The backup script creates a PostgreSQL custom-format dump, verifies it with `pg_restore --list`, writes a SHA-256 metadata sidecar, and removes partial artifacts if backup or verification fails.
 
-Current state:
+Current state as of July 23, 2026:
 
 - Manual verified backups have been proven against the approved off-server backup share.
 - Backup freshness/hash verification tooling exists.
 - An isolated restore drill has been proven against a disposable PostgreSQL database.
-- Automatic Windows Task Scheduler registration is still a manual operations gate; it must be completed before or as part of the PL database cutover, not assumed merely because the script exists.
+- The Windows scheduled task `Metrics Portal PostgreSQL Backup` is registered for daily 1:00 AM execution and has completed a manual scheduled-task run with result `0`.
+- The scheduled-task-created backup `metrics-portal-20260723-083005.dump` passed hash/freshness verification.
 
 Before enabling production PL database submissions, confirm:
 
-1. The scheduled backup task exists and runs as the approved Windows identity.
-2. The task identity can read the protected environment file or otherwise receive the backup-role database URL without printing secrets.
-3. The task identity can write to the approved off-server backup share.
-4. `Test-BackupFreshness.ps1` passes with the agreed maximum age.
+1. The scheduled backup task's latest run is successful.
+2. `Test-BackupFreshness.ps1` passes with the agreed maximum age.
+3. The scheduled task identity remains valid and can read the protected backup environment file.
+4. The task identity can still write to the approved off-server backup share.
 5. At least one recent backup has either passed a restore drill or is covered by the documented restore-drill cadence.
+
+The initial scheduled task uses the current server account with interactive logon. This is acceptable for the current workstation/server operating model, but an IT-owned service account or password-backed scheduled task is preferred for fully unattended operation.
 
 ## Restore Testing
 
